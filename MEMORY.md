@@ -1,16 +1,20 @@
 # BCU Rust Migration Memory Tracker
 
 ## Project Status
-- **Current Phase**: Phase 0 - Workspace Setup (Planning/Initialization)
+- **Current Phase**: Phase 1 - Foundation Math & Tools
 - **Completed Tasks**:
-  - Read `GEMINI.md`, `RUST_MIGRATION_PLAN.md`, and `BCU 애니메이션 정리파일.md`.
-  - Created implementation plan artifact `implementation_plan.md` to establish Cargo workspace structure.
+  - Read foundational documents and guidelines (`GEMINI.md`, `RUST_MIGRATION_PLAN.md`, `BCU 애니메이션 정리파일.md`).
+  - Created Cargo Workspace root `Cargo.toml` and 6 skeleton crates plus the `parity-tester` tool.
+  - Configured `edition = "2021"` in all `Cargo.toml` files.
+  - Configured workspace path dependencies in root `Cargo.toml` for accurate inter-crate referencing.
+  - Added initial module-level documentation headers (`@java`, `@logic`, `@parity`) to all Rust source files.
+  - Created custom `BCUError` and `ParityTestable` trait in `crates/bcu-core`.
+  - Verified local build and tests pass successfully (`cargo check && cargo test`).
+  - Initialized Git repository and made the first backup commit.
 - **Pending Tasks**:
-  - Obtain user approval on the workspace setup and architecture plan.
-  - Initialize the Cargo workspace and skeleton crates.
-  - Setup shared traits and custom `BCUError`.
+  - Implement `FixedPoint` math representation inside `crates/bcu-math` to handle character scaling, angles, positioning, and animation transitions deterministically without floats.
+  - Implement `JavaRandom` inside `crates/bcu-math`.
 
 ## Technical Notes & Insights
-- **No Floats constraint**: Fixed-point arithmetic must be built in `bcu-math` to handle character scaling, angles, positioning, and animation transitions deterministically.
-- **Dependency restrictions**: Core libraries (`bcu-math`, `bcu-core`, `bcu-parser`) must not include any external dependencies. Serde/other parser aids can only be used in tools (`parity-tester`) or tests if necessary, or implemented manually.
-- **Metadata requirement**: Every migrated `.rs` file must start with `@java`, `@logic`, and `@parity` metadata tags.
+- **Module-Level Doc Comments**: Fixed compiler errors regarding `///` headers without items by changing them to module-level inner doc comments (`//!`), which compile cleanly in files with or without declarations.
+- **WASM Compatibility**: The directory structure (`bcu-api`, `bcu-render`) is prepared for direct compilation to `wasm32-unknown-unknown` for web deployment.
