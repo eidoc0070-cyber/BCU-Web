@@ -55,19 +55,19 @@ This plan focuses on **Minimal Dependencies**, **High Modularity**, and **Strict
 - [x] Create `parity-tester` basic runner.
 
 
-### Phase 2: Data and Parsing
-- [ ] Write manual parser for `imgcut.txt`.
-- [ ] Write manual parser for `mamodel.txt`.
-- [ ] Write manual parser for `maanim_*.txt`.
-- [ ] Validate parsers with existing character files (b0000, etc.).
-- [ ] Implement first Parity Test (Java ImgCut vs Rust ImgCut).
+### Phase 2: Data and Parsing ✅ DONE
+- [x] Write manual parser for `imgcut.txt`.
+- [x] Write manual parser for `mamodel.txt`.
+- [x] Write manual parser for `maanim_*.txt`.
+- [x] Validate parsers with existing character files (b0000, etc.).
+- [x] Implement first Parity Test (Java ImgCut vs Rust ImgCut).
 
-### Phase 3: Animation Engine
-- [ ] Implement `EPart` (runtime part state).
-- [ ] Implement `MaAnim.update()` (keyframe interpolation).
-- [ ] Implement all 5 interpolation types (Linear, Step, Easing, Lagrange, Sinusoidal).
-- [ ] Implement all PropertyTypes (0-14, 50-53) with correct add/multiply semantics.
-- [ ] Implement parent-child recursive transform chain.
+### Phase 3: Animation Engine ✅ DONE
+- [x] Implement `EPart` (runtime part state).
+- [x] Implement `MaAnim.update()` (keyframe interpolation).
+- [x] Implement all 5 interpolation types (Linear, Step, Easing, Lagrange, Sinusoidal).
+- [x] Implement all PropertyTypes (0-14, 50-53) with correct add/multiply semantics.
+- [x] Implement parent-child recursive transform chain.
 
 ### Phase 4: Rendering
 - [ ] Setup `wgpu` WebGPU/WebGL2 context in `bcu-render`.

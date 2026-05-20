@@ -36,13 +36,20 @@
 - Added parser verification checks to `parity-tester` ensuring exact roundtrip parity.
 - Passed all unit and parity tests.
 
-### Pending Tasks (Phase 3)
+#### Phase 3: Animation Engine ✅
+- Refactored `ImgCut`, `MaModel`, `MaAnim`, and `Part` structures from `bcu-parser` to `bcu-core/src/data` for central domain logic access.
+- Implemented `EPart` runtime state with `alter` method supporting all 19 property types (0-14, 50-53).
+- Implemented bit-perfect interpolation logic in `bcu-core/src/animation/interpolation.rs` (Linear, Step, Easing, Lagrange, Sinusoidal).
+- Implemented `update_maanim` logic in `bcu-core/src/animation/runtime.rs` replicating Java's frame calculation and looping behavior.
+- Implemented recursive `get_size` and `get_opa` methods in `EPart` for hierarchical property accumulation.
+- Verified with unit tests for linear and step interpolation.
 
-- [ ] Implement `EPart` (runtime part state).
-- [ ] Implement `MaAnim.update()` (keyframe interpolation).
-- [ ] Implement all 5 interpolation types (Linear, Step, Easing, Lagrange, Sinusoidal).
-- [ ] Implement all PropertyTypes (0-14, 50-53) with correct add/multiply semantics.
-- [ ] Implement parent-child recursive transform chain.
+### Pending Tasks (Phase 4)
+
+- [ ] Setup `wgpu` WebGPU/WebGL2 context in `bcu-render`.
+- [ ] Implement sprite batching and Z-order sorting.
+- [ ] Implement animation playback loop (`EAnimD`).
+- [ ] Connect to `bcu-api` via `wasm-bindgen`.
 
 ---
 

@@ -238,6 +238,23 @@ impl SubAssign for Vec2 {
     }
 }
 
+impl Mul for Vec2 {
+    type Output = Self;
+    fn mul(self, rhs: Self) -> Self {
+        Self {
+            x: self.x * rhs.x,
+            y: self.y * rhs.y,
+        }
+    }
+}
+
+impl MulAssign for Vec2 {
+    fn mul_assign(&mut self, rhs: Self) {
+        self.x *= rhs.x;
+        self.y *= rhs.y;
+    }
+}
+
 impl Mul<FixedPoint> for Vec2 {
     type Output = Self;
     fn mul(self, rhs: FixedPoint) -> Self {

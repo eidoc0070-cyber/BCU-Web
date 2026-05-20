@@ -2,15 +2,7 @@
 //! @logic: ImgCut parses sprite sheet partition data defining sub-image rects.
 //! @parity: 100%
 
-use bcu_core::{BCUError, ParityTestable};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ImgCut {
-    pub name: String,
-    pub n: usize,
-    pub cuts: Vec<[i32; 4]>,
-    pub strs: Vec<String>,
-}
+use bcu_core::{BCUError, ImgCut};
 
 pub fn restrict(s: &str) -> String {
     s.chars().take(32).collect()
@@ -81,26 +73,10 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
     Ok(ImgCut { name, n, cuts, strs })
 }
 
-impl ParityTestable for ImgCut {
-    fn to_parity_string(&self) -> String {
-        let mut s = String::new();
-        s.push_str("[imgcut]\n");
-        s.push_str("0\n");
-        s.push_str(&self.name);
-        s.push_str("\n");
-        s.push_str(&self.n.to_string());
-        s.push_str("\n");
-        for i in 0..self.n {
-            let cut = self.cuts[i];
-            s.push_str(&format!("{},{},{},{},{}\n", cut[0], cut[1], cut[2], cut[3], self.strs[i]));
-        }
-        s
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bcu_core::ParityTestable;
 
     #[test]
     fn test_imgcut_parsing() {

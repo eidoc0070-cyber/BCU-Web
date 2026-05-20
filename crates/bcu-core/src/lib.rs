@@ -2,6 +2,11 @@
 //! @logic: BCU core core trait definitions and error types.
 //! @parity: 100% (basic skeleton traits and errors)
 
+pub mod data;
+pub use data::*;
+pub mod animation;
+pub use animation::*;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BCUError {
     ParseError(String),

@@ -6,6 +6,7 @@ pub mod imgcut;
 pub mod mamodel;
 pub mod maanim;
 
-pub use imgcut::{ImgCut, parse_imgcut, restrict};
-pub use mamodel::{MaModel, parse_mamodel};
-pub use maanim::{MaAnim, Part, parse_maanim};
+pub use bcu_core::{ImgCut, MaModel, MaAnim, Part};
+pub use imgcut::{parse_imgcut, restrict};
+pub use mamodel::parse_mamodel;
+pub use maanim::parse_maanim;

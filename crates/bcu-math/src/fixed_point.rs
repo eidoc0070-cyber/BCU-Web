@@ -2,7 +2,7 @@
 //! @logic: i64-based fixed-point representation with a scaling factor of 1,000,000.
 //! @parity: 100%
 
-use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign};
+use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct FixedPoint(pub i64);
@@ -68,6 +68,27 @@ impl FixedPoint {
             bit >>= 2;
         }
         Self(res as i64)
+    }
+
+    /// Calculate power with integer exponent.
+    pub fn pow_i32(self, n: i32) -> Self {
+        if n == 0 {
+            return Self::ONE;
+        }
+        if n < 0 {
+            return Self::ONE / self.pow_i32(-n);
+        }
+        let mut res = Self::ONE;
+        let mut base = self;
+        let mut exp = n;
+        while exp > 0 {
+            if exp % 2 == 1 {
+                res = res * base;
+            }
+            base = base * base;
+            exp /= 2;
+        }
+        res
     }
 
     /// Trigonometric sine approximation using Taylor series.
@@ -235,5 +256,21 @@ impl Neg for FixedPoint {
     type Output = Self;
     fn neg(self) -> Self {
         Self(-self.0)
+    }
+}
+
+impl Rem for FixedPoint {
+    type Output = Self;
+    fn rem(self, rhs: Self) -> Self {
+        if rhs.0 == 0 {
+            panic!("Remainder by zero in FixedPoint");
+        }
+        Self(self.0 % rhs.0)
+    }
+}
+
+impl RemAssign for FixedPoint {
+    fn rem_assign(&mut self, rhs: Self) {
+        *self = *self % rhs;
     }
 }

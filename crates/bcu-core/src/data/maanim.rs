@@ -1,0 +1,113 @@
+//! @java: common.util.anim.MaAnim / common.util.anim.Part
+//! @logic: MaAnim defines skeletal animation keyframes and validation logic.
+//! @parity: 100%
+
+use crate::ParityTestable;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Part {
+    pub ints: [i32; 5],
+    pub name: String,
+    pub n: usize,
+    pub max: i32,
+    pub off: i32,
+    pub fir: i32,
+    pub moves: Vec<[i32; 4]>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaAnim {
+    pub n: usize,
+    pub parts: Vec<Part>,
+    pub max: i32,
+    pub len: i32,
+}
+
+impl Part {
+    pub fn new(id: i32, modif: i32) -> Self {
+        Part {
+            ints: [id, modif, -1, 0, 0],
+            name: "".to_string(),
+            n: 0,
+            max: 0,
+            off: 0,
+            fir: 0,
+            moves: Vec::new(),
+        }
+    }
+
+    pub fn validate(&mut self) {
+        let mut doff = 0;
+        if self.n != 0 && (self.moves[0][0] - self.off < 0 || self.ints[2] != 1) {
+            doff -= self.moves[0][0];
+        }
+        for i in 0..self.n {
+            self.moves[i][0] += doff;
+        }
+        self.off += doff;
+        self.fir = if self.moves.is_empty() { 0 } else { self.moves[0][0] };
+        self.max = if self.n > 0 { self.moves[self.n - 1][0] } else { 0 };
+    }
+
+    pub fn get_max(&self) -> i32 {
+        if self.ints[2] != -1 {
+            if self.ints[2] > 1 {
+                self.fir + (self.max - self.fir) * self.ints[2] - self.off
+            } else {
+                self.max - self.off
+            }
+        } else {
+            self.max - std::cmp::min(self.off, 0)
+        }
+    }
+}
+
+impl MaAnim {
+    pub fn validate(&mut self) {
+        for p in &mut self.parts {
+            if p.ints[1] == 2 {
+                for m in &mut p.moves {
+                    if m[1] < 0 {
+                        m[1] = 0;
+                    }
+                }
+            }
+        }
+
+        self.max = 1;
+        for i in 0..self.n {
+            let p_max = self.parts[i].get_max();
+            if p_max > self.max {
+                self.max = p_max;
+            }
+        }
+
+        self.len = 1;
+        for i in 0..self.n {
+            self.len = std::cmp::max(self.len, self.parts[i].get_max());
+        }
+    }
+}
+
+impl ParityTestable for MaAnim {
+    fn to_parity_string(&self) -> String {
+        let mut s = String::new();
+        s.push_str("[maanim]\n");
+        s.push_str("1\n");
+        s.push_str(&self.parts.len().to_string());
+        s.push_str("\n");
+        for p in &self.parts {
+            for val in &p.ints {
+                s.push_str(&format!("{},", val));
+            }
+            s.push_str(&p.name);
+            s.push_str("\n");
+            s.push_str(&p.moves.len().to_string());
+            s.push_str("\n");
+            for m in &p.moves {
+                s.push_str(&format!("{},{},{},{},\n", m[0] - p.off, m[1], m[2], m[3]));
+            }
+        }
+        s
+    }
+}

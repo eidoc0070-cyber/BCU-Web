@@ -1,0 +1,143 @@
+//! @java: common.util.anim.EPart
+//! @logic: Runtime animation part state, handling transforms and property modifications.
+//! @parity: 0% (Definition only)
+
+use bcu_math::{FixedPoint, Vec2};
+use crate::data::MaModel;
+
+pub struct EPart {
+    pub name: String,
+    pub ind: usize,
+    
+    // Pointers (indices)
+    pub parent_idx: Option<usize>,
+    
+    // Properties
+    pub id: i32,
+    pub img: i32,
+    pub z: i32,
+    pub pos: Vec2,
+    pub piv: Vec2,
+    pub sca: Vec2,
+    pub gsca: FixedPoint,
+    pub angle: FixedPoint,
+    pub opacity: FixedPoint,
+    pub hf: i32,
+    pub vf: i32,
+    
+    pub glow: i32,
+    pub ext_type: i32,
+    pub extend_x: FixedPoint,
+    pub extend_y: FixedPoint,
+    
+    // Initial values (from MaModel)
+    pub args: [i32; 14],
+}
+
+impl EPart {
+    pub fn new(ind: usize, name: String, args: [i32; 14], model: &MaModel) -> Self {
+        let part = EPart {
+            name,
+            ind,
+            parent_idx: if args[0] < 0 { None } else { Some(args[0] as usize) },
+            id: args[1],
+            img: args[2],
+            z: args[3] * (model.n as i32) + (ind as i32),
+            pos: Vec2::new(FixedPoint::from_int(args[4] as i64), FixedPoint::from_int(args[5] as i64)),
+            piv: Vec2::new(FixedPoint::from_int(args[6] as i64), FixedPoint::from_int(args[7] as i64)),
+            sca: Vec2::new(FixedPoint::from_int(args[8] as i64), FixedPoint::from_int(args[9] as i64)),
+            gsca: FixedPoint::from_int(model.ints[0] as i64),
+            angle: FixedPoint::from_int(args[10] as i64),
+            opacity: FixedPoint::from_int(args[11] as i64),
+            hf: 1,
+            vf: 1,
+            glow: args[12],
+            ext_type: 0,
+            extend_x: FixedPoint::ZERO,
+            extend_y: FixedPoint::ZERO,
+            args,
+        };
+        // Initial gscale/opacity scaling logic from Java setValue() if any
+        // Java setValue(): gsca = model.ints[0]; hf = vf = 1; extendX = extendY = 0;
+        part
+    }
+
+    pub fn alter(&mut self, m: i32, v: FixedPoint, n_parts: usize, model: &MaModel) {
+        let mi = FixedPoint::from_int(model.ints[0] as i64);
+        let oi = FixedPoint::from_int(model.ints[2] as i64);
+
+        match m {
+            0 => {
+                let v_i = v.to_int() as usize;
+                if v_i < n_parts && v_i != self.ind {
+                    self.parent_idx = Some(v_i);
+                } else {
+                    self.parent_idx = Some(0);
+                }
+                // TODO: Loop detection? Java has isParentValid check here.
+            }
+            1 => self.id = v.to_int() as i32,
+            2 => self.img = v.to_int() as i32,
+            3 => self.z = v.to_int() as i32 * (n_parts as i32) + (self.ind as i32),
+            4 => self.pos.x = FixedPoint::from_int(self.args[4] as i64) + v,
+            5 => self.pos.y = FixedPoint::from_int(self.args[5] as i64) + v,
+            6 => self.piv.x = FixedPoint::from_int(self.args[6] as i64) + v,
+            7 => self.piv.y = FixedPoint::from_int(self.args[7] as i64) + v,
+            8 => {
+                let factor = v / mi;
+                self.sca.x = FixedPoint::from_int(self.args[8] as i64) * factor;
+                self.sca.y = FixedPoint::from_int(self.args[9] as i64) * factor;
+            }
+            9 => self.sca.x = FixedPoint::from_int(self.args[8] as i64) * v / mi,
+            10 => self.sca.y = FixedPoint::from_int(self.args[9] as i64) * v / mi,
+            11 => self.angle = FixedPoint::from_int(self.args[10] as i64) + v,
+            12 => self.opacity = v * FixedPoint::from_int(self.args[11] as i64) / oi,
+            13 => self.hf = if v == FixedPoint::ZERO { 1 } else { -1 },
+            14 => self.vf = if v == FixedPoint::ZERO { 1 } else { -1 },
+            50 => {
+                self.extend_x = v;
+                self.ext_type = 0;
+            }
+            51 => {
+                self.extend_x = v;
+                self.ext_type = 1;
+            }
+            52 => {
+                self.extend_y = v;
+                self.ext_type = 0;
+            }
+            53 => self.gsca = v,
+            _ => {
+                // Ignore unhandled modifications for now or log error if we had logging
+            }
+        }
+    }
+
+    pub fn get_size(&self, entities: &[EPart], model: &MaModel) -> Vec2 {
+        let mi = FixedPoint::from_int(model.ints[0] as i64);
+        // mi * mi might overflow if we are not careful with SCALE.
+        // In FixedPoint multiplication, it's (a * b) / SCALE.
+        // So (mi * mi) / SCALE.
+        // gsca * mi_inv * mi_inv in Java is gsca / (model.ints[0] * model.ints[0]).
+        
+        let scale_factor = (self.gsca / mi) / mi;
+
+        if let Some(p_idx) = self.parent_idx {
+            entities[p_idx].get_size(entities, model) * self.sca * scale_factor
+        } else {
+            self.sca * scale_factor
+        }
+    }
+
+    pub fn get_opa(&self, entities: &[EPart], model: &MaModel) -> FixedPoint {
+        let oi = FixedPoint::from_int(model.ints[2] as i64);
+        if self.opacity == FixedPoint::ZERO {
+            return FixedPoint::ZERO;
+        }
+        if let Some(p_idx) = self.parent_idx {
+            entities[p_idx].get_opa(entities, model) * (self.opacity / oi)
+        } else {
+            self.opacity / oi
+        }
+    }
+}
