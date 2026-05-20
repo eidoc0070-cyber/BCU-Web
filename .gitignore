@@ -1,4 +1,36 @@
-/target
-/node_modules
-/dist
+# === OS & System Files ===
 .DS_Store
+Thumbs.db
+*.tmp
+*.bak
+
+# === Rust / Cargo ===
+/target/
+
+# === Rust WebAssembly (wasm-pack) ===
+/pkg/
+
+# === Node / Bun / Vite ===
+/node_modules/
+/dist/
+/.bun/
+.env
+.env.local
+.env.production
+
+# === Java / Kotlin / Gradle (BCU-java-PC-slow_kotlin) ===
+.gradle/
+**/build/
+**/out/
+**/bin/
+**/*.class
+**/*.log
+
+# === IDEs / Editors ===
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
