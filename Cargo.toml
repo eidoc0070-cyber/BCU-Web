@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/bcu-math",
+    "crates/bcu-core",
+    "crates/bcu-parser",
+    "crates/bcu-assets",
+    "crates/bcu-render",
+    "crates/bcu-api",
+    "tools/parity-tester",
+]
+
+[workspace.dependencies]
+bcu-math = { path = "crates/bcu-math" }
+bcu-core = { path = "crates/bcu-core" }
+bcu-parser = { path = "crates/bcu-parser" }
+bcu-assets = { path = "crates/bcu-assets" }
+bcu-render = { path = "crates/bcu-render" }
+bcu-api = { path = "crates/bcu-api" }

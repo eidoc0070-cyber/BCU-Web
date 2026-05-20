@@ -1,0 +1,9 @@
+[package]
+name = "bcu-render"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bcu-core = { workspace = true }
+bcu-assets = { workspace = true }
+# Note: wgpu and other web/graphics dependencies can be added here under wgpu/infrastructure exceptions.

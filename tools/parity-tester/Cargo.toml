@@ -1,0 +1,10 @@
+[package]
+name = "parity-tester"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bcu-math = { workspace = true }
+bcu-core = { workspace = true }
+bcu-parser = { workspace = true }
+bcu-assets = { workspace = true }

@@ -1,0 +1,8 @@
+[package]
+name = "bcu-parser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bcu-math = { workspace = true }
+bcu-core = { workspace = true }

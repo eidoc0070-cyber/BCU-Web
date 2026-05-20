@@ -1,0 +1,9 @@
+[package]
+name = "bcu-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bcu-core = { workspace = true }
+bcu-render = { workspace = true }
+# Note: wasm-bindgen and other JS bridges can be declared here.
