@@ -48,11 +48,12 @@ This plan focuses on **Minimal Dependencies**, **High Modularity**, and **Strict
 - [x] Initialize Bun + TypeScript + Vite web frontend skeleton.
 - [x] Configure comprehensive `.gitignore`.
 
-### Phase 1: Foundation (Math and Tools)
-- [ ] Implement `JavaRandom` (mimicking `java.util.Random` with identical seed behavior).
-- [ ] Implement `FixedPoint` (i64-based) to replace all float usage in core.
-- [ ] Implement `Vec2` (2D vector using FixedPoint).
-- [ ] Create `parity-tester` basic runner.
+### Phase 1: Foundation (Math and Tools) ✅ DONE
+- [x] Implement `JavaRandom` (mimicking `java.util.Random` with identical seed behavior).
+- [x] Implement `FixedPoint` (i64-based) to replace all float usage in core.
+- [x] Implement `Vec2` (2D vector using FixedPoint).
+- [x] Create `parity-tester` basic runner.
+
 
 ### Phase 2: Data and Parsing
 - [ ] Write manual parser for `imgcut.txt`.

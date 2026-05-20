@@ -2,7 +2,7 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 1 - Foundation Math and Tools
+- **Current Phase**: Phase 2 - Data and Parsing
 - **Last Updated**: 2026-05-20
 
 ### Completed Phases
@@ -22,11 +22,20 @@
 - Verified: `bun run build` produces `dist/` successfully.
 - Comprehensive `.gitignore` covering Rust, Node, Java/Gradle, IDE files applied.
 
-### Pending Tasks
+#### Phase 1: Foundation (Math and Tools) ✅
+- Implemented `FixedPoint` (`i64`-backed, $10^6$ scaled) arithmetic and bit-perfect trigs (`sin`/`cos`/`atan2`/`sqrt`).
+- Implemented `JavaRandom` replicating Java's `Random` LCG and battle random wrapper `CopRand`.
+- Implemented `Vec2` 2D Vector matching Java's `P` class.
+- Implemented `parity-tester` validating RNG sequences and trig identities.
+- Passed all unit tests and parity-tester checks.
 
-- [ ] Implement `FixedPoint` (i64-based fixed-point arithmetic) in `bcu-math`.
-- [ ] Implement `JavaRandom` (Java-compatible RNG) in `bcu-math`.
-- [ ] Implement `Vec2` (2D vector using FixedPoint) in `bcu-math`.
+### Pending Tasks (Phase 2)
+
+- [ ] Write manual parser for `imgcut.txt` in `bcu-parser`.
+- [ ] Write manual parser for `mamodel.txt` in `bcu-parser`.
+- [ ] Write manual parser for `maanim_*.txt` in `bcu-parser`.
+- [ ] Validate parsers with character files.
+- [ ] Implement Parity Test (Java ImgCut vs Rust ImgCut).
 
 ---
 
@@ -38,6 +47,7 @@
 | **WASM Loading** | Vite supports native ESM WASM import; no plugin needed. |
 | **Test DOM** | `happy-dom` + `@happy-dom/global-registrator` simulate browser APIs in Bun tests. |
 | **Cargo Resolver** | Using `resolver = "2"` for accurate feature unification. |
+| **FixedPoint Scale** | Scale factor is $1,000,000$. Trig functions use Taylor series and CORDIC. |
 
 ---
 
@@ -48,3 +58,4 @@
 | `a32f7e2` | Initial commit: Initialize Cargo workspace and crate skeletons |
 | `00b9ff0` | Setup web frontend skeleton (Vite, TS, Bun, happy-dom) |
 | `9a4f378` | Update .gitignore with comprehensive ignores |
+| `1aa6229` | feat(bcu-math): implement FixedPoint, JavaRandom, and Vec2 logic parity |
