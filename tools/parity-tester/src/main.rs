@@ -97,5 +97,67 @@ fn main() {
     assert!((v.y.to_float() - expected_y).abs() < 1e-4, "v.y = {}, expected {}", v.y.to_float(), expected_y);
     println!("✓ Vec2 rotation and polar coordinates verified successfully.");
 
-    println!("All math and parity tests PASSED successfully.");
+    // 5. Parser verification
+    println!("Checking ImgCut parser parity...");
+    let imgcut_sample = "\
+[imgcut]
+0
+i000_e.png
+3
+1,2,3,4,first
+10,20,30,40,
+100,200,300,400,third_with_very_long_name_that_should_be_restricted
+";
+    let parsed_imgcut = bcu_parser::parse_imgcut(imgcut_sample).expect("Failed to parse ImgCut");
+    let parity_imgcut = bcu_core::ParityTestable::to_parity_string(&parsed_imgcut);
+    // The long name will be restricted to 32 chars: "third_with_very_long_name_that_s"
+    let expected_imgcut = "\
+[imgcut]
+0
+i000_e.png
+3
+1,2,3,4,first
+10,20,30,40,
+100,200,300,400,third_with_very_long_name_that_s
+";
+    assert_eq!(parity_imgcut, expected_imgcut, "ImgCut parity string mismatch");
+    println!("✓ ImgCut parser and formatter matched successfully.");
+
+    println!("Checking MaModel parser parity...");
+    let mamodel_sample = "\
+[mamodel]
+3
+3
+-1,-1,0,0,0,0,-50,-56,1790,1790,0,1000,0,Parent_Part
+0,0,0,1,0,0,0,0,1000,1000,0,1000,0,
+1,0,8,0,0,53,0,0,1000,1000,0,1000,0,
+1000,3600,1000
+1
+0,0,0,0,25,0,Collision_Box
+";
+    let parsed_mamodel = bcu_parser::parse_mamodel(mamodel_sample).expect("Failed to parse MaModel");
+    let parity_mamodel = bcu_core::ParityTestable::to_parity_string(&parsed_mamodel);
+    assert_eq!(parity_mamodel, mamodel_sample, "MaModel parity string mismatch");
+    println!("✓ MaModel parser and formatter matched successfully.");
+
+    println!("Checking MaAnim parser parity...");
+    let maanim_sample = "\
+[maanim]
+1
+1
+1,2,-1,-1000,1000,Walk_Anim
+4
+0,0,1,0,
+5,3,1,0,
+10,1,1,0,
+15,3,1,0,
+";
+    let parsed_maanim = bcu_parser::parse_maanim(maanim_sample, false).expect("Failed to parse MaAnim");
+    let parity_maanim = bcu_core::ParityTestable::to_parity_string(&parsed_maanim);
+    // Since moves print with a trailing comma on each line, e.g. "0,0,1,0,"
+    assert_eq!(parity_maanim, maanim_sample, "MaAnim parity string mismatch");
+    println!("✓ MaAnim parser and formatter matched successfully.");
+
+    println!("All math, random, and parser parity tests PASSED successfully.");
 }
+
