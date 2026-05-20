@@ -2,7 +2,7 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 2 - Data and Parsing
+- **Current Phase**: Phase 3 - Animation Engine
 - **Last Updated**: 2026-05-20
 
 ### Completed Phases
@@ -29,13 +29,20 @@
 - Implemented `parity-tester` validating RNG sequences and trig identities.
 - Passed all unit tests and parity-tester checks.
 
-### Pending Tasks (Phase 2)
+#### Phase 2: Data and Parsing ✅
+- Implemented handcrafted manual text parsers for `ImgCut`, `MaModel`, and `MaAnim` formatting in `bcu-parser`.
+- Implemented parent-child loop detection and correction in `MaModel`.
+- Replicated keyframe offset shift validation in `Part` and `MaAnim`.
+- Added parser verification checks to `parity-tester` ensuring exact roundtrip parity.
+- Passed all unit and parity tests.
 
-- [ ] Write manual parser for `imgcut.txt` in `bcu-parser`.
-- [ ] Write manual parser for `mamodel.txt` in `bcu-parser`.
-- [ ] Write manual parser for `maanim_*.txt` in `bcu-parser`.
-- [ ] Validate parsers with character files.
-- [ ] Implement Parity Test (Java ImgCut vs Rust ImgCut).
+### Pending Tasks (Phase 3)
+
+- [ ] Implement `EPart` (runtime part state).
+- [ ] Implement `MaAnim.update()` (keyframe interpolation).
+- [ ] Implement all 5 interpolation types (Linear, Step, Easing, Lagrange, Sinusoidal).
+- [ ] Implement all PropertyTypes (0-14, 50-53) with correct add/multiply semantics.
+- [ ] Implement parent-child recursive transform chain.
 
 ---
 
@@ -59,3 +66,5 @@
 | `00b9ff0` | Setup web frontend skeleton (Vite, TS, Bun, happy-dom) |
 | `9a4f378` | Update .gitignore with comprehensive ignores |
 | `1aa6229` | feat(bcu-math): implement FixedPoint, JavaRandom, and Vec2 logic parity |
+| `13b7314` | feat(bcu-parser): implement ImgCut, MaModel, and MaAnim handcrafted parsers with parity verification |
+
