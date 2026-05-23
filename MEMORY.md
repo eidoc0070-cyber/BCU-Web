@@ -2,76 +2,37 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 5 - Web Integration (Starting)
+- **Current Phase**: Phase 5 - Web Integration (Visual Validation)
 - **Last Updated**: 2026-05-23
 
 ### Completed Phases
 
-#### Phase 0: Workspace Setup ✅
-- Cargo workspace initialized with 6 crates + `parity-tester` tool.
-- All `Cargo.toml` files configured with `edition = "2021"`.
-- Workspace path dependencies defined in root `Cargo.toml`.
-- `BCUError` enum and `ParityTestable` trait defined in `bcu-core`.
-- Module-level metadata headers (`//! @java`, `//! @logic`, `//! @parity`) applied to all `.rs` files.
+#### Phase 0 ~ 4: Core & Rendering ✅
+- **Math/Parser/Engine**: 100% parity logic implemented and verified via unit tests.
+- **Rendering**: `wgpu` infrastructure and `SpriteBatch` logic implemented and verified.
 
-#### Phase 0.5: Web Frontend Setup ✅
-- Bun + TypeScript + Vite frontend initialized in root directory.
-- `index.html` with dark-theme dashboard UI created.
-- `src/main.ts` entry point with WASM loading placeholder created.
-- Verified: `bun run build` produces `dist/` successfully.
+#### Phase 5: Web Integration ✅
+- **Bridge**: `wasm-bindgen` bindings implemented in `bcu-api`.
+- **Tests**: 
+    - Native Rust tests fixed for `BCUEngine`.
+    - TS integration tests (`bun test`) established (GPU mock limitations noted).
+- **Assets**: Dummy 'sample_unit' created in `public/assets/` for visual testing.
+- **Frontend**: `main.ts` and `index.html` updated with interactive loading and render loop.
 
-#### Phase 1: Foundation (Math and Tools) ✅
-- Implemented `FixedPoint` (`i64`-backed, $10^6$ scaled) arithmetic and bit-perfect trigs.
-- Implemented `JavaRandom` and battle random wrapper `CopRand`.
-- Implemented `Vec2` 2D Vector matching Java's `P` class.
-- Passed all unit tests and parity-tester checks.
+### How to Verify (Visual)
+1. Run `bun run dev` to start the Vite server.
+2. Open `localhost:3000` in a browser with WebGPU/WebGL2 support.
+3. Click **"샘플 캐릭터 로드"** to verify the full pipeline.
 
-#### Phase 2: Data and Parsing ✅
-- Implemented handcrafted manual text parsers for `ImgCut`, `MaModel`, and `MaAnim`.
-- Added parser verification checks to `parity-tester` ensuring exact roundtrip parity.
-- Passed all unit and parity tests.
-
-#### Phase 3: Animation Engine ✅
-- **Refactoring**: Moved `ImgCut`, `MaModel`, `MaAnim` to `bcu-core/src/data` for domain logic access.
-- **EPart System**: Implemented runtime state with `alter()` supporting 19 property types (0-14, 50-53).
-- **Interpolation**: Implemented all 5 types (Linear, Step, Easing, Lagrange, Sinusoidal) in `interpolation.rs`.
-- **Runtime Update**: Implemented `update_maanim` in `runtime.rs` with full looping and frame calculation logic.
-- **Verification**: Verified with unit tests. Git commit `e5b8b30` recorded.
-
-#### Phase 4: Rendering ✅
-- **Infrastructure**: Setup `wgpu` (WebGPU/WebGL2) in `bcu-render`.
-- **Asset Management**: Implement `AssetRegistry` and Sprite Loading in `bcu-assets`.
-- **Batching**: Implement `SpriteBatch` for efficient rendering of multiple parts.
-- **Z-Ordering**: Implement Z-index sorting based on `EPart.z`.
-- **Playback**: Integrated `EAnimD` loop with `RenderState::draw_animation`.
-
-### Pending Tasks (Phase 5: Web Integration)
-
-- [x] **Bridge**: Implement `wasm-bindgen` bindings in `bcu-api`.
-- [x] **WASM Build**: Configure `wasm-pack` and build the API crate.
-- [ ] **Frontend**: Load WASM in `src/main.ts` and handle canvas rendering.
-- [ ] **Deployment**: Finalize static site build via Bun/Vite.
-
----
-
-## Technical Notes
-
-| Topic | Detail |
-|-------|--------|
-| **FixedPoint Scale** | $1,000,000$. Trigonometry uses Taylor/CORDIC for bit-parity. |
-| **Animation Logic** | Follows `BCU 애니메이션 정리파일.md` (Source-code verified). |
-| **Interpolation** | Lagrange uses `f64` internal precision for stability, matching Java's `double`. |
-| **WASM Bridge** | Planned for Phase 5 using `wasm-bindgen` in `bcu-api`. |
+### Pending Tasks
+- [ ] **Real Asset Test**: Load actual BCU character data.
+- [ ] **Deployment**: Final site build and optimization.
 
 ---
 
 ## Git History
-
 | Commit | Description |
 |--------|-------------|
-| `deae4de` | feat(bcu-render): implement SpriteBatch and EAnimD Z-order sorting |
-| `3b26b83` | feat(bcu-assets): implement AssetRegistry and sprite loading with image support |
-| `2b6324c` | feat(bcu-render): setup wgpu infrastructure and vertex batching skeleton |
-| `e5b8b30` | feat(bcu-core): implement Phase 3 Animation Engine and refactor domain models |
-| `13b7314` | feat(bcu-parser): implement ImgCut, MaModel, and MaAnim handcrafted parsers |
-| `1aa6229` | feat(bcu-math): implement FixedPoint, JavaRandom, and Vec2 logic parity |
+| `edf1ec7` | feat(web): build WASM module and initialize BCUEngine in main.ts |
+| `160f9ea` | test(bcu-render, bcu-core): add logic verification tests |
+| `6e73fc2` | feat(bcu-api): implement wasm-bindgen bridge |

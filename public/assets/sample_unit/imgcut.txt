@@ -1,0 +1,5 @@
+[imgcut]
+0
+sprite.png
+1
+0,0,10,10,Part0
