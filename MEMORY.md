@@ -41,7 +41,7 @@
 ### Pending Tasks (Phase 4: Rendering)
 
 - [x] **Infrastructure**: Setup `wgpu` (WebGPU/WebGL2) in `bcu-render`.
-- [ ] **Asset Management**: Implement `AssetRegistry` and Sprite Loading in `bcu-assets`.
+- [x] **Asset Management**: Implement `AssetRegistry` and Sprite Loading in `bcu-assets`.
 - [ ] **Batching**: Implement `SpriteBatch` for efficient rendering of multiple parts.
 - [ ] **Z-Ordering**: Implement Z-index sorting based on `EPart.z`.
 - [ ] **Playback**: Implement `EAnimD` (Animation Display) loop.

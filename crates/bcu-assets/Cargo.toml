@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 bcu-core = { workspace = true }
+image = { version = "0.25", default-features = false, features = ["png"] }
+thiserror = "1.0"
+log = "0.4"
