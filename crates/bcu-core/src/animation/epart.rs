@@ -113,6 +113,38 @@ impl EPart {
         }
     }
 
+    pub fn get_transform(&self, entities: &[EPart], model: &MaModel) -> (Vec2, Vec2, FixedPoint) {
+        let mi = FixedPoint::from_int(model.ints[0] as i64);
+        let ri = FixedPoint::from_int(model.ints[1] as i64);
+        
+        let mut p_pos = Vec2::ZERO;
+        let mut p_sca = Vec2::new(FixedPoint::ONE, FixedPoint::ONE);
+        let mut p_angle = FixedPoint::ZERO;
+
+        if let Some(p_idx) = self.parent_idx {
+            let (pp, ps, pa) = entities[p_idx].get_transform(entities, model);
+            p_pos = pp;
+            p_sca = ps;
+            p_angle = pa;
+        }
+
+        // Java logic:
+        // p.x += (pos.x - piv.x) * ps.x;
+        // p.y += (pos.y - piv.y) * ps.y;
+        // if (pa != 0) p.rotate(pa);
+        
+        let mut current_pos = (self.pos - self.piv) * p_sca;
+        if p_angle != FixedPoint::ZERO {
+            current_pos.rotate(p_angle * FixedPoint::TWO_PI / ri);
+        }
+        
+        let final_pos = p_pos + current_pos;
+        let final_sca = p_sca * self.sca / mi;
+        let final_angle = p_angle + self.angle;
+
+        (final_pos, final_sca, final_angle)
+    }
+
     pub fn get_size(&self, entities: &[EPart], model: &MaModel) -> Vec2 {
         let mi = FixedPoint::from_int(model.ints[0] as i64);
         // mi * mi might overflow if we are not careful with SCALE.

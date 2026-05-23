@@ -6,4 +6,24 @@ edition = "2021"
 [dependencies]
 bcu-core = { workspace = true }
 bcu-assets = { workspace = true }
-# Note: wgpu and other web/graphics dependencies can be added here under wgpu/infrastructure exceptions.
+bcu-math = { workspace = true }
+wgpu = "0.19"
+bytemuck = { version = "1.15", features = ["derive"] }
+log = "0.4"
+pollster = "0.3"
+thiserror = "1.0"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-sys = { version = "0.3", features = [
+    "CanvasRenderingContext2d",
+    "Document",
+    "Element",
+    "Gpu",
+    "GpuAdapter",
+    "GpuCanvasContext",
+    "GpuDevice",
+    "HtmlCanvasElement",
+    "Window",
+] }
