@@ -3,7 +3,9 @@
 //! @parity: 0%
 
 use wgpu::util::DeviceExt;
-// use bcu_math::{FixedPoint, Vec2}; // Will be used later for batching
+// use bcu_math::{FixedPoint, Vec2}; 
+use bcu_core::animation::{EPart, EAnimD};
+use bcu_core::data::{MaModel, ImgCut};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -36,6 +38,107 @@ impl Vertex {
                 },
             ],
         }
+    }
+}
+
+pub struct SpriteBatch {
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u16>,
+    pub next_index: u16,
+}
+
+impl SpriteBatch {
+    pub fn new() -> Self {
+        Self {
+            vertices: Vec::with_capacity(4096),
+            indices: Vec::with_capacity(6144),
+            next_index: 0,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.vertices.clear();
+        self.indices.clear();
+        self.next_index = 0;
+    }
+
+    pub fn add_part(
+        &mut self,
+        part: &EPart,
+        entities: &[EPart],
+        model: &MaModel,
+        imgcut: &ImgCut,
+        tex_w: f32,
+        tex_h: f32,
+    ) {
+        if part.img < 0 || part.img as usize >= imgcut.n {
+            return;
+        }
+
+        let cut = imgcut.cuts[part.img as usize];
+        let (pos, sca, angle) = part.get_transform(entities, model);
+        let opa = part.get_opa(entities, model).to_float() as f32;
+
+        if opa <= 0.0 {
+            return;
+        }
+
+        // 4 corners of the sprite
+        let corners = [
+            [0.0, 0.0],
+            [cut[2] as f32, 0.0],
+            [cut[2] as f32, cut[3] as f32],
+            [0.0, cut[3] as f32],
+        ];
+
+        let ri = model.ints[1] as f32;
+        let rad = angle.to_float() as f32 * 2.0 * std::f32::consts::PI / ri;
+        let cos_a = rad.cos();
+        let sin_a = rad.sin();
+
+        let sx = sca.x.to_float() as f32;
+        let sy = sca.y.to_float() as f32;
+        let px = pos.x.to_float() as f32;
+        let py = pos.y.to_float() as f32;
+
+        let base_idx = self.next_index;
+        
+        // UVs
+        let u0 = cut[0] as f32 / tex_w;
+        let v0 = cut[1] as f32 / tex_h;
+        let u1 = (cut[0] + cut[2]) as f32 / tex_w;
+        let v1 = (cut[1] + cut[3]) as f32 / tex_h;
+
+        let uv_coords = [
+            [u0, v0],
+            [u1, v0],
+            [u1, v1],
+            [u0, v1],
+        ];
+
+        for i in 0..4 {
+            let cx = corners[i][0] * sx;
+            let cy = corners[i][1] * sy;
+
+            // Rotate and translate
+            let rx = cx * cos_a - cy * sin_a + px;
+            let ry = cy * cos_a + cx * sin_a + py;
+
+            self.vertices.push(Vertex {
+                position: [rx, ry],
+                tex_coords: uv_coords[i],
+                color: [1.0, 1.0, 1.0, opa],
+            });
+        }
+
+        self.indices.push(base_idx);
+        self.indices.push(base_idx + 1);
+        self.indices.push(base_idx + 2);
+        self.indices.push(base_idx);
+        self.indices.push(base_idx + 2);
+        self.indices.push(base_idx + 3);
+
+        self.next_index += 4;
     }
 }
 
@@ -214,7 +317,7 @@ impl RenderState {
             multiview: None,
         });
 
-        // Pre-allocate buffers for batching (example size)
+        // Pre-allocate buffers for batching
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
             size: (std::mem::size_of::<Vertex>() * 4096) as u64,
@@ -308,6 +411,21 @@ impl RenderState {
         })
     }
 
+    pub fn draw_anim(
+        &mut self,
+        anim: &EAnimD,
+        imgcut: &ImgCut,
+        tex_w: f32,
+        tex_h: f32,
+        batch: &mut SpriteBatch,
+    ) {
+        batch.clear();
+        for &idx in &anim.order {
+            let part = &anim.entities[idx];
+            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h);
+        }
+    }
+
     pub fn resize(&mut self, new_size: (u32, u32)) {
         if new_size.0 > 0 && new_size.1 > 0 {
             self.size = new_size;
@@ -398,7 +516,7 @@ mod tests {
 
     #[test]
     fn test_vertex_size() {
-        assert_eq!(std::mem::size_of::<Vertex>(), 32); // 2*4 + 2*4 + 4*4 = 8 + 8 + 16 = 32
+        assert_eq!(std::mem::size_of::<Vertex>(), 32);
     }
 
     #[test]

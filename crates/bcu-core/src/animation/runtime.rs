@@ -7,6 +7,58 @@ use crate::data::{MaAnim, Part, MaModel};
 use crate::animation::epart::EPart;
 use crate::animation::interpolation::get_ti;
 
+pub struct EAnimD {
+    pub model: MaModel,
+    pub anim: MaAnim,
+    pub entities: Vec<EPart>,
+    pub order: Vec<usize>,
+    pub frame: FixedPoint,
+}
+
+impl EAnimD {
+    pub fn new(model: MaModel, anim: MaAnim) -> Self {
+        let mut entities = Vec::with_capacity(model.n);
+        let mut order = Vec::with_capacity(model.n);
+        for i in 0..model.n {
+            entities.push(EPart::new(i, model.strs0[i].clone(), model.parts[i], &model));
+            order.push(i);
+        }
+        Self {
+            model,
+            anim,
+            entities,
+            order,
+            frame: FixedPoint::ZERO,
+        }
+    }
+
+    pub fn update(&mut self, rotate: bool) {
+        update_maanim(&self.anim, self.frame, &mut self.entities, &self.model, rotate);
+        self.frame += FixedPoint::ONE;
+        if self.frame > FixedPoint::from_int(self.anim.max as i64) {
+            if rotate {
+                self.frame = FixedPoint::ZERO;
+            } else {
+                self.frame = FixedPoint::from_int(self.anim.max as i64);
+            }
+        }
+        self.sort();
+    }
+
+    pub fn sort(&mut self) {
+        let entities = &self.entities;
+        self.order.sort_by(|&a, &b| {
+            let za = entities[a].z;
+            let zb = entities[b].z;
+            if za != zb {
+                za.cmp(&zb)
+            } else {
+                a.cmp(&b)
+            }
+        });
+    }
+}
+
 pub fn update_maanim(anim: &MaAnim, f: FixedPoint, entities: &mut [EPart], model: &MaModel, rotate: bool) {
     let mut f = f;
     let max_fp = FixedPoint::from_int(anim.max as i64);

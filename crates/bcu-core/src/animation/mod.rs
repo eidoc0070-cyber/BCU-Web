@@ -7,4 +7,4 @@ pub mod interpolation;
 pub mod runtime;
 
 pub use epart::EPart;
-pub use runtime::update_maanim;
+pub use runtime::{update_maanim, EAnimD};
