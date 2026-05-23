@@ -48,7 +48,7 @@
 ### Pending Tasks (Phase 5: Web Integration)
 
 - [x] **Bridge**: Implement `wasm-bindgen` bindings in `bcu-api`.
-- [ ] **WASM Build**: Configure `wasm-pack` and build the API crate.
+- [x] **WASM Build**: Configure `wasm-pack` and build the API crate.
 - [ ] **Frontend**: Load WASM in `src/main.ts` and handle canvas rendering.
 - [ ] **Deployment**: Finalize static site build via Bun/Vite.
 
