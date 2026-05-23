@@ -164,7 +164,7 @@ impl RenderState {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
-        let surface = instance.create_surface_from_canvas(&canvas).expect("Failed to create surface from canvas");
+        let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas)).expect("Failed to create surface from canvas");
         Self::new_common(instance, surface, size).await
     }
 
