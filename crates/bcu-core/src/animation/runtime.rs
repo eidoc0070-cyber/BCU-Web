@@ -341,3 +341,39 @@ mod tests {
         assert_eq!(entities[0].img, 5);
     }
 }
+
+#[cfg(test)]
+mod tests_eanimd {
+    use super::*;
+    use crate::data::{MaAnim, MaModel};
+    use bcu_math::FixedPoint;
+
+    #[test]
+    fn test_eanimd_sorting() {
+        let model = MaModel {
+            n: 2,
+            m: 0,
+            parts: vec![
+                [-1, -1, 0, 10, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Z = 10 * 2 + 0 = 20
+                [-1, -1, 0, 5, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Z = 5 * 2 + 1 = 11
+            ],
+            strs0: vec!["Part1".to_string(), "Part2".to_string()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+        let anim = MaAnim {
+            n: 0,
+            parts: vec![],
+            max: 10,
+            len: 10,
+        };
+
+        let mut display = EAnimD::new(model, anim);
+        display.sort();
+
+        // Part2 (Z=11) should come before Part1 (Z=20)
+        assert_eq!(display.order[0], 1);
+        assert_eq!(display.order[1], 0);
+    }
+}

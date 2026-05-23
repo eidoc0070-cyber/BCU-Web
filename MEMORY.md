@@ -2,7 +2,7 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 4 - Rendering (Starting)
+- **Current Phase**: Phase 5 - Web Integration (Starting)
 - **Last Updated**: 2026-05-23
 
 ### Completed Phases
@@ -38,13 +38,19 @@
 - **Runtime Update**: Implemented `update_maanim` in `runtime.rs` with full looping and frame calculation logic.
 - **Verification**: Verified with unit tests. Git commit `e5b8b30` recorded.
 
-### Pending Tasks (Phase 4: Rendering)
+#### Phase 4: Rendering ✅
+- **Infrastructure**: Setup `wgpu` (WebGPU/WebGL2) in `bcu-render`.
+- **Asset Management**: Implement `AssetRegistry` and Sprite Loading in `bcu-assets`.
+- **Batching**: Implement `SpriteBatch` for efficient rendering of multiple parts.
+- **Z-Ordering**: Implement Z-index sorting based on `EPart.z`.
+- **Playback**: Integrated `EAnimD` loop with `RenderState::draw_animation`.
 
-- [x] **Infrastructure**: Setup `wgpu` (WebGPU/WebGL2) in `bcu-render`.
-- [x] **Asset Management**: Implement `AssetRegistry` and Sprite Loading in `bcu-assets`.
-- [ ] **Batching**: Implement `SpriteBatch` for efficient rendering of multiple parts.
-- [ ] **Z-Ordering**: Implement Z-index sorting based on `EPart.z`.
-- [ ] **Playback**: Implement `EAnimD` (Animation Display) loop.
+### Pending Tasks (Phase 5: Web Integration)
+
+- [ ] **Bridge**: Implement `wasm-bindgen` bindings in `bcu-api`.
+- [ ] **WASM Build**: Configure `wasm-pack` and build the API crate.
+- [ ] **Frontend**: Load WASM in `src/main.ts` and handle canvas rendering.
+- [ ] **Deployment**: Finalize static site build via Bun/Vite.
 
 ---
 
@@ -63,7 +69,9 @@
 
 | Commit | Description |
 |--------|-------------|
+| `deae4de` | feat(bcu-render): implement SpriteBatch and EAnimD Z-order sorting |
+| `3b26b83` | feat(bcu-assets): implement AssetRegistry and sprite loading with image support |
+| `2b6324c` | feat(bcu-render): setup wgpu infrastructure and vertex batching skeleton |
 | `e5b8b30` | feat(bcu-core): implement Phase 3 Animation Engine and refactor domain models |
 | `13b7314` | feat(bcu-parser): implement ImgCut, MaModel, and MaAnim handcrafted parsers |
 | `1aa6229` | feat(bcu-math): implement FixedPoint, JavaRandom, and Vec2 logic parity |
-

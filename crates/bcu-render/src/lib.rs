@@ -411,21 +411,6 @@ impl RenderState {
         })
     }
 
-    pub fn draw_anim(
-        &mut self,
-        anim: &EAnimD,
-        imgcut: &ImgCut,
-        tex_w: f32,
-        tex_h: f32,
-        batch: &mut SpriteBatch,
-    ) {
-        batch.clear();
-        for &idx in &anim.order {
-            let part = &anim.entities[idx];
-            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h);
-        }
-    }
-
     pub fn resize(&mut self, new_size: (u32, u32)) {
         if new_size.0 > 0 && new_size.1 > 0 {
             self.size = new_size;
@@ -448,12 +433,34 @@ impl RenderState {
         }
     }
 
+    pub fn draw_animation(
+        &mut self,
+        anim: &EAnimD,
+        imgcut: &ImgCut,
+        tex_w: f32,
+        tex_h: f32,
+        texture_bind_group: &wgpu::BindGroup,
+        batch: &mut SpriteBatch,
+    ) -> Result<(), wgpu::SurfaceError> {
+        batch.clear();
+        for &idx in &anim.order {
+            let part = &anim.entities[idx];
+            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h);
+        }
+
+        self.render(&batch.vertices, &batch.indices, texture_bind_group)
+    }
+
     pub fn render(
         &mut self,
         vertices: &[Vertex],
         indices: &[u16],
         texture_bind_group: &wgpu::BindGroup,
     ) -> Result<(), wgpu::SurfaceError> {
+        if vertices.is_empty() || indices.is_empty() {
+            return Ok(());
+        }
+
         let output = self.surface.get_current_texture()?;
         let view = output
             .texture
@@ -464,15 +471,13 @@ impl RenderState {
                 label: Some("Render Encoder"),
             });
 
-        // Update buffers
-        if !vertices.is_empty() {
-            self.queue
-                .write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(vertices));
-        }
-        if !indices.is_empty() {
-            self.queue
-                .write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(indices));
-        }
+        // Update buffers - handle potential overflow/resize if needed, 
+        // but for now we rely on the pre-allocated 4096 vertices.
+        let v_size = (vertices.len() * std::mem::size_of::<Vertex>()) as u64;
+        let i_size = (indices.len() * std::mem::size_of::<u16>()) as u64;
+
+        self.queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(vertices));
+        self.queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(indices));
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -482,9 +487,9 @@ impl RenderState {
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: 0.1,
-                            g: 0.2,
-                            b: 0.3,
+                            r: 0.0, // Black background for BCU feel
+                            g: 0.0,
+                            b: 0.0,
                             a: 1.0,
                         }),
                         store: wgpu::StoreOp::Store,
@@ -498,8 +503,8 @@ impl RenderState {
             render_pass.set_pipeline(&self.render_pipeline);
             render_pass.set_bind_group(0, texture_bind_group, &[]);
             render_pass.set_bind_group(1, &self.uniform_bind_group, &[]);
-            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
-            render_pass.set_index_buffer(self.index_buffer.slice(..), wgpu::IndexFormat::Uint16);
+            render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..v_size));
+            render_pass.set_index_buffer(self.index_buffer.slice(..i_size), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
         }
 
@@ -524,5 +529,44 @@ mod tests {
         let desc = Vertex::desc();
         assert_eq!(desc.array_stride, 32);
         assert_eq!(desc.attributes.len(), 3);
+    }
+
+    #[test]
+    fn test_sprite_batch_logic() {
+        let mut batch = SpriteBatch::new();
+        let model = MaModel {
+            n: 1,
+            m: 0,
+            parts: vec![[-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0]],
+            strs0: vec!["Root".to_string()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+        let mut imgcut = ImgCut {
+            name: "test".to_string(),
+            n: 1,
+            cuts: vec![[0, 0, 100, 100]],
+            strs: vec!["part".to_string()],
+        };
+        
+        let part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
+        let entities = vec![part];
+
+        // Texture 100x100, Sprite 100x100 at 0,0
+        batch.add_part(&entities[0], &entities, &model, &imgcut, 100.0, 100.0);
+
+        assert_eq!(batch.vertices.len(), 4);
+        assert_eq!(batch.indices.len(), 6);
+        assert_eq!(batch.next_index, 4);
+
+        // Check first vertex (top-left)
+        assert_eq!(batch.vertices[0].position, [0.0, 0.0]);
+        assert_eq!(batch.vertices[0].tex_coords, [0.0, 0.0]);
+        
+        // Check second vertex (bottom-right of 100x100 sprite)
+        // Note: corners are [0,0], [W,0], [W,H], [0,H]
+        assert_eq!(batch.vertices[2].position, [100.0, 100.0]);
+        assert_eq!(batch.vertices[2].tex_coords, [1.0, 1.0]);
     }
 }
