@@ -70,6 +70,8 @@ impl SpriteBatch {
         imgcut: &ImgCut,
         tex_w: f32,
         tex_h: f32,
+        off_x: f32,
+        off_y: f32,
     ) {
         if part.img < 0 || part.img as usize >= imgcut.n {
             return;
@@ -83,12 +85,17 @@ impl SpriteBatch {
             return;
         }
 
-        // 4 corners of the sprite
+        // 4 corners of the sprite, adjusted by Pivot point
+        let pw = cut[2] as f32;
+        let ph = cut[3] as f32;
+        let px = part.piv.x.to_float() as f32;
+        let py = part.piv.y.to_float() as f32;
+
         let corners = [
-            [0.0, 0.0],
-            [cut[2] as f32, 0.0],
-            [cut[2] as f32, cut[3] as f32],
-            [0.0, cut[3] as f32],
+            [-px, -py],
+            [pw - px, -py],
+            [pw - px, ph - py],
+            [-px, ph - py],
         ];
 
         let ri = model.ints[1] as f32;
@@ -98,16 +105,23 @@ impl SpriteBatch {
 
         let sx = sca.x.to_float() as f32;
         let sy = sca.y.to_float() as f32;
-        let px = pos.x.to_float() as f32;
-        let py = pos.y.to_float() as f32;
+        let px_final = pos.x.to_float() as f32 + off_x;
+        let py_final = pos.y.to_float() as f32 + off_y;
 
         let base_idx = self.next_index;
         
-        // UVs
-        let u0 = cut[0] as f32 / tex_w;
-        let v0 = cut[1] as f32 / tex_h;
-        let u1 = (cut[0] + cut[2]) as f32 / tex_w;
-        let v1 = (cut[1] + cut[3]) as f32 / tex_h;
+        // UVs with Flip support
+        let mut u0 = cut[0] as f32 / tex_w;
+        let mut v0 = cut[1] as f32 / tex_h;
+        let mut u1 = (cut[0] + cut[2]) as f32 / tex_w;
+        let mut v1 = (cut[1] + cut[3]) as f32 / tex_h;
+
+        if part.hf == -1 {
+            std::mem::swap(&mut u0, &mut u1);
+        }
+        if part.vf == -1 {
+            std::mem::swap(&mut v0, &mut v1);
+        }
 
         let uv_coords = [
             [u0, v0],
@@ -121,8 +135,8 @@ impl SpriteBatch {
             let cy = corners[i][1] * sy;
 
             // Rotate and translate
-            let rx = cx * cos_a - cy * sin_a + px;
-            let ry = cy * cos_a + cx * sin_a + py;
+            let rx = cx * cos_a - cy * sin_a + px_final;
+            let ry = cy * cos_a + cx * sin_a + py_final;
 
             self.vertices.push(Vertex {
                 position: [rx, ry],
@@ -173,26 +187,51 @@ impl RenderState {
         surface: wgpu::Surface<'static>,
         size: (u32, u32),
     ) -> Self {
-        let adapter = _instance
+        // 1차 시도: 표준 하드웨어 가속 요청
+        let mut adapter = _instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::default(),
+                power_preference: wgpu::PowerPreference::None,
                 compatible_surface: Some(&surface),
                 force_fallback_adapter: false,
             })
-            .await
-            .expect("Failed to find an appropriate adapter");
+            .await;
+
+        // 2차 시도: 실패 시, 표면(Surface) 제약을 풀고 재시도 (일부 리눅스 브라우저 대응)
+        if adapter.is_none() {
+            adapter = _instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::LowPower,
+                    compatible_surface: None, 
+                    force_fallback_adapter: false,
+                })
+                .await;
+        }
+
+        // 3차 시도: 마지막 수단으로 소프트웨어 폴백까지 포함하여 모든 옵션 개방
+        if adapter.is_none() {
+            adapter = _instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::LowPower,
+                    compatible_surface: None,
+                    force_fallback_adapter: true,
+                })
+                .await;
+        }
+
+        let adapter = adapter.expect("BCU Engine Error: 모든 그래픽 어댑터 확보에 실패했습니다. 브라우저의 가속 기능이 WASM에 의해 차단되었을 수 있습니다.");
 
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    required_limits: wgpu::Limits::default(),
+                    // WebGL2 및 구형 환경 호환성을 위해 제한 사항을 최대한 낮춤
+                    required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
                 },
                 None,
             )
             .await
-            .expect("Failed to create device");
+            .expect("BCU Engine Error: 장치(Device) 생성에 실패했습니다. 그래픽 카드의 사양이 너무 낮거나 드라이버 호환성 문제입니다.");
 
         let surface_caps = surface.get_capabilities(&adapter);
         let surface_format = surface_caps
@@ -439,13 +478,15 @@ impl RenderState {
         imgcut: &ImgCut,
         tex_w: f32,
         tex_h: f32,
+        off_x: f32,
+        off_y: f32,
         texture_bind_group: &wgpu::BindGroup,
         batch: &mut SpriteBatch,
     ) -> Result<(), wgpu::SurfaceError> {
         batch.clear();
         for &idx in &anim.order {
             let part = &anim.entities[idx];
-            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h);
+            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h, off_x, off_y);
         }
 
         self.render(&batch.vertices, &batch.indices, texture_bind_group)
@@ -553,8 +594,8 @@ mod tests {
         let part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
         let entities = vec![part];
 
-        // Texture 100x100, Sprite 100x100 at 0,0
-        batch.add_part(&entities[0], &entities, &model, &imgcut, 100.0, 100.0);
+        // Texture 100x100, Sprite 100x100 at 0,0 with 0,0 offset
+        batch.add_part(&entities[0], &entities, &model, &imgcut, 100.0, 100.0, 0.0, 0.0);
 
         assert_eq!(batch.vertices.len(), 4);
         assert_eq!(batch.indices.len(), 6);

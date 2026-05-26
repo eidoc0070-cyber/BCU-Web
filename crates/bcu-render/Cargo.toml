@@ -7,7 +7,7 @@ edition = "2021"
 bcu-core = { workspace = true }
 bcu-assets = { workspace = true }
 bcu-math = { workspace = true }
-wgpu = "0.19"
+wgpu = { version = "0.19", features = ["webgl"] }
 bytemuck = { version = "1.15", features = ["derive"] }
 log = "0.4"
 pollster = "0.3"

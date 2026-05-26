@@ -68,7 +68,7 @@ impl BCUEngine {
         }
     }
 
-    pub fn render(&mut self, id: &str, sprite_id: &str) -> Result<(), JsValue> {
+    pub fn render(&mut self, id: &str, sprite_id: &str, off_x: f32, off_y: f32) -> Result<(), JsValue> {
         let anim = self.animations.get(id).ok_or_else(|| JsValue::from_str("Animation not found"))?;
         let imgcut = self.imgcuts.get(id).ok_or_else(|| JsValue::from_str("ImgCut not found"))?;
         let texture = self.textures.get(sprite_id).ok_or_else(|| JsValue::from_str("Texture not found"))?;
@@ -79,6 +79,8 @@ impl BCUEngine {
             imgcut,
             sprite.width as f32,
             sprite.height as f32,
+            off_x,
+            off_y,
             texture,
             &mut self.batch,
         ).map_err(|e| JsValue::from_str(&e.to_string()))?;

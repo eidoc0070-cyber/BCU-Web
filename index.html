@@ -179,6 +179,23 @@
       gap: 1rem;
     }
 
+    .diagnostic-btn {
+      font-family: 'Outfit', sans-serif;
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      padding: 0.85rem 1.5rem;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .diagnostic-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
     .primary-btn {
       font-family: 'Outfit', sans-serif;
       background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
@@ -259,8 +276,8 @@
       <h1>BCU RUST ENGINE</h1>
       <p class="subtitle">Deterministic Battle Engine migrated from Java/Kotlin to high-performance WebAssembly and Rust.</p>
 
-      <div class="render-area" style="margin-bottom: 2rem; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color);">
-        <canvas id="bcu-canvas" style="width: 100%; height: 400px; display: block;"></canvas>
+      <div class="render-area" style="margin-bottom: 2rem; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); height: 500px; position: relative;">
+        <canvas id="bcu-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
       </div>
 
       <div class="dashboard-grid">
@@ -293,6 +310,7 @@
         샘플 캐릭터 로드
       </button>
       <button class="secondary-btn" onclick="window.location.reload()">새로고침</button>
+      <button class="diagnostic-btn" onclick="runDiagnosticsTool()">시스템 진단</button>
     </div>
 
     <div class="logger-console" id="logger-console">

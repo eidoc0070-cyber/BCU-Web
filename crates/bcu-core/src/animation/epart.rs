@@ -128,18 +128,20 @@ impl EPart {
             p_angle = pa;
         }
 
-        // Java logic:
-        // p.x += (pos.x - piv.x) * ps.x;
-        // p.y += (pos.y - piv.y) * ps.y;
-        // if (pa != 0) p.rotate(pa);
-        
-        let mut current_pos = (self.pos - self.piv) * p_sca;
+        // 현재 파트의 좌표를 부모의 스케일(반전 포함)에 맞춰 변환
+        let mut current_pos = self.pos * p_sca;
+
         if p_angle != FixedPoint::ZERO {
             current_pos.rotate(p_angle * FixedPoint::TWO_PI / ri);
         }
         
         let final_pos = p_pos + current_pos;
-        let final_sca = p_sca * self.sca / mi;
+        
+        // 최종 스케일 계산 (부모 스케일 * 내 스케일 * 내 반전)
+        let mut final_sca = p_sca * self.sca / mi;
+        final_sca.x *= FixedPoint::from_int(self.hf as i64);
+        final_sca.y *= FixedPoint::from_int(self.vf as i64);
+
         let final_angle = p_angle + self.angle;
 
         (final_pos, final_sca, final_angle)
@@ -171,5 +173,50 @@ impl EPart {
         } else {
             self.opacity / oi
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bcu_math::FixedPoint;
+    use crate::data::MaModel;
+
+    #[test]
+    fn test_hierarchical_flip_propagation() {
+        let model = MaModel {
+            n: 2,
+            m: 0,
+            parts: vec![
+                [-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Part 0 (Parent)
+                [0, -1, 0, 0, 100, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Part 1 (Child at x=100)
+            ],
+            strs0: vec!["Parent".to_string(), "Child".to_string()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+
+        let mut p = EPart::new(0, "Parent".to_string(), model.parts[0], &model);
+        let mut c = EPart::new(1, "Child".to_string(), model.parts[1], &model);
+
+        // 1. No flip: Child should be at x=100
+        let entities = vec![
+            EPart::new(0, "Parent".to_string(), model.parts[0], &model),
+            EPart::new(1, "Child".to_string(), model.parts[1], &model),
+        ];
+        let (pos, _, _) = entities[1].get_transform(&entities, &model);
+        assert_eq!(pos.x.to_int(), 100);
+
+        // 2. Parent flipped (HF = -1): Child should be at x=-100
+        let mut p_flipped = EPart::new(0, "Parent".to_string(), model.parts[0], &model);
+        p_flipped.hf = -1;
+        
+        let entities_flipped = vec![p_flipped, c];
+        let (pos_flipped, _, _) = entities_flipped[1].get_transform(&entities_flipped, &model);
+        
+        // Parent HF=-1 mirrors the child's relative X position
+        assert_eq!(pos_flipped.x.to_int(), -100);
+        println!("✓ Hierarchical flip propagation verified: Child mirrored to {}", pos_flipped.x.to_int());
     }
 }
