@@ -18,7 +18,7 @@ We use `ts-rs` to automatically generate TypeScript types from Rust structs.
 *   Structs tagged with `#[derive(TS)]` in Rust will generate matching `.ts` files.
 *   Generated files are located in `src/editor/bindings/`. **Do not edit these manually.**
 
-2.2. Development Workflow
+### 2.2. Development Workflow
 When you change the data structure in Rust:
 1.  Update the struct in `crates/bcu-api/src/lib.rs`.
 2.  Run `cargo test -p bcu-api` to regenerate the bindings.
@@ -71,13 +71,14 @@ debug.controller.runIntegrityCheck();
 ---
 
 ## 5. Critical Workflows
+
 ### 5.1. Rebuilding the Engine
 Changes in Rust are not reflected until the WASM package is rebuilt:
 ```bash
 wasm-pack build crates/bcu-api --target web --out-dir ../../pkg
 ```
 
-### 3.2. Asset Set Requirements
+### 5.2. Asset Set Requirements
 A functional character project must contain:
 - `sprite.png`: Texture atlas.
 - `imgcut.txt`: Sprite region definitions.
@@ -87,7 +88,7 @@ A functional character project must contain:
 
 ---
 
-## 4. Troubleshooting
+## 6. Troubleshooting
 *   **"state.parts is undefined"**: Check if the Rust struct field names match the TypeScript access path. Verify `AnimationStateFull` structure in `lib.rs`.
 *   **Gizmo not appearing**: Ensure the `screenToWorld` mapping is correctly handling current canvas scaling.
 *   **Changes not appearing**: Confirm `wasm-pack build` was successful and the browser cache is cleared (F5).
