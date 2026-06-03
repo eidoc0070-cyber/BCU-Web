@@ -2,9 +2,10 @@
 //! @logic: MaAnim defines skeletal animation keyframes and validation logic.
 //! @parity: 100%
 
+use serde::{Serialize, Deserialize};
 use crate::ParityTestable;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Part {
     pub ints: [i32; 5],
     pub name: String,
@@ -15,7 +16,7 @@ pub struct Part {
     pub moves: Vec<[i32; 4]>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct MaAnim {
     pub n: usize,
     pub parts: Vec<Part>,

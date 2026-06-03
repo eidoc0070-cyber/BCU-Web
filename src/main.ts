@@ -82,6 +82,7 @@ async function run() {
             controller.renderTick();
             requestAnimationFrame(renderLoop);
         };
+        console.log("[Editor] Starting render loop...");
         requestAnimationFrame(renderLoop);
 
         // Wire up buttons programmatically

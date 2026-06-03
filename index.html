@@ -315,7 +315,7 @@
       <!-- Left Sidebar -->
       <aside class="editor-sidebar">
         <div class="sidebar-header">
-          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">BCU Editor</h2>
+          <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.1rem;">BCU Editor <span style="font-size: 0.6rem; opacity: 0.5;">v1.1.0-FIX</span></h2>
           <div style="font-size: 0.65rem; color: #10b981; margin-top: 0.2rem;" id="engine-status">Engine Loading...</div>
         </div>
 
@@ -396,14 +396,23 @@
       <!-- Right Sidebar -->
       <aside class="editor-sidebar sidebar-right">
         <div class="sidebar-header">
-          <h3 style="font-size: 0.9rem;">Properties</h3>
+          <h3 style="font-size: 0.9rem;">Project Settings</h3>
         </div>
         <div class="sidebar-content">
+          <div style="margin-bottom: 1.5rem;">
+            <h4 style="font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase;">Project Name</h4>
+            <input type="text" id="input-project-name" value="New Project" 
+                   style="width: 100%; padding: 0.6rem; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.8rem; outline: none;">
+          </div>
+
           <div id="property-inspector">
             <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 2rem;">Select a part to edit</div>
           </div>
           
           <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <p style="font-size: 0.6rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+              Exported as <b>.tar</b> for high performance. Most archive tools (7-Zip, WinRAR) handle it exactly like a .zip.
+            </p>
             <button id="btn-export-tar" style="width: 100%; padding: 0.7rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
               Export Project (.tar)
             </button>

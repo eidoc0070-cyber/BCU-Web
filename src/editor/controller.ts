@@ -5,6 +5,7 @@ import { UIManager } from './ui-components';
 import { CanvasGizmo } from './gizmo';
 import { ImgCutEditor } from './imgcut-editor';
 import { TarBuilder } from './tar-utils';
+import { HistoryManager } from './history-manager';
 import { BCUEngine } from '../../pkg/bcu_api.js';
 
 export interface EditorStatus {
@@ -32,6 +33,7 @@ export class BCUController {
     public ui: UIManager | null = null;
     public gizmo: CanvasGizmo | null = null;
     public imgcutEditor: ImgCutEditor | null = null;
+    public history: HistoryManager | null = null;
     
     private status: EditorStatus = {
         isPlaying: true,
@@ -53,14 +55,24 @@ export class BCUController {
         private imgcutCanvas: HTMLCanvasElement,
         private log: (msg: string, type?: 'info' | 'error') => void
     ) {
+        console.log("[Editor] Initializing BCUController...");
         this.bridge = new EngineBridge(engine, this.status.animId);
+        this.history = new HistoryManager((idx, field, val) => {
+            if (this.bridge) this.bridge.updateModelPart(idx, field, val);
+        });
         this.initMembers();
         this.initGlobalEvents();
+        console.log("[Editor] BCUController initialized.");
     }
 
     private initMembers() {
         const handlePropertyChange = (partIdx: number, field: number, value: number) => {
-            if (this.bridge && this.status.isReady) this.bridge.updateModelPart(partIdx, field, value);
+            if (this.bridge && this.status.isReady) {
+                const state = this.bridge.getState();
+                const oldValue = state.parts[partIdx].raw_args[field];
+                this.history?.push({ op: 'PROP', partIdx, field, oldValue, newValue: value });
+                this.bridge.updateModelPart(partIdx, field, value);
+            }
         };
 
         const handleImgCutChange = (cutIdx: number, field: number, value: number) => {
@@ -80,13 +92,113 @@ export class BCUController {
             handleImgCutChange,
             (fileName) => this.selectFile(fileName),
             (partIdx) => { if (this.gizmo) this.gizmo.setSelectedPart(partIdx); },
-            (partIdx, type, moveIdx, frame) => { if (this.bridge && this.status.isReady) this.bridge.updateAnimKeyframe(partIdx, type, moveIdx, frame); }
+            (partIdx, type, moveIdx, frame) => { if (this.bridge && this.status.isReady) this.bridge.updateAnimKeyframe(partIdx, type, moveIdx, frame); },
+            (name) => { this.project.name = name; },
+            (parent) => { 
+                if (this.bridge && this.status.isReady) {
+                    this.bridge.addPart(parent);
+                    this.log(`Added part with parent: ${parent}`);
+                }
+            },
+            (partIdx) => {
+                if (this.bridge && this.status.isReady) {
+                    if (confirm(`Are you sure you want to delete part ${partIdx}?`)) {
+                        this.bridge.deletePart(partIdx);
+                        if (this.gizmo) this.gizmo.setSelectedPart(null);
+                        if (this.ui) this.ui.setSelectedPart(null);
+                        this.log(`Deleted part: ${partIdx}`);
+                    }
+                }
+            },
+            (partIdx, modifType, frame, value) => {
+                if (this.bridge && this.status.isReady) {
+                    this.bridge.addAnimKeyframe(partIdx, modifType, frame, value);
+                    this.log(`Added keyframe: Part ${partIdx}, Type ${modifType}, Frame ${frame}`);
+                }
+            },
+            (partIdx, modifType, moveIdx) => {
+                if (this.bridge && this.status.isReady) {
+                    this.bridge.deleteAnimKeyframe(partIdx, modifType, moveIdx);
+                    this.log(`Deleted keyframe: Part ${partIdx}, Type ${modifType}, Index ${moveIdx}`);
+                }
+            }
         );
     }
 
     private initGlobalEvents() {
         window.addEventListener('resize', () => this.resize());
         this.resize();
+
+        window.addEventListener('keydown', (e) => {
+            if (e.target instanceof HTMLInputElement) return;
+
+            if (e.ctrlKey || e.metaKey) {
+                if (e.key === 'z') {
+                    e.preventDefault();
+                    this.history?.undo();
+                    this.log("Undo");
+                } else if (e.key === 'y' || (e.key === 'Z' && e.shiftKey)) {
+                    e.preventDefault();
+                    this.history?.redo();
+                    this.log("Redo");
+                }
+            } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                const selectedPart = (this.ui as any).selectedPartIndex;
+                if (selectedPart !== null) {
+                    if (confirm(`Delete part ${selectedPart}?`)) {
+                        this.bridge?.deletePart(selectedPart);
+                        this.ui?.setSelectedPart(null);
+                        this.gizmo?.setSelectedPart(null);
+                        this.log(`Deleted part: ${selectedPart}`);
+                    }
+                }
+            }
+        });
+
+        const dropZone = document.getElementById('drop-zone');
+        const overlay = document.getElementById('drag-overlay');
+
+        dropZone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            overlay?.classList.add('active');
+        });
+
+        dropZone?.addEventListener('dragleave', () => {
+            overlay?.classList.remove('active');
+        });
+
+        dropZone?.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            overlay?.classList.remove('active');
+            
+            const items = e.dataTransfer?.items;
+            if (items) {
+                this.log("Processing dropped items...");
+                const files: Map<string, File> = new Map();
+                
+                const traverse = async (entry: any) => {
+                    if (entry.isFile) {
+                        const file = await new Promise<File>((resolve) => entry.file(resolve));
+                        files.set(file.name, file);
+                    } else if (entry.isDirectory) {
+                        const reader = entry.createReader();
+                        const entries = await new Promise<any[]>((resolve) => reader.readEntries(resolve));
+                        for (const child of entries) {
+                            await traverse(child);
+                        }
+                    }
+                };
+
+                for (let i = 0; i < items.length; i++) {
+                    const entry = items[i].webkitGetAsEntry();
+                    if (entry) await traverse(entry);
+                }
+
+                if (files.size > 0) {
+                    await this.loadFromFiles(files);
+                }
+            }
+        });
 
         document.getElementById('btn-play-pause')?.addEventListener('click', () => {
             this.status.isPlaying = !this.status.isPlaying;
@@ -101,6 +213,74 @@ export class BCUController {
         document.getElementById('btn-export-tar')?.addEventListener('click', () => {
             this.exportProject();
         });
+    }
+
+    public async loadFromFiles(files: Map<string, File>) {
+        this.log(`Loading ${files.size} files...`);
+        this.status.isReady = false;
+        this.project.files.clear();
+
+        try {
+            // 1. Load Sprite
+            const spriteFile = files.get('sprite.png');
+            if (spriteFile) {
+                const blob = spriteFile;
+                this.project.files.set('sprite.png', { name: 'sprite.png', type: 'sprite', data: blob, url: URL.createObjectURL(blob) });
+                const spriteBytes = new Uint8Array(await blob.arrayBuffer());
+                this.engine.load_sprite('test_unit', spriteBytes);
+                
+                const img = new Image();
+                img.src = this.project.files.get('sprite.png')!.url!;
+                img.onload = () => {
+                    if (this.imgcutEditor) this.imgcutEditor.setSprite(img);
+                };
+            }
+
+            // 2. Load Icons
+            const iconNames = ['icon_deploy.png', 'icon_display.png'];
+            for (const name of iconNames) {
+                const file = files.get(name);
+                if (file) {
+                    this.project.files.set(name, { name, type: 'icon', data: file, url: URL.createObjectURL(file) });
+                }
+            }
+
+            // 3. Load Data
+            const imgcutTxt = await files.get('imgcut.txt')?.text();
+            const mamodelTxt = await files.get('mamodel.txt')?.text();
+
+            if (!imgcutTxt || !mamodelTxt) {
+                throw new Error("Missing imgcut.txt or mamodel.txt");
+            }
+
+            this.project.files.set('imgcut.txt', { name: 'imgcut.txt', type: 'imgcut', data: imgcutTxt });
+            this.project.files.set('mamodel.txt', { name: 'mamodel.txt', type: 'mamodel', data: mamodelTxt });
+
+            // 4. Load Animations
+            let loadedAny = false;
+            for (const [name, file] of files) {
+                if (name.startsWith('maanim_') && name.endsWith('.txt')) {
+                    const id = name.replace('maanim_', '').replace('.txt', '');
+                    const maanimTxt = await file.text();
+                    this.project.files.set(name, { name, type: 'maanim', data: maanimTxt });
+                    this.engine.load_animation(id, imgcutTxt, mamodelTxt, maanimTxt);
+                    loadedAny = true;
+                }
+            }
+
+            if (loadedAny) {
+                this.status.isReady = true;
+                const anims = this.bridge?.listAnimations() || [];
+                const defaultAnim = anims.includes('walk') ? 'walk' : anims[0];
+                this.setAnimation(defaultAnim);
+                this.log("Project loaded from files.");
+            } else {
+                throw new Error("No animations found in dropped files.");
+            }
+
+        } catch (e) {
+            this.log(`Drop load failed: ${e}`, 'error');
+        }
     }
 
     public selectFile(name: string) {
@@ -234,7 +414,7 @@ export class BCUController {
 
             if (loadedAny) {
                 // Default to 'walk' if it exists, otherwise use the first loaded animation
-                const firstAnim = this.bridge.listAnimations()[0];
+                const firstAnim = this.bridge?.listAnimations()[0];
                 const targetAnim = this.project.files.has('maanim_walk.txt') ? 'walk' : firstAnim;
                 
                 if (targetAnim) {
@@ -259,10 +439,11 @@ export class BCUController {
     public async exportProject() {
         if (!this.bridge || !this.status.isReady) return;
         
-        this.log("Preparing project export...");
+        this.log(`Exporting project: ${this.project.name}...`);
         const tar = new TarBuilder();
         
         try {
+            // Include images (sprite and icons)
             for (const [name, file] of this.project.files) {
                 if (file.type === 'sprite' || file.type === 'icon') {
                     const bytes = new Uint8Array(await file.data.arrayBuffer());
@@ -272,13 +453,14 @@ export class BCUController {
 
             const animIds = this.bridge.listAnimations();
             if (animIds.length > 0) {
-                const firstId = animIds[0];
                 const oldId = this.status.animId;
                 
-                this.bridge.setAnimId(firstId);
+                // Use the first animation to get model and imgcut (they are shared)
+                this.bridge.setAnimId(animIds[0]);
                 tar.addFile('imgcut.txt', this.bridge.exportImgCut());
                 tar.addFile('mamodel.txt', this.bridge.exportModel());
 
+                // Export all animations
                 for (const id of animIds) {
                     const data = this.bridge.exportAnimById(id);
                     tar.addFile(`maanim_${id}.txt`, data);
@@ -291,7 +473,7 @@ export class BCUController {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${this.project.name.replace(/\s+/g, '_')}.tar`;
+            a.download = `${this.project.name.trim().replace(/\s+/g, '_') || 'BCU_Project'}.tar`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -317,8 +499,10 @@ export class BCUController {
             }
 
             const state = this.bridge.getState();
-            if (state && state.parts.length > 0) {
-                this.ui?.update(state, this.status.isPlaying, this.project);
+            if (state && state.animation) {
+                if (state.animation.parts && state.animation.parts.length > 0) {
+                    this.ui?.update(state.animation, this.status.isPlaying, this.project);
+                }
             }
         } catch (e: any) {
             // Only log if it's not the "Animation not found" during a switch

@@ -2,9 +2,10 @@
 //! @logic: MaModel defines the skeleton hierarchy and initial part states.
 //! @parity: 100%
 
+use serde::{Serialize, Deserialize};
 use crate::ParityTestable;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaModel {
     pub n: usize,
     pub m: usize,

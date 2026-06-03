@@ -2,12 +2,57 @@
 //! @logic: JS/WASM bridge for BCU, exposing rendering and animation functions to the web frontend.
 //! @parity: 0%
 
+use serde::{Serialize, Deserialize};
 use wasm_bindgen::prelude::*;
 use bcu_render::{RenderState, SpriteBatch};
 use bcu_assets::AssetRegistry;
 use bcu_core::animation::EAnimD;
 use bcu_core::data::ImgCut;
 use std::collections::HashMap;
+
+#[derive(Deserialize)]
+#[serde(tag = "op", content = "data")]
+enum EditorCommand {
+    #[serde(rename = "SET_FRAME")]
+    SetFrame { id: String, frame: f32 },
+    #[serde(rename = "UPDATE_MODEL_PART")]
+    UpdateModelPart { id: String, part_idx: usize, field: usize, value: i32 },
+    #[serde(rename = "UPDATE_MODEL_STRUCT")]
+    UpdateModelStruct { id: String, part_idx: usize, name: String },
+    #[serde(rename = "UPDATE_IMGCUT")]
+    UpdateImgCut { id: String, cut_idx: usize, field: usize, value: i32 },
+    #[serde(rename = "UPDATE_ANIM_KEYFRAME")]
+    UpdateAnimKeyframe { id: String, part_idx: usize, modif_type: i32, move_idx: usize, new_frame: i32 },
+    #[serde(rename = "ADD_ANIM_KEYFRAME")]
+    AddAnimKeyframe { id: String, part_idx: usize, modif_type: i32, frame: i32, value: i32 },
+    #[serde(rename = "DELETE_ANIM_KEYFRAME")]
+    DeleteAnimKeyframe { id: String, part_idx: usize, modif_type: i32, move_idx: usize },
+    #[serde(rename = "ADD_PART")]
+    AddPart { id: String, parent: i32 },
+    #[serde(rename = "DELETE_PART")]
+    DeletePart { id: String, part_idx: usize },
+    #[serde(rename = "ADD_ANIMATION")]
+    AddAnimation { id: String },
+    #[serde(rename = "REMOVE_ANIMATION")]
+    RemoveAnimation { id: String },
+    #[serde(rename = "RENAME_ANIMATION")]
+    RenameAnimation { old_id: String, new_id: String },
+}
+
+#[derive(Serialize)]
+pub struct PartTransform {
+    pub x: f32,
+    pub y: f32,
+    pub scale_x: f32,
+    pub scale_y: f32,
+    pub angle: f32,
+}
+
+#[derive(Serialize)]
+pub struct AnimationStateFull {
+    pub animation: bcu_core::animation::AnimationState,
+    pub imgcut: bcu_core::data::ImgCut,
+}
 
 #[wasm_bindgen]
 pub struct BCUEngine {
@@ -68,6 +113,144 @@ impl BCUEngine {
         }
     }
 
+    pub fn set_frame(&mut self, id: &str, frame: f32) {
+        if let Some(anim) = self.animations.get_mut(id) {
+            anim.set_frame(frame);
+        }
+    }
+
+    pub fn dispatch_editor_command(&mut self, json_str: &str) -> Result<(), JsValue> {
+        let cmd: EditorCommand = serde_json::from_str(json_str)
+            .map_err(|e| JsValue::from_str(&format!("Invalid JSON command: {}", e)))?;
+
+        match cmd {
+            EditorCommand::SetFrame { id, frame } => {
+                self.set_frame(&id, frame);
+            }
+            EditorCommand::UpdateModelPart { id, part_idx, field, value } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.update_model_part(part_idx, field, value);
+                }
+            }
+            EditorCommand::UpdateModelStruct { id, part_idx, name } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    if part_idx < anim.model.n {
+                        anim.model.strs0[part_idx] = name.clone();
+                        anim.entities[part_idx].name = name;
+                    }
+                }
+            }
+            EditorCommand::UpdateImgCut { id, cut_idx, field, value } => {
+                if let Some(imgcut) = self.imgcuts.get_mut(&id) {
+                    if cut_idx < imgcut.n && field < 4 {
+                        imgcut.cuts[cut_idx][field] = value;
+                    }
+                }
+            }
+            EditorCommand::UpdateAnimKeyframe { id, part_idx, modif_type, move_idx, new_frame } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.update_anim_keyframe(part_idx, modif_type, move_idx, new_frame);
+                }
+            }
+            EditorCommand::AddAnimKeyframe { id, part_idx, modif_type, frame, value } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.add_anim_keyframe(part_idx, modif_type, frame, value);
+                }
+            }
+            EditorCommand::DeleteAnimKeyframe { id, part_idx, modif_type, move_idx } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.delete_anim_keyframe(part_idx, modif_type, move_idx);
+                }
+            }
+            EditorCommand::AddPart { id, parent } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.add_part(parent);
+                }
+            }
+            EditorCommand::DeletePart { id, part_idx } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.delete_part(part_idx);
+                }
+            }
+            EditorCommand::AddAnimation { id } => {
+                if let Some(first_anim) = self.animations.values().next() {
+                    let model = first_anim.model.clone();
+                    let anim = bcu_core::data::MaAnim::default();
+                    self.animations.insert(id, EAnimD::new(model, anim));
+                }
+            }
+            EditorCommand::RemoveAnimation { id } => {
+                self.animations.remove(&id);
+            }
+            EditorCommand::RenameAnimation { old_id, new_id } => {
+                if let Some(anim) = self.animations.remove(&old_id) {
+                    self.animations.insert(new_id, anim);
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    pub fn list_animations(&self) -> JsValue {
+        let keys: Vec<String> = self.animations.keys().cloned().collect();
+        serde_wasm_bindgen::to_value(&keys).unwrap()
+    }
+
+    pub fn get_animation_state(&self, id: &str) -> Result<JsValue, JsValue> {
+        let anim = self.animations.get(id)
+            .ok_or_else(|| JsValue::from_str("Animation not found"))?;
+        let imgcut = self.imgcuts.get(id)
+            .ok_or_else(|| JsValue::from_str("ImgCut not found"))?;
+        
+        let state = anim.get_state();
+        let full_state = AnimationStateFull {
+            animation: state,
+            imgcut: imgcut.clone(),
+        };
+        
+        serde_wasm_bindgen::to_value(&full_state)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    pub fn get_part_transform(&self, id: &str, part_idx: usize) -> Result<JsValue, JsValue> {
+        let anim = self.animations.get(id).ok_or_else(|| JsValue::from_str("Animation not found"))?;
+        if part_idx >= anim.entities.len() {
+            return Err(JsValue::from_str("Invalid part index"));
+        }
+        
+        let (pos, sca, angle) = anim.entities[part_idx].get_transform(&anim.entities, &anim.model);
+        
+        let transform = PartTransform {
+            x: pos.x.to_float() as f32,
+            y: pos.y.to_float() as f32,
+            scale_x: sca.x.to_float() as f32,
+            scale_y: sca.y.to_float() as f32,
+            angle: angle.to_float() as f32,
+        };
+        
+        serde_wasm_bindgen::to_value(&transform)
+            .map_err(|e| JsValue::from_str(&e.to_string()))
+    }
+
+    pub fn export_imgcut(&self, id: &str) -> Result<String, JsValue> {
+        use bcu_core::ParityTestable;
+        let imgcut = self.imgcuts.get(id).ok_or_else(|| JsValue::from_str("ImgCut not found"))?;
+        Ok(imgcut.to_parity_string())
+    }
+
+    pub fn export_mamodel(&self, id: &str) -> Result<String, JsValue> {
+        use bcu_core::ParityTestable;
+        let anim = self.animations.get(id).ok_or_else(|| JsValue::from_str("Animation not found"))?;
+        Ok(anim.model.to_parity_string())
+    }
+
+    pub fn export_maanim(&self, id: &str) -> Result<String, JsValue> {
+        use bcu_core::ParityTestable;
+        let anim = self.animations.get(id).ok_or_else(|| JsValue::from_str("Animation not found"))?;
+        Ok(anim.anim.to_parity_string())
+    }
+
     pub fn render(&mut self, id: &str, sprite_id: &str, off_x: f32, off_y: f32) -> Result<(), JsValue> {
         let anim = self.animations.get(id).ok_or_else(|| JsValue::from_str("Animation not found"))?;
         let imgcut = self.imgcuts.get(id).ok_or_else(|| JsValue::from_str("ImgCut not found"))?;
@@ -90,18 +273,5 @@ impl BCUEngine {
 
     pub fn resize(&mut self, width: u32, height: u32) {
         self.render_state.resize((width, height));
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_engine_anim_loading_logic() {
-        // Since RenderState::new_web requires a canvas, we can't easily test it in pure cargo test
-        // But we can test the data structures and mapping if we had a mockable RenderState.
-        // For now, we verify that the BCUEngine structure and its HashMaps are initialized.
-        // (Full integration testing happens in the TS side)
     }
 }
