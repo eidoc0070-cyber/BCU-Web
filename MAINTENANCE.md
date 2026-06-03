@@ -48,7 +48,30 @@ If you implement a new feature (e.g., a specific interpolation type):
 2.  Update the Rust core logic in `crates/bcu-core/src/animation/runtime.rs`.
 3.  Verify that both outputs match perfectly within a tolerance of 1/1000th (due to FixedPoint differences).
 
-### 3.1. Rebuilding the Engine
+---
+
+## 4. Interface Integrity Verification
+To proactively prevent "Communication Errors", we provide a runtime integrity checker.
+
+### 4.1. Integrity Checker Tool
+Located at `src/editor/integrity.ts`, this tool validates the structural consistency between the Rust engine's output and TypeScript's expectations.
+
+*   **How it works**: Every time a sample character is loaded, `IntegrityChecker.logReport()` runs automatically.
+*   **How to read results**:
+    *   Check the browser console (F12).
+    *   **Success**: `[Integrity] Interface Check Passed: OK` (Green).
+    *   **Failure**: `[Integrity] Interface Mismatch Detected!` (Red) followed by a list of missing or malformed fields.
+
+### 4.2. Manual Integrity Check
+You can trigger a manual check at any time via the browser console:
+```javascript
+debug.controller.runIntegrityCheck();
+```
+
+---
+
+## 5. Critical Workflows
+### 5.1. Rebuilding the Engine
 Changes in Rust are not reflected until the WASM package is rebuilt:
 ```bash
 wasm-pack build crates/bcu-api --target web --out-dir ../../pkg

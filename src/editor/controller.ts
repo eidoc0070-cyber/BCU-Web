@@ -525,4 +525,13 @@ export class BCUController {
     }
 
     public getStatus() { return this.status; }
+
+    public runIntegrityCheck() {
+        if (this.bridge) {
+            const state = this.bridge.getState();
+            IntegrityChecker.logReport(state);
+        } else {
+            console.error("Bridge not initialized.");
+        }
+    }
 }
