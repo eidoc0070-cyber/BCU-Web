@@ -18,16 +18,35 @@ We use `ts-rs` to automatically generate TypeScript types from Rust structs.
 *   Structs tagged with `#[derive(TS)]` in Rust will generate matching `.ts` files.
 *   Generated files are located in `src/editor/bindings/`. **Do not edit these manually.**
 
-### 2.2. Development Workflow
+2.2. Development Workflow
 When you change the data structure in Rust:
 1.  Update the struct in `crates/bcu-api/src/lib.rs`.
 2.  Run `cargo test -p bcu-api` to regenerate the bindings.
 3.  Copy the generated file: `cp crates/bcu-api/bindings/*.ts src/editor/bindings/`.
-4.  Run `bun x tsc --noEmit` to find any TypeScript code that needs to be updated to match the new structure.
+4.  Run `bun x tsc --noEmit` to identify broken references.
+5.  **Fix affected files**: Typically, you need to update the following:
+    *   `src/editor/controller.ts`: Update how data is extracted from the `bridge.getState()` object.
+    *   `src/editor/ui-components.ts`: Update the `update(state, ...)` method and its internal rendering logic (e.g., `renderPartsList`).
+    *   `src/editor/gizmo.ts`: Update hit-testing and transform calculations in `handleMouseDown`.
 
 ---
 
-## 3. Critical Workflows
+## 3. Parity Testing (Java/Kotlin)
+To ensure the Rust engine behaves identically to the original Java BCU, we use the `BCU-java-PC-slow_kotlin` source code as a reference.
+
+### 3.1. Running Parity Tests
+1.  **Preparation**: Ensure the Java/Kotlin test suite is available (ignored by git, but present locally).
+2.  **Rust Parity Tool**: Use the built-in parity tester located in `tools/parity-tester`.
+    ```bash
+    cargo run -p parity-tester -- --input path/to/sample/unit
+    ```
+3.  **Manual Verification**: Compare the JSON output or animation state snapshots between the Java implementation and the Rust engine.
+
+### 3.2. Adding New Test Cases
+If you implement a new feature (e.g., a specific interpolation type):
+1.  Create a test case in Java to observe the "correct" behavior.
+2.  Update the Rust core logic in `crates/bcu-core/src/animation/runtime.rs`.
+3.  Verify that both outputs match perfectly within a tolerance of 1/1000th (due to FixedPoint differences).
 
 ### 3.1. Rebuilding the Engine
 Changes in Rust are not reflected until the WASM package is rebuilt:
