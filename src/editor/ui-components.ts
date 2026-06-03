@@ -82,7 +82,7 @@ export class UIManager {
         this.lastPartsJson = ''; 
     }
 
-    update(state: any, isPlaying: boolean, project?: any) {
+    update(state: any, isPlaying: boolean, project?: any, imgcut?: any) {
         if (!state) return;
 
         if (this.currentFrameLabel) this.currentFrameLabel.innerText = `Frame: ${Math.floor(state.current_frame)}`;
@@ -99,10 +99,12 @@ export class UIManager {
             this.renderPartsList(state.parts);
         }
 
-        const imgcutJson = JSON.stringify(state.imgcut);
-        if (imgcutJson !== this.lastImgCutJson && this.imgcutListContainer) {
-            this.lastImgCutJson = imgcutJson;
-            this.renderImgCutList(state.imgcut);
+        if (imgcut) {
+            const imgcutJson = JSON.stringify(imgcut);
+            if (imgcutJson !== this.lastImgCutJson && this.imgcutListContainer) {
+                this.lastImgCutJson = imgcutJson;
+                this.renderImgCutList(imgcut);
+            }
         }
 
         if (project) {

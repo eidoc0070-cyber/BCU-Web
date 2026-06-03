@@ -49,7 +49,7 @@ export class CanvasGizmo {
 
         const mouse = this.getMousePos(e);
         const state = this.bridge.getState();
-        if (!state) return;
+        if (!state || !state.animation) return;
 
         // 1. Check Gizmo Handles first if a part is selected
         if (this.selectedPartIndex !== null) {
@@ -94,7 +94,8 @@ export class CanvasGizmo {
         let bestIdx: number | null = null;
         let minDist = 40;
 
-        for (let i = 0; i < state.parts.length; i++) {
+        const parts = state.animation.parts;
+        for (let i = 0; i < parts.length; i++) {
             const transform = this.bridge.getPartTransform(i);
             if (!transform) continue;
 
@@ -124,9 +125,9 @@ export class CanvasGizmo {
         this.lastMouseY = e.clientY;
 
         const state = this.bridge.getState();
-        if (!state) return;
+        if (!state || !state.animation) return;
 
-        const part = state.parts[this.selectedPartIndex];
+        const part = state.animation.parts[this.selectedPartIndex];
         const args = part.raw_args;
 
         if (this.dragMode === 'translate') {

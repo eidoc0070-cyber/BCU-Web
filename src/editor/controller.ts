@@ -501,7 +501,7 @@ export class BCUController {
             const state = this.bridge.getState();
             if (state && state.animation) {
                 if (state.animation.parts && state.animation.parts.length > 0) {
-                    this.ui?.update(state.animation, this.status.isPlaying, this.project);
+                    this.ui?.update(state.animation, this.status.isPlaying, this.project, state.imgcut);
                 }
             }
         } catch (e: any) {
