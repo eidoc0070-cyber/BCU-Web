@@ -27,3 +27,4 @@ wgpu = { version = "0.19", features = ["webgl"] }
 js-sys = "0.3"
 console_error_panic_hook = "0.1"
 log = "0.4"
+ts-rs = { version = "8.1", features = ["serde-compat"] }

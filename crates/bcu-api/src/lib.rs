@@ -48,9 +48,15 @@ pub struct PartTransform {
     pub angle: f32,
 }
 
-#[derive(Serialize)]
+use ts_rs::TS;
+
+#[derive(Serialize, TS)]
+#[ts(export, export_to = "AnimationStateFull.ts")]
 pub struct AnimationStateFull {
+    pub status: String,
+    #[ts(skip)] 
     pub animation: bcu_core::animation::AnimationState,
+    #[ts(skip)]
     pub imgcut: bcu_core::data::ImgCut,
 }
 
@@ -205,6 +211,7 @@ impl BCUEngine {
         
         let state = anim.get_state();
         let full_state = AnimationStateFull {
+            status: "ok".to_string(),
             animation: state,
             imgcut: imgcut.clone(),
         };
