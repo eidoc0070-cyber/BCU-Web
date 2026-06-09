@@ -6,6 +6,7 @@ import { CanvasGizmo } from './gizmo';
 import { ImgCutEditor } from './imgcut-editor';
 import { TarBuilder } from './tar-utils';
 import { HistoryManager } from './history-manager';
+import { IntegrityChecker } from './integrity';
 import { BCUEngine } from '../../pkg/bcu_api.js';
 
 export interface EditorStatus {

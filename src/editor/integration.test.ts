@@ -101,7 +101,7 @@ describe("BCU Editor Integration & Stability", () => {
         controller.getStatus().isReady = true;
 
         const originalFetch = global.fetch;
-        global.fetch = () => new Promise(() => {}); // never resolves
+        global.fetch = (() => new Promise(() => {})) as any; // never resolves
         
         try {
             controller.loadCharacter("assets/sample_unit");
@@ -121,7 +121,7 @@ describe("BCU Editor Integration & Stability", () => {
             render: () => {}
         } as any;
         
-        const bridge = new EngineBridge(mockEngine, "walk");
+        new EngineBridge(mockEngine, "walk");
         const canvas = document.createElement('canvas');
         canvas.width = 1000;
         canvas.height = 800;

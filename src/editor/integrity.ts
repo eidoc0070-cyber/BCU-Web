@@ -1,5 +1,3 @@
-import { AnimationStateFull } from './bindings/AnimationStateFull';
-
 /**
  * Interface Integrity Checker
  * This tool performs a runtime validation of the data received from the Rust WASM engine
