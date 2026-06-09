@@ -2,16 +2,16 @@
 //! @logic: Runtime animation part state, handling transforms and property modifications.
 //! @parity: 0% (Definition only)
 
-use bcu_math::{FixedPoint, Vec2};
 use crate::data::MaModel;
+use bcu_math::{FixedPoint, Vec2};
 
 pub struct EPart {
     pub name: String,
     pub ind: usize,
-    
+
     // Pointers (indices)
     pub parent_idx: Option<usize>,
-    
+
     // Properties
     pub id: i32,
     pub img: i32,
@@ -24,12 +24,12 @@ pub struct EPart {
     pub opacity: FixedPoint,
     pub hf: i32,
     pub vf: i32,
-    
+
     pub glow: i32,
     pub ext_type: i32,
     pub extend_x: FixedPoint,
     pub extend_y: FixedPoint,
-    
+
     // Initial values (from MaModel)
     pub args: [i32; 14],
 }
@@ -39,13 +39,26 @@ impl EPart {
         let part = EPart {
             name,
             ind,
-            parent_idx: if args[0] < 0 { None } else { Some(args[0] as usize) },
+            parent_idx: if args[0] < 0 {
+                None
+            } else {
+                Some(args[0] as usize)
+            },
             id: args[1],
             img: args[2],
             z: args[3] * (model.n as i32) + (ind as i32),
-            pos: Vec2::new(FixedPoint::from_int(args[4] as i64), FixedPoint::from_int(args[5] as i64)),
-            piv: Vec2::new(FixedPoint::from_int(args[6] as i64), FixedPoint::from_int(args[7] as i64)),
-            sca: Vec2::new(FixedPoint::from_int(args[8] as i64), FixedPoint::from_int(args[9] as i64)),
+            pos: Vec2::new(
+                FixedPoint::from_int(args[4] as i64),
+                FixedPoint::from_int(args[5] as i64),
+            ),
+            piv: Vec2::new(
+                FixedPoint::from_int(args[6] as i64),
+                FixedPoint::from_int(args[7] as i64),
+            ),
+            sca: Vec2::new(
+                FixedPoint::from_int(args[8] as i64),
+                FixedPoint::from_int(args[9] as i64),
+            ),
             gsca: FixedPoint::from_int(model.ints[0] as i64),
             angle: FixedPoint::from_int(args[10] as i64),
             opacity: FixedPoint::from_int(args[11] as i64),
@@ -116,7 +129,7 @@ impl EPart {
     pub fn get_transform(&self, entities: &[EPart], model: &MaModel) -> (Vec2, Vec2, FixedPoint) {
         let mi = FixedPoint::from_int(model.ints[0] as i64);
         let ri = FixedPoint::from_int(model.ints[1] as i64);
-        
+
         let mut p_pos = Vec2::ZERO;
         let mut p_sca = Vec2::new(FixedPoint::ONE, FixedPoint::ONE);
         let mut p_angle = FixedPoint::ZERO;
@@ -134,9 +147,9 @@ impl EPart {
         if p_angle != FixedPoint::ZERO {
             current_pos.rotate(p_angle * FixedPoint::TWO_PI / ri);
         }
-        
+
         let final_pos = p_pos + current_pos;
-        
+
         // 최종 스케일 계산 (부모 스케일 * 내 스케일 * 내 반전)
         let mut final_sca = p_sca * self.sca / mi;
         final_sca.x *= FixedPoint::from_int(self.hf as i64);
@@ -153,7 +166,7 @@ impl EPart {
         // In FixedPoint multiplication, it's (a * b) / SCALE.
         // So (mi * mi) / SCALE.
         // gsca * mi_inv * mi_inv in Java is gsca / (model.ints[0] * model.ints[0]).
-        
+
         let scale_factor = (self.gsca / mi) / mi;
 
         if let Some(p_idx) = self.parent_idx {
@@ -179,7 +192,7 @@ impl EPart {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bcu_math::FixedPoint;
+
     use crate::data::MaModel;
 
     #[test]
@@ -197,8 +210,8 @@ mod tests {
             strs1: vec![],
         };
 
-        let mut p = EPart::new(0, "Parent".to_string(), model.parts[0], &model);
-        let mut c = EPart::new(1, "Child".to_string(), model.parts[1], &model);
+        let _p = EPart::new(0, "Parent".to_string(), model.parts[0], &model);
+        let c = EPart::new(1, "Child".to_string(), model.parts[1], &model);
 
         // 1. No flip: Child should be at x=100
         let entities = vec![
@@ -211,12 +224,15 @@ mod tests {
         // 2. Parent flipped (HF = -1): Child should be at x=-100
         let mut p_flipped = EPart::new(0, "Parent".to_string(), model.parts[0], &model);
         p_flipped.hf = -1;
-        
+
         let entities_flipped = vec![p_flipped, c];
         let (pos_flipped, _, _) = entities_flipped[1].get_transform(&entities_flipped, &model);
-        
+
         // Parent HF=-1 mirrors the child's relative X position
         assert_eq!(pos_flipped.x.to_int(), -100);
-        println!("✓ Hierarchical flip propagation verified: Child mirrored to {}", pos_flipped.x.to_int());
+        println!(
+            "✓ Hierarchical flip propagation verified: Child mirrored to {}",
+            pos_flipped.x.to_int()
+        );
     }
 }

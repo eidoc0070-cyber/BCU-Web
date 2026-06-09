@@ -3,9 +3,9 @@
 //! @parity: 0%
 
 use wgpu::util::DeviceExt;
-// use bcu_math::{FixedPoint, Vec2}; 
-use bcu_core::animation::{EPart, EAnimD};
-use bcu_core::data::{MaModel, ImgCut};
+// use bcu_math::{FixedPoint, Vec2};
+use bcu_core::animation::{EAnimD, EPart};
+use bcu_core::data::{ImgCut, MaModel};
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
@@ -45,6 +45,12 @@ pub struct SpriteBatch {
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u16>,
     pub next_index: u16,
+}
+
+impl Default for SpriteBatch {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SpriteBatch {
@@ -109,7 +115,7 @@ impl SpriteBatch {
         let py_final = pos.y.to_float() as f32 + off_y;
 
         let base_idx = self.next_index;
-        
+
         // UVs with Flip support
         let mut u0 = cut[0] as f32 / tex_w;
         let mut v0 = cut[1] as f32 / tex_h;
@@ -123,12 +129,7 @@ impl SpriteBatch {
             std::mem::swap(&mut v0, &mut v1);
         }
 
-        let uv_coords = [
-            [u0, v0],
-            [u1, v0],
-            [u1, v1],
-            [u0, v1],
-        ];
+        let uv_coords = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]];
 
         for i in 0..4 {
             let cx = corners[i][0] * sx;
@@ -178,7 +179,9 @@ impl RenderState {
             backends: wgpu::Backends::all(),
             ..Default::default()
         });
-        let surface = instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas)).expect("Failed to create surface from canvas");
+        let surface = instance
+            .create_surface(wgpu::SurfaceTarget::Canvas(canvas))
+            .expect("Failed to create surface from canvas");
         Self::new_common(instance, surface, size).await
     }
 
@@ -201,7 +204,7 @@ impl RenderState {
             adapter = _instance
                 .request_adapter(&wgpu::RequestAdapterOptions {
                     power_preference: wgpu::PowerPreference::LowPower,
-                    compatible_surface: None, 
+                    compatible_surface: None,
                     force_fallback_adapter: false,
                 })
                 .await;
@@ -257,41 +260,43 @@ impl RenderState {
             source: wgpu::ShaderSource::Wgsl(include_str!("shader.wgsl").into()),
         });
 
-        let texture_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[
-                wgpu::BindGroupLayoutEntry {
+        let texture_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            multisampled: false,
+                            view_dimension: wgpu::TextureViewDimension::D2,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                ],
+                label: Some("texture_bind_group_layout"),
+            });
+
+        let uniform_bind_group_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                        sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
                     },
                     count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
-                    count: None,
-                },
-            ],
-            label: Some("texture_bind_group_layout"),
-        });
-
-        let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            }],
-            label: Some("uniform_bind_group_layout"),
-        });
+                }],
+                label: Some("uniform_bind_group_layout"),
+            });
 
         let projection_matrix = [
             [2.0 / size.0 as f32, 0.0, 0.0, 0.0],
@@ -315,11 +320,12 @@ impl RenderState {
             label: Some("uniform_bind_group"),
         });
 
-        let render_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Render Pipeline Layout"),
-            bind_group_layouts: &[&texture_bind_group_layout, &uniform_bind_group_layout],
-            push_constant_ranges: &[],
-        });
+        let render_pipeline_layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("Render Pipeline Layout"),
+                bind_group_layouts: &[&texture_bind_group_layout, &uniform_bind_group_layout],
+                push_constant_ranges: &[],
+            });
 
         let render_pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("Render Pipeline"),
@@ -486,7 +492,16 @@ impl RenderState {
         batch.clear();
         for &idx in &anim.order {
             let part = &anim.entities[idx];
-            batch.add_part(part, &anim.entities, &anim.model, imgcut, tex_w, tex_h, off_x, off_y);
+            batch.add_part(
+                part,
+                &anim.entities,
+                &anim.model,
+                imgcut,
+                tex_w,
+                tex_h,
+                off_x,
+                off_y,
+            );
         }
 
         self.render(&batch.vertices, &batch.indices, texture_bind_group)
@@ -512,13 +527,15 @@ impl RenderState {
                 label: Some("Render Encoder"),
             });
 
-        // Update buffers - handle potential overflow/resize if needed, 
+        // Update buffers - handle potential overflow/resize if needed,
         // but for now we rely on the pre-allocated 4096 vertices.
-        let v_size = (vertices.len() * std::mem::size_of::<Vertex>()) as u64;
-        let i_size = (indices.len() * std::mem::size_of::<u16>()) as u64;
+        let v_size = std::mem::size_of_val(vertices) as u64;
+        let i_size = std::mem::size_of_val(indices) as u64;
 
-        self.queue.write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(vertices));
-        self.queue.write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(indices));
+        self.queue
+            .write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(vertices));
+        self.queue
+            .write_buffer(&self.index_buffer, 0, bytemuck::cast_slice(indices));
 
         {
             let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -545,7 +562,8 @@ impl RenderState {
             render_pass.set_bind_group(0, texture_bind_group, &[]);
             render_pass.set_bind_group(1, &self.uniform_bind_group, &[]);
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..v_size));
-            render_pass.set_index_buffer(self.index_buffer.slice(..i_size), wgpu::IndexFormat::Uint16);
+            render_pass
+                .set_index_buffer(self.index_buffer.slice(..i_size), wgpu::IndexFormat::Uint16);
             render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
         }
 
@@ -584,18 +602,27 @@ mod tests {
             confs: vec![],
             strs1: vec![],
         };
-        let mut imgcut = ImgCut {
+        let imgcut = ImgCut {
             name: "test".to_string(),
             n: 1,
             cuts: vec![[0, 0, 100, 100]],
             strs: vec!["part".to_string()],
         };
-        
+
         let part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
         let entities = vec![part];
 
         // Texture 100x100, Sprite 100x100 at 0,0 with 0,0 offset
-        batch.add_part(&entities[0], &entities, &model, &imgcut, 100.0, 100.0, 0.0, 0.0);
+        batch.add_part(
+            &entities[0],
+            &entities,
+            &model,
+            &imgcut,
+            100.0,
+            100.0,
+            0.0,
+            0.0,
+        );
 
         assert_eq!(batch.vertices.len(), 4);
         assert_eq!(batch.indices.len(), 6);
@@ -604,7 +631,7 @@ mod tests {
         // Check first vertex (top-left)
         assert_eq!(batch.vertices[0].position, [0.0, 0.0]);
         assert_eq!(batch.vertices[0].tex_coords, [0.0, 0.0]);
-        
+
         // Check second vertex (bottom-right of 100x100 sprite)
         // Note: corners are [0,0], [W,0], [W,H], [0,H]
         assert_eq!(batch.vertices[2].position, [100.0, 100.0]);

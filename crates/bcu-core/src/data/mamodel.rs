@@ -2,8 +2,8 @@
 //! @logic: MaModel defines the skeleton hierarchy and initial part states.
 //! @parity: 100%
 
-use serde::{Serialize, Deserialize};
 use crate::ParityTestable;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaModel {
@@ -32,8 +32,8 @@ impl MaModel {
         for i in 0..n {
             Self::check_detect_loop(&mut self.parts, &mut temp, i);
         }
-        for i in 0..n {
-            if temp[i] == 2 {
+        for (i, &t) in temp.iter().enumerate().take(n) {
+            if t == 2 {
                 self.parts[i][0] = -1;
             }
         }
@@ -69,25 +69,26 @@ impl ParityTestable for MaModel {
         s.push_str("[mamodel]\n");
         s.push_str("3\n");
         s.push_str(&self.n.to_string());
-        s.push_str("\n");
-        for i in 0..self.n {
-            let part = self.parts[i];
-            for j in 0..13 {
-                s.push_str(&format!("{},", part[j]));
+        s.push('\n');
+        for (i, &part) in self.parts.iter().enumerate().take(self.n) {
+            for val in part.iter().take(13) {
+                s.push_str(&format!("{},", val));
             }
             s.push_str(&self.strs0[i]);
-            s.push_str("\n");
+            s.push('\n');
         }
-        s.push_str(&format!("{},{},{}\n", self.ints[0], self.ints[1], self.ints[2]));
+        s.push_str(&format!(
+            "{},{},{}\n",
+            self.ints[0], self.ints[1], self.ints[2]
+        ));
         s.push_str(&self.m.to_string());
-        s.push_str("\n");
-        for i in 0..self.m {
-            let conf = self.confs[i];
-            for j in 0..6 {
-                s.push_str(&format!("{},", conf[j]));
+        s.push('\n');
+        for (i, &conf) in self.confs.iter().enumerate().take(self.m) {
+            for val in conf.iter() {
+                s.push_str(&format!("{},", val));
             }
             s.push_str(&self.strs1[i]);
-            s.push_str("\n");
+            s.push('\n');
         }
         s
     }

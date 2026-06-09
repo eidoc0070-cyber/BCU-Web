@@ -2,8 +2,8 @@
 //! @logic: MaAnim defines skeletal animation keyframes and validation logic.
 //! @parity: 100%
 
-use serde::{Serialize, Deserialize};
 use crate::ParityTestable;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Part {
@@ -46,8 +46,16 @@ impl Part {
             self.moves[i][0] += doff;
         }
         self.off += doff;
-        self.fir = if self.moves.is_empty() { 0 } else { self.moves[0][0] };
-        self.max = if self.n > 0 { self.moves[self.n - 1][0] } else { 0 };
+        self.fir = if self.moves.is_empty() {
+            0
+        } else {
+            self.moves[0][0]
+        };
+        self.max = if self.n > 0 {
+            self.moves[self.n - 1][0]
+        } else {
+            0
+        };
     }
 
     pub fn get_max(&self) -> i32 {
@@ -96,15 +104,15 @@ impl ParityTestable for MaAnim {
         s.push_str("[maanim]\n");
         s.push_str("1\n");
         s.push_str(&self.parts.len().to_string());
-        s.push_str("\n");
+        s.push('\n');
         for p in &self.parts {
             for val in &p.ints {
                 s.push_str(&format!("{},", val));
             }
             s.push_str(&p.name);
-            s.push_str("\n");
+            s.push('\n');
             s.push_str(&p.moves.len().to_string());
-            s.push_str("\n");
+            s.push('\n');
             for m in &p.moves {
                 s.push_str(&format!("{},{},{},{},\n", m[0] - p.off, m[1], m[2], m[3]));
             }

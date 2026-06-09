@@ -2,8 +2,8 @@
 //! @logic: ImgCut defines sprite sheet partition data defining sub-image rects.
 //! @parity: 100%
 
-use serde::{Serialize, Deserialize};
 use crate::ParityTestable;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImgCut {
@@ -19,12 +19,15 @@ impl ParityTestable for ImgCut {
         s.push_str("[imgcut]\n");
         s.push_str("0\n");
         s.push_str(&self.name);
-        s.push_str("\n");
+        s.push('\n');
         s.push_str(&self.n.to_string());
-        s.push_str("\n");
+        s.push('\n');
         for i in 0..self.n {
             let cut = self.cuts[i];
-            s.push_str(&format!("{},{},{},{},{}\n", cut[0], cut[1], cut[2], cut[3], self.strs[i]));
+            s.push_str(&format!(
+                "{},{},{},{},{}\n",
+                cut[0], cut[1], cut[2], cut[3], self.strs[i]
+            ));
         }
         s
     }

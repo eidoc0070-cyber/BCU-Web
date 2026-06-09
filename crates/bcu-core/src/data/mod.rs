@@ -3,9 +3,9 @@
 //! @parity: 100%
 
 pub mod imgcut;
-pub mod mamodel;
 pub mod maanim;
+pub mod mamodel;
 
 pub use imgcut::ImgCut;
-pub use mamodel::MaModel;
 pub use maanim::{MaAnim, Part};
+pub use mamodel::MaModel;

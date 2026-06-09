@@ -7,9 +7,6 @@ Thumbs.db
 # === Rust / Cargo ===
 /target/
 
-# === Rust WebAssembly (wasm-pack) ===
-/pkg/
-
 # === Node / Bun / Vite ===
 /node_modules/
 /dist/

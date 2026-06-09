@@ -51,7 +51,10 @@ pub fn ir_double() -> f64 {
     loop {
         let current = GLOBAL_RAND_SEED.load(Ordering::Relaxed);
         let next = (current.wrapping_mul(0x5DEECE66D).wrapping_add(0xB)) & 0xFFFFFFFFFFFF;
-        if GLOBAL_RAND_SEED.compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed).is_ok() {
+        if GLOBAL_RAND_SEED
+            .compare_exchange_weak(current, next, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok()
+        {
             return (next as f64) / 281474976710656.0; // 2^48
         }
     }

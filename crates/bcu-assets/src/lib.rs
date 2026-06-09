@@ -21,7 +21,11 @@ pub struct Sprite {
 
 impl Sprite {
     pub fn new(width: u32, height: u32, rgba: Vec<u8>) -> Self {
-        Self { width, height, rgba }
+        Self {
+            width,
+            height,
+            rgba,
+        }
     }
 
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AssetError> {
@@ -70,7 +74,7 @@ mod tests {
         let mut registry = AssetRegistry::new();
         let sprite = Sprite::new(1, 1, vec![255, 0, 0, 255]);
         registry.register_sprite("test_red", sprite);
-        
+
         let retrieved = registry.get_sprite("test_red").unwrap();
         assert_eq!(retrieved.width, 1);
         assert_eq!(retrieved.rgba, vec![255, 0, 0, 255]);

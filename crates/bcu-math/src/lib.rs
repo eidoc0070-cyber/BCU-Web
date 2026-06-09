@@ -34,7 +34,7 @@ mod tests {
         let a = FixedPoint::from_float(2.0);
         let s = a.sqrt();
         // sqrt(2) is ~ 1.41421356...
-        let diff = (s.to_float() - 1.414213).abs();
+        let diff = (s.to_float() - std::f64::consts::SQRT_2).abs();
         assert!(diff < 1e-5);
     }
 
@@ -56,7 +56,6 @@ mod tests {
         let diff_cos = (pi_3.cos().to_float() - 0.5).abs();
         assert!(diff_cos < 1e-4);
     }
-
 
     #[test]
     fn test_java_random_lcg() {

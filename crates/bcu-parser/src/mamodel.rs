@@ -2,8 +2,8 @@
 //! @logic: MaModel defines the skeleton hierarchy and initial part states.
 //! @parity: 100%
 
-use bcu_core::{BCUError, MaModel};
 use crate::imgcut::restrict;
+use bcu_core::{BCUError, MaModel};
 
 pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     let mut lines = content.lines().map(|line| line.trim_end());
@@ -12,20 +12,21 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     lines.next();
     lines.next();
 
-    let n_str = lines.next().ok_or_else(|| {
-        BCUError::ParseError("Missing part count (n)".to_string())
-    })?;
-    let n = n_str.trim().parse::<usize>().map_err(|e| {
-        BCUError::ParseError(format!("Invalid part count: {}", e))
-    })?;
+    let n_str = lines
+        .next()
+        .ok_or_else(|| BCUError::ParseError("Missing part count (n)".to_string()))?;
+    let n = n_str
+        .trim()
+        .parse::<usize>()
+        .map_err(|e| BCUError::ParseError(format!("Invalid part count: {}", e)))?;
 
     let mut parts = Vec::with_capacity(n);
     let mut strs0 = Vec::with_capacity(n);
 
     for i in 0..n {
-        let line = lines.next().ok_or_else(|| {
-            BCUError::ParseError(format!("Missing part line at index {}", i))
-        })?;
+        let line = lines
+            .next()
+            .ok_or_else(|| BCUError::ParseError(format!("Missing part line at index {}", i)))?;
         let ss: Vec<&str> = line.trim().split(',').collect();
 
         if ss.len() < 13 {
@@ -38,10 +39,7 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
         let mut part = [0; 14];
         for j in 0..13 {
             part[j] = ss[j].trim().parse::<i32>().map_err(|e| {
-                BCUError::ParseError(format!(
-                    "Invalid integer at part {}, index {}: {}",
-                    i, j, e
-                ))
+                BCUError::ParseError(format!("Invalid integer at part {}, index {}: {}", i, j, e))
             })?;
         }
         // part[13] remains 0 as initialized
@@ -56,9 +54,9 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
         strs0.push(s_val);
     }
 
-    let ints_line = lines.next().ok_or_else(|| {
-        BCUError::ParseError("Missing ints config line".to_string())
-    })?;
+    let ints_line = lines
+        .next()
+        .ok_or_else(|| BCUError::ParseError("Missing ints config line".to_string()))?;
     let ints_parts: Vec<&str> = ints_line.trim().split(',').collect();
     if ints_parts.len() < 3 {
         return Err(BCUError::ParseError(format!(
@@ -73,12 +71,13 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
         })?;
     }
 
-    let m_str = lines.next().ok_or_else(|| {
-        BCUError::ParseError("Missing collision box count (m)".to_string())
-    })?;
-    let m = m_str.trim().parse::<usize>().map_err(|e| {
-        BCUError::ParseError(format!("Invalid collision box count: {}", e))
-    })?;
+    let m_str = lines
+        .next()
+        .ok_or_else(|| BCUError::ParseError("Missing collision box count (m)".to_string()))?;
+    let m = m_str
+        .trim()
+        .parse::<usize>()
+        .map_err(|e| BCUError::ParseError(format!("Invalid collision box count: {}", e)))?;
 
     let mut confs = Vec::with_capacity(m);
     let mut strs1 = Vec::with_capacity(m);
@@ -150,7 +149,7 @@ mod tests {
         assert_eq!(parsed.m, 1);
         assert_eq!(parsed.parts[0][0], -1); // Parent
         assert_eq!(parsed.parts[0][1], -1); // UnitID
-        assert_eq!(parsed.parts[0][2], 0);  // ImgcutID
+        assert_eq!(parsed.parts[0][2], 0); // ImgcutID
         assert_eq!(parsed.strs0[0], "Parent_Part");
         assert_eq!(parsed.strs0[1], "");
         assert_eq!(parsed.ints, [1000, 3600, 1000]);

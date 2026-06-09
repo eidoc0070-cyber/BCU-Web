@@ -2,14 +2,16 @@
 //! @logic: i64-based fixed-point representation with a scaling factor of 1,000,000.
 //! @parity: 100%
 
-use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign};
+use core::ops::{
+    Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct FixedPoint(pub i64);
 
 impl FixedPoint {
     pub const SCALE: i64 = 1_000_000;
-    
+
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1_000_000);
     pub const PI: Self = Self(3_141_593);
@@ -49,7 +51,10 @@ impl FixedPoint {
     /// Calculate square root using integer square root on u128.
     pub fn sqrt(self) -> Self {
         if self.0 < 0 {
-            panic!("Cannot calculate square root of a negative FixedPoint: {}", self.0);
+            panic!(
+                "Cannot calculate square root of a negative FixedPoint: {}",
+                self.0
+            );
         }
         let val = (self.0 as u128) * (Self::SCALE as u128);
         let mut res = 0u128;
@@ -83,9 +88,9 @@ impl FixedPoint {
         let mut exp = n;
         while exp > 0 {
             if exp % 2 == 1 {
-                res = res * base;
+                res *= base;
             }
-            base = base * base;
+            base *= base;
             exp /= 2;
         }
         res
@@ -134,16 +139,7 @@ impl FixedPoint {
             244978, // atan(0.25)
             124354, // atan(0.125)
             62418,  // atan(0.0625)
-            31239,
-            15623,
-            7812,
-            3906,
-            1953,
-            976,
-            488,
-            244,
-            122,
-            61
+            31239, 15623, 7812, 3906, 1953, 976, 488, 244, 122, 61,
         ];
 
         if x.0 == 0 && y.0 == 0 {
@@ -166,10 +162,9 @@ impl FixedPoint {
             }
         }
 
-        for i in 0..15 {
+        for (i, &d_angle) in CORDIC_ANGLES.iter().enumerate() {
             let next_x;
             let next_y;
-            let d_angle = CORDIC_ANGLES[i];
             if curr_y >= 0 {
                 next_x = curr_x + (curr_y >> i);
                 next_y = curr_y - (curr_x >> i);

@@ -2,8 +2,8 @@
 //! @logic: MaAnim parses skeletal animation keyframes, handling frame offset translations and validation.
 //! @parity: 100%
 
-use bcu_core::{BCUError, MaAnim, Part};
 use crate::imgcut::restrict;
+use bcu_core::{BCUError, MaAnim, Part};
 
 pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
     let mut lines = content.lines().map(|line| line.trim_end());
@@ -12,12 +12,13 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
     lines.next();
     lines.next();
 
-    let n_str = lines.next().ok_or_else(|| {
-        BCUError::ParseError("Missing animation part count (n)".to_string())
-    })?;
-    let n = n_str.trim().parse::<usize>().map_err(|e| {
-        BCUError::ParseError(format!("Invalid animation part count: {}", e))
-    })?;
+    let n_str = lines
+        .next()
+        .ok_or_else(|| BCUError::ParseError("Missing animation part count (n)".to_string()))?;
+    let n = n_str
+        .trim()
+        .parse::<usize>()
+        .map_err(|e| BCUError::ParseError(format!("Invalid animation part count: {}", e)))?;
 
     let mut parts = Vec::with_capacity(n);
 
@@ -56,17 +57,17 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
             BCUError::ParseError(format!("Missing keyframe count at animation part {}", i))
         })?;
         let move_count = move_count_str.trim().parse::<usize>().map_err(|e| {
-            BCUError::ParseError(format!("Invalid keyframe count at animation part {}: {}", i, e))
+            BCUError::ParseError(format!(
+                "Invalid keyframe count at animation part {}: {}",
+                i, e
+            ))
         })?;
 
         let mut moves = Vec::with_capacity(move_count);
 
         for k in 0..move_count {
             let move_line = lines.next().ok_or_else(|| {
-                BCUError::ParseError(format!(
-                    "Missing keyframe line at part {}, index {}",
-                    i, k
-                ))
+                BCUError::ParseError(format!("Missing keyframe line at part {}, index {}", i, k))
             })?;
             let ss_move: Vec<&str> = move_line.trim().split(',').collect();
 

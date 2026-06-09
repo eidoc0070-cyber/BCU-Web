@@ -10,7 +10,7 @@ pub fn restrict(s: &str) -> String {
 
 pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
     let mut lines = content.lines().map(|line| line.trim_end());
-    
+
     // Java code: qs.poll(); qs.poll(); (skips header [imgcut] and version 0)
     lines.next();
     lines.next();
@@ -20,20 +20,21 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
         None => "".to_string(),
     };
 
-    let n_str = lines.next().ok_or_else(|| {
-        BCUError::ParseError("Missing cut count (n)".to_string())
-    })?;
-    let n = n_str.trim().parse::<usize>().map_err(|e| {
-        BCUError::ParseError(format!("Invalid cut count: {}", e))
-    })?;
+    let n_str = lines
+        .next()
+        .ok_or_else(|| BCUError::ParseError("Missing cut count (n)".to_string()))?;
+    let n = n_str
+        .trim()
+        .parse::<usize>()
+        .map_err(|e| BCUError::ParseError(format!("Invalid cut count: {}", e)))?;
 
     let mut cuts = Vec::with_capacity(n);
     let mut strs = Vec::with_capacity(n);
 
     for i in 0..n {
-        let line = lines.next().ok_or_else(|| {
-            BCUError::ParseError(format!("Missing cut line at index {}", i))
-        })?;
+        let line = lines
+            .next()
+            .ok_or_else(|| BCUError::ParseError(format!("Missing cut line at index {}", i)))?;
 
         // Java: String[] ss = (line == null ? "0, 0, 1, 1" : line).trim().split(",");
         let trimmed = line.trim();
@@ -53,10 +54,7 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
         let mut cut = [0; 4];
         for j in 0..4 {
             cut[j] = ss[j].trim().parse::<i32>().map_err(|e| {
-                BCUError::ParseError(format!(
-                    "Invalid integer at cut {}, index {}: {}",
-                    i, j, e
-                ))
+                BCUError::ParseError(format!("Invalid integer at cut {}, index {}: {}", i, j, e))
             })?;
         }
 
@@ -70,7 +68,12 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
         strs.push(s_val);
     }
 
-    Ok(ImgCut { name, n, cuts, strs })
+    Ok(ImgCut {
+        name,
+        n,
+        cuts,
+        strs,
+    })
 }
 
 #[cfg(test)]
