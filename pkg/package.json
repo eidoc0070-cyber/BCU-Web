@@ -1,0 +1,15 @@
+{
+  "name": "bcu-api",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "bcu_api_bg.wasm",
+    "bcu_api.js",
+    "bcu_api.d.ts"
+  ],
+  "main": "bcu_api.js",
+  "types": "bcu_api.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
