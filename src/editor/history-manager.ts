@@ -27,20 +27,22 @@ export class HistoryManager {
         }
     }
 
-    undo() {
+    undo(): CommandRecord | undefined {
         const record = this.undoStack.pop();
-        if (!record) return;
+        if (!record) return undefined;
 
         this.onApply(record.partIdx, record.field, record.oldValue);
         this.redoStack.push(record);
+        return record;
     }
 
-    redo() {
+    redo(): CommandRecord | undefined {
         const record = this.redoStack.pop();
-        if (!record) return;
+        if (!record) return undefined;
 
         this.onApply(record.partIdx, record.field, record.newValue);
         this.undoStack.push(record);
+        return record;
     }
 
     canUndo(): boolean {

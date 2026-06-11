@@ -86,6 +86,7 @@ use ts_rs::TS;
 #[ts(export, export_to = "AnimationStateFull.ts")]
 pub struct AnimationStateFull {
     pub status: String,
+    pub version: u64,
     pub animation: bcu_core::animation::AnimationState,
     pub imgcut: bcu_core::data::ImgCut,
 }
@@ -98,6 +99,7 @@ pub struct BCUEngine {
     animations: HashMap<String, EAnimD>,
     textures: HashMap<String, wgpu::BindGroup>,
     imgcuts: HashMap<String, ImgCut>,
+    version_counter: u64,
 }
 
 #[wasm_bindgen]
@@ -114,6 +116,7 @@ impl BCUEngine {
             animations: HashMap::new(),
             textures: HashMap::new(),
             imgcuts: HashMap::new(),
+            version_counter: 0,
         }
     }
 
@@ -155,16 +158,19 @@ impl BCUEngine {
     pub fn update(&mut self, id: &str) {
         if let Some(anim) = self.animations.get_mut(id) {
             anim.update(true);
+            self.version_counter += 1;
         }
     }
 
     pub fn set_frame(&mut self, id: &str, frame: f32) {
         if let Some(anim) = self.animations.get_mut(id) {
             anim.set_frame(frame);
+            self.version_counter += 1;
         }
     }
 
     pub fn dispatch_editor_command(&mut self, json_str: &str) -> Result<(), JsValue> {
+        self.version_counter += 1;
         let cmd: EditorCommand = serde_json::from_str(json_str)
             .map_err(|e| JsValue::from_str(&format!("Invalid JSON command: {}", e)))?;
 
@@ -282,6 +288,7 @@ impl BCUEngine {
         let state = anim.get_state();
         let full_state = AnimationStateFull {
             status: "ok".to_string(),
+            version: self.version_counter,
             animation: state,
             imgcut: imgcut.clone(),
         };

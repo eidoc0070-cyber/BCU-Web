@@ -2,4 +2,4 @@
 import type { AnimationState } from "./AnimationState";
 import type { ImgCut } from "./ImgCut";
 
-export type AnimationStateFull = { status: string, animation: AnimationState, imgcut: ImgCut, };
+export type AnimationStateFull = { status: string, version: bigint, animation: AnimationState, imgcut: ImgCut, };

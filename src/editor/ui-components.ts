@@ -8,6 +8,7 @@ export class UIManager {
     private imgcutListContainer = document.getElementById('imgcut-list');
     private fileExplorerContainer = document.getElementById('file-explorer');
     private projectNameInput = document.getElementById('input-project-name') as HTMLInputElement;
+    private toastContainer = document.getElementById('toast-container') as HTMLElement | null;
     
     private lastPartsJson = '';
     private lastImgCutJson = '';
@@ -75,6 +76,37 @@ export class UIManager {
         tabFiles?.addEventListener('click', () => {
             if (viewFiles) switchTab(tabFiles, viewFiles);
         });
+    }
+
+    public showToast(message: string, type: 'info' | 'success' | 'error' = 'info') {
+        if (!this.toastContainer) return;
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        const icons = { info: 'ℹ️', success: '✅', error: '❌' };
+        toast.innerHTML = `<span>${icons[type]}</span> <span>${message}</span>`;
+        
+        this.toastContainer.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(20px)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    public flashProperty(field: number) {
+        const input = this.propertyInspector?.querySelector(`input[data-field="${field}"]`) as HTMLElement;
+        if (input) {
+            input.style.transition = 'none';
+            input.style.backgroundColor = 'rgba(139, 92, 246, 0.4)';
+            setTimeout(() => {
+                input.style.transition = 'background-color 0.5s ease';
+                input.style.backgroundColor = '';
+            }, 50);
+        }
     }
 
     public setSelectedPart(index: number | null) {

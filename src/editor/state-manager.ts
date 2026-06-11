@@ -4,6 +4,7 @@ export interface EditorStatus {
     animId: string;
     currentView: 'animation' | 'imgcut' | 'image';
     selectedFile: string | null;
+    lastRenderedVersion: bigint;
 }
 
 export type StateListener = (status: EditorStatus) => void;
@@ -14,7 +15,8 @@ export class EditorStateManager {
         isReady: false,
         animId: 'none',
         currentView: 'animation',
-        selectedFile: null
+        selectedFile: null,
+        lastRenderedVersion: -1n
     };
 
     private listeners: StateListener[] = [];

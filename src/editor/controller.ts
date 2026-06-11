@@ -118,12 +118,18 @@ export class BCUController {
             if (e.ctrlKey || e.metaKey) {
                 if (e.key === 'z') {
                     e.preventDefault();
-                    this.history?.undo();
-                    this.log("Undo");
+                    const entry = this.history?.undo();
+                    if (entry) {
+                        this.log("Undo");
+                        if (this.ui && entry.op === 'PROP') this.ui.flashProperty(entry.field);
+                    }
                 } else if (e.key === 'y' || (e.key === 'Z' && e.shiftKey)) {
                     e.preventDefault();
-                    this.history?.redo();
-                    this.log("Redo");
+                    const entry = this.history?.redo();
+                    if (entry) {
+                        this.log("Redo");
+                        if (this.ui && entry.op === 'PROP') this.ui.flashProperty(entry.field);
+                    }
                 }
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 const selectedPart = (this.ui as any).selectedPartIndex;
@@ -300,8 +306,12 @@ export class BCUController {
 
             const state = this.bridge.getState();
             if (state && state.animation) {
-                if (state.animation.parts && state.animation.parts.length > 0) {
-                    this.ui?.update(state.animation, status.isPlaying, this.project.getProject(), state.imgcut);
+                // Performance Optimization: Only update UI if version has changed
+                if (state.version !== status.lastRenderedVersion) {
+                    this.state.updateStatus({ lastRenderedVersion: state.version });
+                    if (state.animation.parts && state.animation.parts.length > 0) {
+                        this.ui?.update(state.animation, status.isPlaying, this.project.getProject(), state.imgcut);
+                    }
                 }
             }
         } catch (e: any) {

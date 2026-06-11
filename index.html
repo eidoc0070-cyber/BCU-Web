@@ -312,6 +312,7 @@
 <body>
 
     <div class="editor-layout">
+      <div id="toast-container" class="toast-container"></div>
       <!-- Left Sidebar -->
       <aside class="editor-sidebar">
         <div class="sidebar-header">
@@ -406,6 +407,25 @@
           </div>
 
           <div id="property-inspector">
+            <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 2rem;">Select a part to edit</div>
+          </div>
+          
+          <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <p style="font-size: 0.6rem; color: var(--text-secondary); margin-bottom: 0.75rem; line-height: 1.4;">
+              Exported as <b>.tar</b> for high performance. Most archive tools (7-Zip, WinRAR) handle it exactly like a .zip.
+            </p>
+            <button id="btn-export-tar" style="width: 100%; padding: 0.7rem; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">
+              Export Project (.tar)
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
+d="property-inspector">
             <div style="font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin-top: 2rem;">Select a part to edit</div>
           </div>
           
