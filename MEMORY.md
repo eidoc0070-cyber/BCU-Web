@@ -2,8 +2,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 6 - Editor Refactoring & Bug Resolution (Stage 3.5 Complete)
-- **Last Updated**: 2026-06-02
+- **Current Phase**: Phase 6.5 - Advanced Editor Features & UI Refactoring (Complete)
+- **Last Updated**: 2026-06-11
 
 ### Completed Phases
 
@@ -15,12 +15,12 @@
 - **Bridge**: `wasm-bindgen` bindings implemented.
 - **Frontend**: Basic rendering loop and asset loading.
 
-#### Phase 6: Editor Refactoring & Verification (Current) ✅
-- **Coordinate Mismatch Fix**: Standardized Y-offset at `0.65` across controller, main script, and gizmo, correcting visual handle offset and mouse hit testing.
-- **Uninitialized State Safety**: Reset `animId` to `'none'` immediately upon trigger of `loadCharacter` to avoid async rendering loop crashes.
-- **Advanced Diagnostics & Debugging**: Exposed `window.debug` hooks (`getEngine`, `listLoaded`, `forceRender`, `runDiagnostics`) to aid browser/manual checking.
-- **Visual Style Revamp**: Integrated glassmorphism, responsive HSL layout grids, custom scrollbars, and styled buttons in `index.html`. Removed inline HTML event listeners.
-- **Verification**: Updated and added 13 frontend test suites (`bun test`) and ran cargo tests successfully.
+#### Phase 6: Editor Refactoring & Verification ✅
+- **UI Architecture**: Refactored monolithic UIManager into modular components (Timeline, PropertyInspector, PartsTree, etc.).
+- **Advanced Keyframe Editing**: Implementation of full keyframe property control (Value, Interpolation, Easing) in both Rust and TS.
+- **Gizmo Evolution**: Expanded Gizmo handles to support precise rotation (angle-based) and scaling (distance-based) with visual hover feedback.
+- **Code Quality**: Added `tsc --noEmit` to the `ready` script and expanded test coverage for UI integration and interpolation logic.
+- **Verification**: 14 frontend tests and 13 Rust unit tests passing.
 
 ### How to Verify (Editor)
 1. Run `bun run dev` and open the browser.

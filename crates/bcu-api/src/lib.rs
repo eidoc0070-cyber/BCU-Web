@@ -42,6 +42,9 @@ enum EditorCommand {
         modif_type: i32,
         move_idx: usize,
         new_frame: i32,
+        new_value: i32,
+        interpolation: i32,
+        easing: i32,
     },
     #[serde(rename = "ADD_ANIM_KEYFRAME")]
     AddAnimKeyframe {
@@ -214,9 +217,20 @@ impl BCUEngine {
                 modif_type,
                 move_idx,
                 new_frame,
+                new_value,
+                interpolation,
+                easing,
             } => {
                 if let Some(anim) = self.animations.get_mut(&id) {
-                    anim.update_anim_keyframe(part_idx, modif_type, move_idx, new_frame);
+                    anim.update_anim_keyframe(
+                        part_idx,
+                        modif_type,
+                        move_idx,
+                        new_frame,
+                        new_value,
+                        interpolation,
+                        easing,
+                    );
                 }
             }
             EditorCommand::AddAnimKeyframe {

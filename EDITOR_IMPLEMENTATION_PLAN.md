@@ -38,11 +38,24 @@
 *   [x] **TS**: 편집된 애니메이션을 파일로 다운로드하는 기능.
 *   [x] **TS**: 다중 애니메이션(Walk, Attack 등) 전환 및 관리 UI.
 
+### [5단계] UX 고도화 및 세부 편집 (진행 예정)
+*   [ ] **TS**: UI 컴포넌트화 리팩토링 (`ui-components.ts` 분리).
+*   [ ] **TS**: 타임라인 내 키프레임 드래그 이동 및 우클릭 메뉴 (추가/삭제).
+*   [ ] **TS**: 보간 타입(Linear, Step, Easing 등) 시각화 및 편집 UI.
+*   [ ] **TS**: 기즈모 핸들 확장 (회전/스케일 전용 핸들 추가).
+*   [ ] **TS**: 다중 파츠 선택 및 일괄 편집 기능.
+
+### [6단계] 데이터 안정성 및 무결성 강화 (진행 예정)
+*   [ ] **Test**: Round-trip 검증 (로드 -> 수정 -> 저장 -> 다시 로드 시 정합성 확인).
+*   [ ] **TS/Rust**: 입력값 유효성 검사 (Bounds Check) 강화.
+*   [ ] **TS**: 자동 저장 (Local Storage) 및 세션 복구 기능.
+*   [ ] **Rust**: 대규모 애니메이션 데이터셋에 대한 파싱/렌더링 스트레스 테스트.
+
 ---
 
 ## 3. 주요 구현 기술
 *   **Backend**: Rust + WASM + Serde (JSON 직렬화)
-*   **Frontend**: TypeScript + Vite + Vanilla CSS (모듈화 구조)
+*   **Frontend**: TypeScript + Vite + Vanilla CSS (컴포넌트 기반 구조로 전환 예정)
 *   **State**: Command 패턴 기반의 무상태(Stateless) 통신 및 히스토리 관리
 
 ---

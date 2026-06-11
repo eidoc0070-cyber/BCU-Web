@@ -8,7 +8,7 @@
     "build": "bun run build:wasm && vite build",
     "preview": "vite preview",
     "test": "bun test tests/ && cargo test",
-    "ready": "bun run build && bun run test"
+    "ready": "tsc --noEmit && bun run build && bun run test"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.10.0",

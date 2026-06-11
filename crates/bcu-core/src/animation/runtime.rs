@@ -126,6 +126,9 @@ impl EAnimD {
         modif_type: i32,
         move_idx: usize,
         new_frame: i32,
+        new_value: i32,
+        interpolation: i32,
+        easing: i32,
     ) {
         // Find the animation part that matches the model part index and modification type
         if let Some(p) = self
@@ -136,6 +139,13 @@ impl EAnimD {
         {
             if move_idx < p.moves.len() {
                 p.moves[move_idx][0] = new_frame + p.off;
+                p.moves[move_idx][1] = new_value;
+                p.moves[move_idx][2] = interpolation;
+                p.moves[move_idx][3] = easing;
+
+                // Sort moves by frame if the frame changed
+                p.moves.sort_by_key(|m| m[0]);
+
                 p.validate();
                 self.anim.validate();
 
@@ -692,8 +702,8 @@ mod tests {
         display.set_frame(5.0);
         assert_eq!(display.entities[0].angle.to_int(), 50);
 
-        // 2. Move keyframe at frame 10 to frame 20
-        display.update_anim_keyframe(0, 11, 1, 20);
+        // 2. Move keyframe at frame 10 to frame 20, update value to 100, interp Linear, easing 0
+        display.update_anim_keyframe(0, 11, 1, 20, 100, 0, 0);
 
         // 3. New interpolation: frame 5 is now 1/4 of the way between 0 and 20
         // Value at frame 5: 0 + (100 - 0) * (5 / 20) = 25
@@ -734,5 +744,47 @@ mod tests_eanimd {
         // Part2 (Z=11) should come before Part1 (Z=20)
         assert_eq!(display.order[0], 1);
         assert_eq!(display.order[1], 0);
+    }
+
+    #[test]
+    fn test_update_anim_keyframe_interpolation_change() {
+        let model = MaModel {
+            n: 1,
+            m: 0,
+            parts: vec![[-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0]],
+            strs0: vec!["Root".to_string()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+
+        let mut part = Part::new(0, 11);
+        part.off = 0;
+        part.moves = vec![
+            [0, 0, 0, 0],    // Linear
+            [10, 100, 0, 0],
+        ];
+        part.n = 2;
+        part.validate();
+
+        let anim = MaAnim {
+            n: 1,
+            parts: vec![part],
+            max: 10,
+            len: 10,
+        };
+
+        let mut display = EAnimD::new(model, anim);
+
+        // 1. Initial state at frame 5 (Linear): 50
+        display.set_frame(5.0);
+        assert_eq!(display.entities[0].angle.to_int(), 50);
+
+        // 2. Change interpolation of first keyframe to Step (1)
+        display.update_anim_keyframe(0, 11, 0, 0, 0, 1, 0);
+
+        // 3. New state at frame 5 (Step): should be 0 (stays at first keyframe value until next)
+        display.set_frame(5.0);
+        assert_eq!(display.entities[0].angle.to_int(), 0);
     }
 }

@@ -1,13 +1,18 @@
 import { EngineBridge } from './engine-bridge';
 import { EDITOR_CONFIG } from './config';
 
-
 export class CanvasGizmo {
     private isDragging = false;
     private dragMode: 'translate' | 'rotate' | 'scale' | null = null;
-    private lastMouseX = 0;
-    private lastMouseY = 0;
+    private startWorldX = 0;
+    private startWorldY = 0;
+    private startPropValue = 0;
+    private startPropValueSecondary = 0;
+    private startAngle = 0;
+    private startDist = 0;
+    
     private selectedPartIndex: number | null = null;
+    private hoverMode: 'translate' | 'rotate' | 'scale' | null = null;
     private ctx: CanvasRenderingContext2D;
 
     constructor(
@@ -27,7 +32,6 @@ export class CanvasGizmo {
     }
 
     private initEvents() {
-        // Events are attached to the main canvas which is interactive
         this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
         window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         window.addEventListener('mouseup', () => this.handleMouseUp());
@@ -35,12 +39,13 @@ export class CanvasGizmo {
 
     private getMousePos(e: MouseEvent) {
         const rect = this.canvas.getBoundingClientRect();
-        // Calculate position relative to the center of the canvas where the engine renders
+        const rawX = e.clientX - rect.left;
+        const rawY = e.clientY - rect.top;
         return {
-            rawX: e.clientX - rect.left,
-            rawY: e.clientY - rect.top,
-            worldX: (e.clientX - rect.left) - this.canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X,
-            worldY: (e.clientY - rect.top) - this.canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y
+            rawX,
+            rawY,
+            worldX: rawX - this.canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X,
+            worldY: rawY - this.canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y
         };
     }
 
@@ -51,51 +56,44 @@ export class CanvasGizmo {
         const state = this.bridge.getState();
         if (!state || !state.animation) return;
 
-        // 1. Check Gizmo Handles first if a part is selected
+        // 1. Check Gizmo Handles first
         if (this.selectedPartIndex !== null) {
             const transform = this.bridge.getPartTransform(this.selectedPartIndex);
             if (transform) {
                 const angleRad = transform.angle * Math.PI / 1800;
+                const part = state.animation.parts[this.selectedPartIndex];
                 
-                // Rotation Handle (40px up from center in local space)
-                const rotX = transform.x + Math.sin(angleRad) * 40;
-                const rotY = transform.y - Math.cos(angleRad) * 40;
+                // Rotation Handle (Top)
+                const rotX = transform.x + Math.sin(angleRad) * 45;
+                const rotY = transform.y - Math.cos(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - rotX) ** 2 + (mouse.worldY - rotY) ** 2) < 15) {
-                    this.isDragging = true;
-                    this.dragMode = 'rotate';
-                    this.lastMouseX = e.clientX;
-                    this.lastMouseY = e.clientY;
+                    this.startDrag(e, 'rotate', part.raw_args[10]);
+                    this.startAngle = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
                     return;
                 }
 
-                // Scale Handle (40px right from center in local space)
-                const scX = transform.x + Math.cos(angleRad) * 40;
-                const scY = transform.y + Math.sin(angleRad) * 40;
+                // Scale Handle (Right)
+                const scX = transform.x + Math.cos(angleRad) * 45;
+                const scY = transform.y + Math.sin(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - scX) ** 2 + (mouse.worldY - scY) ** 2) < 15) {
-                    this.isDragging = true;
-                    this.dragMode = 'scale';
-                    this.lastMouseX = e.clientX;
-                    this.lastMouseY = e.clientY;
+                    this.startDrag(e, 'scale', part.raw_args[8], part.raw_args[9]);
+                    this.startDist = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
                     return;
                 }
 
                 // Translate Handle (Center)
                 if (Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2) < 20) {
-                    this.isDragging = true;
-                    this.dragMode = 'translate';
-                    this.lastMouseX = e.clientX;
-                    this.lastMouseY = e.clientY;
+                    this.startDrag(e, 'translate', part.raw_args[4], part.raw_args[5]);
                     return;
                 }
             }
         }
 
-        // 2. Hit-testing parts (Search from top-most z-order)
+        // 2. Hit-testing parts
         let bestIdx: number | null = null;
-        let minDist = 40;
+        let minDist = 30;
 
-        const parts = state.animation.parts;
-        for (let i = 0; i < parts.length; i++) {
+        for (let i = 0; i < state.animation.parts.length; i++) {
             const transform = this.bridge.getPartTransform(i);
             if (!transform) continue;
 
@@ -110,36 +108,74 @@ export class CanvasGizmo {
             this.selectedPartIndex = bestIdx;
             this.onSelect(bestIdx);
         } else {
-            // Only deselect if we clicked far away from everything
             this.selectedPartIndex = null;
             this.onSelect(null);
         }
     }
 
+    private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale', val: number, val2: number = 0) {
+        const mouse = this.getMousePos(e);
+        this.isDragging = true;
+        this.dragMode = mode;
+        this.startWorldX = mouse.worldX;
+        this.startWorldY = mouse.worldY;
+        this.startPropValue = val;
+        this.startPropValueSecondary = val2;
+    }
+
     private handleMouseMove(e: MouseEvent) {
+        const mouse = this.getMousePos(e);
+        
+        // Update hover state for visual feedback
+        if (!this.isDragging && this.selectedPartIndex !== null) {
+            this.updateHoverState(mouse);
+        }
+
         if (!this.isDragging || this.selectedPartIndex === null) return;
 
-        const dx = e.clientX - this.lastMouseX;
-        const dy = e.clientY - this.lastMouseY;
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-
-        const state = this.bridge.getState();
-        if (!state || !state.animation) return;
-
-        const part = state.animation.parts[this.selectedPartIndex];
-        const args = part.raw_args;
+        const transform = this.bridge.getPartTransform(this.selectedPartIndex);
+        if (!transform) return;
 
         if (this.dragMode === 'translate') {
-            this.onPropertyChange(this.selectedPartIndex, 4, args[4] + Math.round(dx));
-            this.onPropertyChange(this.selectedPartIndex, 5, args[5] + Math.round(dy));
+            const dx = mouse.worldX - this.startWorldX;
+            const dy = mouse.worldY - this.startWorldY;
+            this.onPropertyChange(this.selectedPartIndex, 4, this.startPropValue + Math.round(dx));
+            this.onPropertyChange(this.selectedPartIndex, 5, this.startPropValueSecondary + Math.round(dy));
         } else if (this.dragMode === 'rotate') {
-            // Use horizontal drag for rotation sensitivity
-            this.onPropertyChange(this.selectedPartIndex, 10, args[10] + Math.round(dx * 10));
+            const currentAngle = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
+            const deltaAngle = (currentAngle - this.startAngle) * 1800 / Math.PI;
+            this.onPropertyChange(this.selectedPartIndex, 10, (this.startPropValue + Math.round(deltaAngle)) % 3600);
         } else if (this.dragMode === 'scale') {
-            this.onPropertyChange(this.selectedPartIndex, 8, args[8] + Math.round(dx * 5));
-            this.onPropertyChange(this.selectedPartIndex, 9, args[9] + Math.round(dy * -5));
+            const currentDist = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
+            const ratio = currentDist / Math.max(1, this.startDist);
+            this.onPropertyChange(this.selectedPartIndex, 8, Math.round(this.startPropValue * ratio));
+            this.onPropertyChange(this.selectedPartIndex, 9, Math.round(this.startPropValueSecondary * ratio));
         }
+    }
+
+    private updateHoverState(mouse: { worldX: number, worldY: number }) {
+        const transform = this.bridge.getPartTransform(this.selectedPartIndex!);
+        if (!transform) return;
+
+        const angleRad = transform.angle * Math.PI / 1800;
+        this.hoverMode = null;
+
+        // Same hitboxes as handleMouseDown
+        const rotX = transform.x + Math.sin(angleRad) * 45;
+        const rotY = transform.y - Math.cos(angleRad) * 45;
+        if (Math.sqrt((mouse.worldX - rotX) ** 2 + (mouse.worldY - rotY) ** 2) < 15) {
+            this.hoverMode = 'rotate';
+        } else {
+            const scX = transform.x + Math.cos(angleRad) * 45;
+            const scY = transform.y + Math.sin(angleRad) * 45;
+            if (Math.sqrt((mouse.worldX - scX) ** 2 + (mouse.worldY - scY) ** 2) < 15) {
+                this.hoverMode = 'scale';
+            } else if (Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2) < 20) {
+                this.hoverMode = 'translate';
+            }
+        }
+        
+        this.canvas.style.cursor = this.hoverMode ? 'pointer' : 'default';
     }
 
     private handleMouseUp() {
@@ -169,42 +205,56 @@ export class CanvasGizmo {
         this.ctx.save();
         this.ctx.translate(screenX, screenY);
         
-        // Target highlight
+        // Highlight Circle
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 20, 0, Math.PI * 2);
-        this.ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+        this.ctx.strokeStyle = this.hoverMode === 'translate' || this.dragMode === 'translate' ? 'rgba(139, 92, 246, 0.8)' : 'rgba(139, 92, 246, 0.3)';
+        this.ctx.lineWidth = 2;
         this.ctx.setLineDash([5, 3]);
         this.ctx.stroke();
 
         this.ctx.rotate(angleRad);
 
-        // Center Axis
+        // Rotation Handle (Green)
+        const rotHover = this.hoverMode === 'rotate' || this.dragMode === 'rotate';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(0, -45);
+        this.ctx.strokeStyle = rotHover ? '#34d399' : '#10b981';
+        this.ctx.setLineDash([]);
+        this.ctx.stroke();
+        this.ctx.fillStyle = rotHover ? '#34d399' : '#10b981';
+        this.ctx.beginPath();
+        this.ctx.arc(0, -45, rotHover ? 8 : 6, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.strokeStyle = '#fff';
+        if (rotHover) this.ctx.stroke();
+
+        // Scale Handle (Blue)
+        const scHover = this.hoverMode === 'scale' || this.dragMode === 'scale';
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(45, 0);
+        this.ctx.strokeStyle = scHover ? '#60a5fa' : '#3b82f6';
+        this.ctx.stroke();
+        this.ctx.fillStyle = scHover ? '#60a5fa' : '#3b82f6';
+        const rectSize = scHover ? 14 : 10;
+        this.ctx.fillRect(45 - rectSize/2, -rectSize/2, rectSize, rectSize);
+        this.ctx.strokeStyle = '#fff';
+        if (scHover) this.ctx.strokeRect(45 - rectSize/2, -rectSize/2, rectSize, rectSize);
+
+        // Center Point
         this.ctx.fillStyle = '#fff';
         this.ctx.beginPath();
         this.ctx.arc(0, 0, 4, 0, Math.PI * 2);
         this.ctx.fill();
 
-        // Rotation Handle (Green)
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
-        this.ctx.lineTo(0, -40);
-        this.ctx.strokeStyle = '#10b981';
-        this.ctx.setLineDash([]);
-        this.ctx.stroke();
-        this.ctx.fillStyle = '#10b981';
-        this.ctx.beginPath();
-        this.ctx.arc(0, -40, 6, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Scale Handle (Blue)
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
-        this.ctx.lineTo(40, 0);
-        this.ctx.strokeStyle = '#3b82f6';
-        this.ctx.stroke();
-        this.ctx.fillStyle = '#3b82f6';
-        this.ctx.fillRect(34, -6, 12, 12);
-
         this.ctx.restore();
+
+        // Label
+        this.ctx.fillStyle = '#fff';
+        this.ctx.font = 'bold 10px Outfit';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(`Part ${this.selectedPartIndex}`, screenX, screenY + 40);
     }
 }

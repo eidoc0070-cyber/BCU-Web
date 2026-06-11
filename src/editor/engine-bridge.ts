@@ -37,10 +37,19 @@ export class EngineBridge {
         }));
     }
 
-    updateAnimKeyframe(partIdx: number, modifType: number, moveIdx: number, newFrame: number) {
+    updateAnimKeyframe(partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interpolation: number, easing: number) {
         this.engine.dispatch_editor_command(JSON.stringify({
             op: 'UPDATE_ANIM_KEYFRAME',
-            data: { id: this.animId, part_idx: partIdx, modif_type: modifType, move_idx: moveIdx, new_frame: newFrame }
+            data: { 
+                id: this.animId, 
+                part_idx: partIdx, 
+                modif_type: modifType, 
+                move_idx: moveIdx, 
+                new_frame: newFrame,
+                new_value: newValue,
+                interpolation: interpolation,
+                easing: easing
+            }
         }));
     }
 

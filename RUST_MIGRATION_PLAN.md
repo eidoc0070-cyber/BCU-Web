@@ -69,17 +69,24 @@ This plan focuses on **Minimal Dependencies**, **High Modularity**, and **Strict
 - [x] Implement all PropertyTypes (0-14, 50-53) with correct add/multiply semantics.
 - [x] Implement parent-child recursive transform chain.
 
-### Phase 4: Rendering
-- [ ] Setup `wgpu` WebGPU/WebGL2 context in `bcu-render`.
-- [ ] Implement sprite batching and Z-order sorting.
-- [ ] Implement animation playback loop (`EAnimD`).
-- [ ] Connect to `bcu-api` via `wasm-bindgen`.
+### Phase 4: Rendering ✅ DONE
+- [x] Setup `wgpu` WebGPU/WebGL2 context in `bcu-render`.
+- [x] Implement sprite batching and Z-order sorting.
+- [x] Implement animation playback loop (`EAnimD`).
+- [x] Connect to `bcu-api` via `wasm-bindgen`.
 
-### Phase 5: Web Integration
-- [ ] Build `bcu-api` to WASM with `wasm-pack`.
-- [ ] Load WASM module in `src/main.ts`.
-- [ ] Render first character animation in browser.
-- [ ] Static site deployment via `bun run build`.
+### Phase 5: Web Integration ✅ DONE
+- [x] Build `bcu-api` to WASM with `wasm-pack`.
+- [x] Load WASM module in `src/main.ts`.
+- [x] Render first character animation in browser.
+- [x] Static site deployment via `bun run build`.
+
+### Phase 6: Advanced Editor & UX (IN PROGRESS)
+- [x] Refactor UI into modular components (Timeline, Inspector, Tree).
+- [x] Implement advanced keyframe editing (Value, Interpolation, Easing).
+- [x] Enhanced Gizmo with Rotation and Scale handles.
+- [ ] Implement Multi-part selection and group editing.
+- [ ] Setup Local Storage for session auto-save.
 
 ---
 

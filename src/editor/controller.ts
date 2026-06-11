@@ -54,6 +54,12 @@ export class BCUController {
             if (this.bridge && this.state.getStatus().isReady) this.bridge.updateImgCut(cutIdx, field, value);
         };
 
+        const handleKeyframeChange = (partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interp: number, easing: number) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.updateAnimKeyframe(partIdx, modifType, moveIdx, newFrame, newValue, interp, easing); 
+            }
+        };
+
         this.gizmo = new CanvasGizmo(this.canvas, this.gizmoCanvas, this.bridge!, handlePropertyChange, (idx) => {
             if (this.ui) this.ui.setSelectedPart(idx);
             if (this.imgcutEditor) this.imgcutEditor.setSelectedCut(null);
@@ -71,11 +77,7 @@ export class BCUController {
             handleImgCutChange,
             (fileName) => this.selectFile(fileName),
             (partIdx) => { if (this.gizmo) this.gizmo.setSelectedPart(partIdx); },
-            (partIdx, type, moveIdx, frame) => { 
-                if (this.bridge && this.state.getStatus().isReady) {
-                    this.bridge.updateAnimKeyframe(partIdx, type, moveIdx, frame); 
-                }
-            },
+            handleKeyframeChange,
             (name) => { this.project.setProjectName(name); },
             (parent) => { 
                 if (this.bridge && this.state.getStatus().isReady) {
@@ -306,7 +308,6 @@ export class BCUController {
 
             const state = this.bridge.getState();
             if (state && state.animation) {
-                // Performance Optimization: Only update UI if version has changed
                 if (state.version !== status.lastRenderedVersion) {
                     this.state.updateStatus({ lastRenderedVersion: state.version });
                     if (state.animation.parts && state.animation.parts.length > 0) {
