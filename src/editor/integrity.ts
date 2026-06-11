@@ -31,16 +31,24 @@ export class IntegrityChecker {
             // 3. Check sample part structure
             if (anim.parts.length > 0) {
                 const part = anim.parts[0];
-                const requiredPartFields = ['index', 'name', 'x', 'y', 'z', 'raw_args'];
+                const requiredPartFields = ['index', 'name', 'parent', 'z_order', 'raw_args'];
                 requiredPartFields.forEach(f => {
-                    if (!(f in part)) errors.push(`Sample part missing field: ${f}`);
+                    if (!(f in part)) {
+                        errors.push(`Sample part missing field: ${f}`);
+                    } else if (f === 'raw_args' && (!Array.isArray(part[f]) || part[f].length !== 14)) {
+                        errors.push(`Sample part 'raw_args' must be an array of length 14.`);
+                    }
                 });
             }
         }
 
         const imgcut = rawState.imgcut;
         if (imgcut) {
-            if (!Array.isArray(imgcut.cuts)) errors.push("imgcut.cuts is not an array.");
+            if (!Array.isArray(imgcut.cuts)) {
+                errors.push("imgcut.cuts is not an array.");
+            } else if (imgcut.cuts.length > 0 && (!Array.isArray(imgcut.cuts[0]) || imgcut.cuts[0].length !== 4)) {
+                errors.push("imgcut.cuts elements must be arrays of length 4.");
+            }
             if (!Array.isArray(imgcut.strs)) errors.push("imgcut.strs is not an array.");
         }
 

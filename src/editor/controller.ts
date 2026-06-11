@@ -70,9 +70,11 @@ export class BCUController {
         const handlePropertyChange = (partIdx: number, field: number, value: number) => {
             if (this.bridge && this.status.isReady) {
                 const state = this.bridge.getState();
-                const oldValue = state.parts[partIdx].raw_args[field];
-                this.history?.push({ op: 'PROP', partIdx, field, oldValue, newValue: value });
-                this.bridge.updateModelPart(partIdx, field, value);
+                if (state && state.animation && state.animation.parts[partIdx]) {
+                    const oldValue = state.animation.parts[partIdx].raw_args[field];
+                    this.history?.push({ op: 'PROP', partIdx, field, oldValue, newValue: value });
+                    this.bridge.updateModelPart(partIdx, field, value);
+                }
             }
         };
 

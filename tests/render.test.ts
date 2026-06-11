@@ -1,6 +1,6 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EngineBridge } from "./engine-bridge";
+import { EngineBridge } from "../src/editor/engine-bridge";
 
 describe("BCU Rendering Logic Verification", () => {
     beforeAll(() => {
@@ -10,11 +10,16 @@ describe("BCU Rendering Logic Verification", () => {
     test("EngineBridge should report valid state after animation load simulation", () => {
         const mockEngine = {
             get_animation_state: () => ({
-                current_frame: 10,
-                max_frame: 100,
-                parts: [
-                    { index: 0, raw_args: [ -1, 0, 0, 0, 100, 200, 0, 0, 1000, 1000, 0, 1000 ] }
-                ]
+                status: "ok",
+                animation: {
+                    current_frame: 10,
+                    max_frame: 100,
+                    parts: [
+                        { index: 0, name: "Root", parent: -1, z_order: 0, raw_args: [ -1, 0, 0, 0, 100, 200, 0, 0, 1000, 1000, 0, 1000, 0, 0 ] }
+                    ],
+                    anim: { n: 0, parts: [], max: 0, len: 0 }
+                },
+                imgcut: { name: "", n: 0, cuts: [], strs: [] }
             }),
             update: () => {},
             render: () => {}
@@ -24,9 +29,9 @@ describe("BCU Rendering Logic Verification", () => {
         const state = bridge.getState();
 
         expect(state).not.toBeNull();
-        expect(state.parts.length).toBe(1);
-        expect(state.parts[0].raw_args[4]).toBe(100); // Pos X
-        expect(state.parts[0].raw_args[5]).toBe(200); // Pos Y
+        expect(state!.animation.parts.length).toBe(1);
+        expect(state!.animation.parts[0].raw_args[4]).toBe(100); // Pos X
+        expect(state!.animation.parts[0].raw_args[5]).toBe(200); // Pos Y
     });
 
     test("EngineBridge render call should use correct screen coordinates", () => {
@@ -56,8 +61,8 @@ describe("BCU Rendering Logic Verification", () => {
         const transform = bridge.getPartTransform(0);
 
         expect(transform).not.toBeNull();
-        expect(transform.x).toBe(50);
-        expect(transform.y).toBe(-50);
-        expect(transform.angle).toBe(900);
+        expect(transform!.x).toBe(50);
+        expect(transform!.y).toBe(-50);
+        expect(transform!.angle).toBe(900);
     });
 });

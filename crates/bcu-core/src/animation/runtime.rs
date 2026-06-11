@@ -7,8 +7,10 @@ use crate::animation::interpolation::get_ti;
 use crate::data::{MaAnim, MaModel, Part};
 use bcu_math::FixedPoint;
 use serde::Serialize;
+use ts_rs::TS;
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct AnimationState {
     pub current_frame: f32,
     pub max_frame: i32,
@@ -16,7 +18,8 @@ pub struct AnimationState {
     pub anim: MaAnim,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export)]
 pub struct PartState {
     pub index: usize,
     pub name: String,

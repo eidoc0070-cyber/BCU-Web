@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { UIManager } from "./ui-components";
-import { EngineBridge } from "./engine-bridge";
+import { UIManager } from "../src/editor/ui-components";
+import { EngineBridge } from "../src/editor/engine-bridge";
 
 describe("BCU Editor UI & Bridge Logic", () => {
     beforeAll(() => {
@@ -30,7 +30,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
 
     test("UIManager tab switching", () => {
         new UIManager(
-            () => {}, () => {}, () => {}, () => {}, () => {}
+            () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}
         );
 
         const tabModel = document.getElementById('tab-model')!;
@@ -68,21 +68,22 @@ describe("BCU Editor UI & Bridge Logic", () => {
 
     test("UIManager hierarchical tree rendering", () => {
         const ui = new UIManager(
-            () => {}, () => {}, () => {}, () => {}, () => {}
+            () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}
         );
         
         const mockState = {
             current_frame: 0,
             max_frame: 100,
             parts: [
-                { index: 0, name: "Root", raw_args: [-1, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000] },
-                { index: 1, name: "Child", raw_args: [0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000] }
+                { index: 0, name: "Root", parent: -1, z_order: 0, raw_args: [-1, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0] } as any,
+                { index: 1, name: "Child", parent: 0, z_order: 0, raw_args: [0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0] } as any
             ],
-            imgcut: { cuts: [], strs: [] },
-            anim: { parts: [] }
+            anim: { n: 0, parts: [], max: 0, len: 0 }
         };
 
-        ui.update(mockState, false);
+        const mockImgCut = { name: "", n: 0, cuts: [], strs: [] };
+
+        ui.update(mockState as any, false, { name: "Test", files: new Map() }, mockImgCut as any);
 
         const partsList = document.getElementById('parts-list')!;
         const items = partsList.querySelectorAll('.part-item');

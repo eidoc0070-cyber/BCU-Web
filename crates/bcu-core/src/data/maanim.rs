@@ -4,8 +4,10 @@
 
 use crate::ParityTestable;
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, TS)]
+#[ts(export)]
 pub struct Part {
     pub ints: [i32; 5],
     pub name: String,
@@ -16,7 +18,8 @@ pub struct Part {
     pub moves: Vec<[i32; 4]>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, TS)]
+#[ts(export)]
 pub struct MaAnim {
     pub n: usize,
     pub parts: Vec<Part>,

@@ -1,4 +1,6 @@
 import { BCUEngine } from '../../pkg/bcu_api.js';
+import type { AnimationStateFull } from './bindings/AnimationStateFull';
+import type { PartTransform } from './bindings/PartTransform';
 
 export class EngineBridge {
     constructor(private engine: BCUEngine, private animId: string) {}
@@ -52,7 +54,7 @@ export class EngineBridge {
     deleteAnimKeyframe(partIdx: number, modifType: number, moveIdx: number) {
         this.engine.dispatch_editor_command(JSON.stringify({
             op: 'DELETE_ANIM_KEYFRAME',
-            data: { id: this.animId, part_idx: partIdx, modif_type: modifType, move_idx: moveIdx }
+            data: { id: this.animId, part_idx: partIdx, mod_type: modifType, move_idx: moveIdx }
         }));
     }
 
@@ -90,7 +92,7 @@ export class EngineBridge {
         return this.engine.list_animations();
     }
 
-    getState() {
+    getState(): AnimationStateFull | null {
         try {
             return this.engine.get_animation_state(this.animId);
         } catch (e) {
@@ -98,7 +100,7 @@ export class EngineBridge {
         }
     }
 
-    getPartTransform(partIdx: number) {
+    getPartTransform(partIdx: number): PartTransform | null {
         try {
             return this.engine.get_part_transform(this.animId, partIdx);
         } catch (e) {

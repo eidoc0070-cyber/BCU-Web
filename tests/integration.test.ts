@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EngineBridge } from "./engine-bridge";
-import { BCUController } from "./controller";
-import { EDITOR_CONFIG } from "./config";
+import { EngineBridge } from "../src/editor/engine-bridge";
+import { BCUController } from "../src/editor/controller";
+import { EDITOR_CONFIG } from "../src/editor/config";
 
 describe("BCU Editor Integration & Stability", () => {
     beforeAll(() => {
@@ -117,7 +117,12 @@ describe("BCU Editor Integration & Stability", () => {
     test("should use unified coordinate offsets for screen rendering and gizmo mouse-pos conversion", () => {
         const mockEngine = {
             get_part_transform: () => ({ x: 10, y: 20, scale_x: 1, scale_y: 1, angle: 0 }),
-            get_animation_state: () => ({ parts: [] }),
+            get_animation_state: () => ({ 
+                current_frame: 0,
+                max_frame: 100,
+                parts: [],
+                anim: { n: 0, parts: [], max: 0, len: 0 }
+            }),
             render: () => {}
         } as any;
         

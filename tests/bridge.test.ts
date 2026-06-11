@@ -7,7 +7,9 @@ import { join } from "path";
 describe("BCU WASM Bridge Integration", () => {
     beforeAll(async () => {
         // 1. DOM 시뮬레이션 환경 설정
-        GlobalRegistrator.register();
+        try {
+            GlobalRegistrator.register();
+        } catch (e) {}
         
         // 2. WASM 파일을 직접 읽어서 초기화 (happy-dom fetch 우회)
         const wasmPath = join(process.cwd(), "pkg", "bcu_api_bg.wasm");

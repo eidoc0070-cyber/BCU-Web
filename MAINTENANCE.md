@@ -51,16 +51,19 @@ If you implement a new feature (e.g., a specific interpolation type):
 ---
 
 ## 4. Interface Integrity Verification
-To proactively prevent "Communication Errors", we provide a runtime integrity checker.
+To proactively prevent "Communication Errors", we provide a runtime integrity checker that performs deep structural validation.
 
 ### 4.1. Integrity Checker Tool
-Located at `src/editor/integrity.ts`, this tool validates the structural consistency between the Rust engine's output and TypeScript's expectations.
+Located at `src/editor/integrity.ts`, this tool validates that the Rust engine's output perfectly matches the expected TypeScript shapes.
 
-*   **How it works**: Every time a sample character is loaded, `IntegrityChecker.logReport()` runs automatically.
+*   **What it checks**:
+    *   **Field Presence**: Ensures all required fields (`parent`, `z_order`, `raw_args`, etc.) exist.
+    *   **Data Integrity**: Validates that `raw_args` is exactly a 14-element array and `ImgCut` regions are correctly formatted.
+    *   **Type Safety**: Confirms top-level structures (`animation`, `imgcut`) are correctly nested.
 *   **How to read results**:
     *   Check the browser console (F12).
     *   **Success**: `[Integrity] Interface Check Passed: OK` (Green).
-    *   **Failure**: `[Integrity] Interface Mismatch Detected!` (Red) followed by a list of missing or malformed fields.
+    *   **Failure**: `[Integrity] Interface Mismatch Detected!` (Red) with specific details on which field or array length is incorrect.
 
 ### 4.2. Manual Integrity Check
 You can trigger a manual check at any time via the browser console:

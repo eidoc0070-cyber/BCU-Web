@@ -70,7 +70,8 @@ enum EditorCommand {
     RenameAnimation { old_id: String, new_id: String },
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, TS)]
+#[ts(export, export_to = "PartTransform.ts")]
 pub struct PartTransform {
     pub x: f32,
     pub y: f32,
@@ -85,9 +86,7 @@ use ts_rs::TS;
 #[ts(export, export_to = "AnimationStateFull.ts")]
 pub struct AnimationStateFull {
     pub status: String,
-    #[ts(skip)]
     pub animation: bcu_core::animation::AnimationState,
-    #[ts(skip)]
     pub imgcut: bcu_core::data::ImgCut,
 }
 
