@@ -25,6 +25,10 @@ export class ProjectManager {
         private log: (msg: string, type?: 'info' | 'error') => void
     ) {}
 
+    public getProjectName(): string {
+        return this.project.name;
+    }
+
     public getProject(): BCUProject {
         return this.project;
     }

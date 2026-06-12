@@ -7,6 +7,14 @@ export interface EditorStatus {
     lastRenderedVersion: bigint;
 }
 
+export interface EditorSession {
+    animId: string;
+    selectedPartIdx: number | null;
+    currentFrame: number;
+    currentView: 'animation' | 'imgcut' | 'image';
+    projectName: string;
+}
+
 export type StateListener = (status: EditorStatus) => void;
 
 export class EditorStateManager {
@@ -60,5 +68,15 @@ export class EditorStateManager {
 
     public setSelectedFile(file: string | null) {
         this.updateStatus({ selectedFile: file });
+    }
+
+    public getSession(selectedPartIdx: number | null, currentFrame: number, projectName: string): EditorSession {
+        return {
+            animId: this.status.animId,
+            selectedPartIdx,
+            currentFrame,
+            currentView: this.status.currentView,
+            projectName
+        };
     }
 }

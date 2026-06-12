@@ -55,6 +55,10 @@ export class UIManager {
         this.lastPartsJson = ''; 
     }
 
+    public getCurrentFrame(): number {
+        return this.timeline.getCurrentFrame();
+    }
+
     update(state: any, isPlaying: boolean, project?: any, imgcut?: any) {
         if (!state) return;
 

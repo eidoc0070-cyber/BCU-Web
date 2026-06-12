@@ -8,6 +8,7 @@ import { IntegrityChecker } from './integrity';
 import { BCUEngine } from '../../pkg/bcu_api.js';
 import { EditorStateManager } from './state-manager';
 import { ProjectManager } from './project-manager';
+import { PersistenceManager } from './persistence-manager';
 import { eventBus } from './event-bus';
 
 export class BCUController {
@@ -37,6 +38,8 @@ export class BCUController {
         this.initMembers();
         this.initEventSubscriptions();
         this.initGlobalEvents();
+        
+        this.restoreSession();
         console.log("[Editor] BCUController initialized.");
     }
 
@@ -47,8 +50,20 @@ export class BCUController {
     }
 
     private initEventSubscriptions() {
+        const triggerSave = () => {
+            if (this.ui) {
+                const session = this.state.getSession(
+                    this.ui.selectedPartIndex,
+                    this.ui.getCurrentFrame(),
+                    this.project.getProjectName()
+                );
+                PersistenceManager.saveSession(session);
+            }
+        };
+
         eventBus.on('PART_SELECTED', () => {
             if (this.imgcutEditor) this.imgcutEditor.setSelectedCut(null);
+            triggerSave();
         });
 
         eventBus.on('PROPERTY_CHANGED', (data) => {
@@ -58,6 +73,7 @@ export class BCUController {
                     const oldValue = state.animation.parts[data.partIdx].raw_args[data.field];
                     this.history?.push({ op: 'PROP', partIdx: data.partIdx, field: data.field, oldValue, newValue: data.value });
                     this.bridge.updateModelPart(data.partIdx, data.field, data.value);
+                    triggerSave();
                 }
             }
         });
@@ -65,18 +81,21 @@ export class BCUController {
         eventBus.on('IMGCUT_CHANGED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
                 this.bridge.updateImgCut(data.cutIdx, data.field, data.value);
+                triggerSave();
             }
         });
 
         eventBus.on('FRAME_SEEK', (data) => {
             if (this.bridge && !this.state.getStatus().isPlaying && this.state.getStatus().isReady) {
                 this.bridge.setFrame(data.frame); 
+                triggerSave();
             }
         });
 
         eventBus.on('KEYFRAME_MODIFIED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
                 this.bridge.updateAnimKeyframe(data.partIdx, data.modifType, data.moveIdx, data.frame, data.value, data.interp, data.easing); 
+                triggerSave();
             }
         });
 
@@ -84,6 +103,7 @@ export class BCUController {
             if (this.bridge && this.state.getStatus().isReady) {
                 this.bridge.addAnimKeyframe(data.partIdx, data.modifType, data.frame, data.value);
                 this.log(`Added keyframe: Part ${data.partIdx}, Type ${data.modifType}, Frame ${data.frame}`);
+                triggerSave();
             }
         });
 
@@ -91,6 +111,7 @@ export class BCUController {
             if (this.bridge && this.state.getStatus().isReady) {
                 this.bridge.deleteAnimKeyframe(data.partIdx, data.modifType, data.moveIdx);
                 this.log(`Deleted keyframe: Part ${data.partIdx}, Type ${data.modifType}, Index ${data.moveIdx}`);
+                triggerSave();
             }
         });
 
@@ -98,6 +119,7 @@ export class BCUController {
             if (this.bridge && this.state.getStatus().isReady) {
                 this.bridge.addPart(data.parent);
                 this.log(`Added part with parent: ${data.parent}`);
+                triggerSave();
             }
         });
 
@@ -107,17 +129,43 @@ export class BCUController {
                     this.bridge.deletePart(data.partIdx);
                     eventBus.emit('PART_SELECTED', { partIdx: null });
                     this.log(`Deleted part: ${data.partIdx}`);
+                    triggerSave();
                 }
             }
         });
 
         eventBus.on('FILE_SELECTED', (data) => {
             this.selectFile(data.fileName);
+            triggerSave();
         });
 
         eventBus.on('PROJECT_NAME_CHANGED', (data) => {
             this.project.setProjectName(data.name);
+            triggerSave();
         });
+
+        eventBus.on('ANIMATION_SWITCHED', (data) => {
+            this.setAnimation(data.animId);
+            triggerSave();
+        });
+    }
+
+    private restoreSession() {
+        const session = PersistenceManager.loadSession();
+        if (session) {
+            console.log('[Persistence] Restoring session:', session);
+            if (session.projectName) this.project.setProjectName(session.projectName);
+            if (session.animId !== 'none') {
+                this.setAnimation(session.animId);
+                setTimeout(() => {
+                    if (this.bridge && this.state.getStatus().isReady) {
+                        this.bridge.setFrame(session.currentFrame);
+                        eventBus.emit('PART_SELECTED', { partIdx: session.selectedPartIdx });
+                        this.setView(session.currentView);
+                    }
+                }, 500);
+            }
+        }
     }
 
     private initGlobalEvents() {
