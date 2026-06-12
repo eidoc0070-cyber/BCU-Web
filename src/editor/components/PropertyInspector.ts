@@ -1,12 +1,14 @@
+import { eventBus } from '../event-bus';
+
 export class PropertyInspector {
     private container = document.getElementById('property-inspector');
     private selectedKeyframe: { partIdx: number, modifType: number, moveIdx: number } | null = null;
 
-    constructor(
-        private onPropertyChange: (partIdx: number, field: number, value: number) => void,
-        private onKeyframeAdd: (partIdx: number, modifType: number, frame: number, value: number) => void,
-        private onKeyframeChange: (partIdx: number, modifType: number, moveIdx: number, frame: number, value: number, interp: number, easing: number) => void
-    ) {}
+    constructor() {
+        eventBus.on('PART_SELECTED', () => {
+            this.selectedKeyframe = null; // Reset KF when changing part
+        });
+    }
 
     public setSelectedKeyframe(kf: { partIdx: number, modifType: number, moveIdx: number } | null) {
         this.selectedKeyframe = kf;
@@ -91,7 +93,7 @@ export class PropertyInspector {
                 const el = e.target as HTMLInputElement;
                 const field = parseInt(el.getAttribute('data-field')!);
                 const value = parseInt(el.value);
-                this.onPropertyChange(part.index, field, value);
+                eventBus.emit('PROPERTY_CHANGED', { partIdx: part.index, field, value, source: 'Inspector' });
             });
         });
 
@@ -100,7 +102,7 @@ export class PropertyInspector {
                 const el = e.target as HTMLButtonElement;
                 const field = parseInt(el.getAttribute('data-field')!);
                 const value = parseInt((this.container!.querySelector(`input[data-field="${field}"]`) as HTMLInputElement).value);
-                this.onKeyframeAdd(part.index, field, currentFrame, value);
+                eventBus.emit('KEYFRAME_ADDED', { partIdx: part.index, modifType: field, frame: currentFrame, value });
             });
         });
 
@@ -112,12 +114,12 @@ export class PropertyInspector {
                 const interp = parseInt((this.container!.querySelector('.kf-input[data-type="interp"]') as HTMLSelectElement).value);
                 const easing = parseInt((this.container!.querySelector('.kf-input[data-type="easing"]') as HTMLInputElement).value);
                 
-                this.onKeyframeChange(
-                    this.selectedKeyframe!.partIdx,
-                    this.selectedKeyframe!.modifType,
-                    this.selectedKeyframe!.moveIdx,
+                eventBus.emit('KEYFRAME_MODIFIED', {
+                    partIdx: this.selectedKeyframe!.partIdx,
+                    modifType: this.selectedKeyframe!.modifType,
+                    moveIdx: this.selectedKeyframe!.moveIdx,
                     frame, value, interp, easing
-                );
+                });
             });
         });
     }

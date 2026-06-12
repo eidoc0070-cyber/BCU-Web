@@ -110,10 +110,10 @@ export class EngineBridge {
     }
 
     getPartTransform(partIdx: number): PartTransform | null {
+        if (!this.engine.get_part_transform) return null;
         try {
             return this.engine.get_part_transform(this.animId, partIdx);
         } catch (e) {
-            console.error('Error getting part transform:', e);
             return null;
         }
     }

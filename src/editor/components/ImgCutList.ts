@@ -1,7 +1,9 @@
+import { eventBus } from '../event-bus';
+
 export class ImgCutList {
     private container = document.getElementById('imgcut-list');
 
-    constructor(private onImgCutChange: (cutIdx: number, field: number, value: number) => void) {}
+    constructor() {}
 
     public render(imgcut: any) {
         if (!this.container) return;
@@ -31,7 +33,7 @@ export class ImgCutList {
                     const el = e.target as HTMLInputElement;
                     const field = parseInt(el.getAttribute('data-field')!);
                     const cutIdx = parseInt(el.getAttribute('data-idx')!);
-                    this.onImgCutChange(cutIdx, field, parseInt(el.value));
+                    eventBus.emit('IMGCUT_CHANGED', { cutIdx, field, value: parseInt(el.value) });
                 });
             });
 

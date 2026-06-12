@@ -1,4 +1,5 @@
 import { EngineBridge } from './engine-bridge';
+import { eventBus } from './event-bus';
 
 export class ImgCutEditor {
     private ctx: CanvasRenderingContext2D;
@@ -11,12 +12,15 @@ export class ImgCutEditor {
 
     constructor(
         private canvas: HTMLCanvasElement,
-        private bridge: EngineBridge,
-        private onImgCutChange: (idx: number, field: number, value: number) => void
+        private bridge: EngineBridge
     ) {
         this.ctx = canvas.getContext('2d')!;
         this.initEvents();
         this.startLoop();
+
+        eventBus.on('PART_SELECTED', () => {
+            this.selectedCutIdx = null;
+        });
     }
 
     public setSprite(img: HTMLImageElement) {
@@ -98,11 +102,11 @@ export class ImgCutEditor {
 
         const cut = state.imgcut.cuts[this.selectedCutIdx];
         if (this.dragMode === 'move') {
-            this.onImgCutChange(this.selectedCutIdx, 0, cut[0] + Math.round(dx));
-            this.onImgCutChange(this.selectedCutIdx, 1, cut[1] + Math.round(dy));
+            eventBus.emit('IMGCUT_CHANGED', { cutIdx: this.selectedCutIdx, field: 0, value: cut[0] + Math.round(dx) });
+            eventBus.emit('IMGCUT_CHANGED', { cutIdx: this.selectedCutIdx, field: 1, value: cut[1] + Math.round(dy) });
         } else if (this.dragMode === 'resize') {
-            this.onImgCutChange(this.selectedCutIdx, 2, Math.max(1, cut[2] + Math.round(dx)));
-            this.onImgCutChange(this.selectedCutIdx, 3, Math.max(1, cut[3] + Math.round(dy)));
+            eventBus.emit('IMGCUT_CHANGED', { cutIdx: this.selectedCutIdx, field: 2, value: Math.max(1, cut[2] + Math.round(dx)) });
+            eventBus.emit('IMGCUT_CHANGED', { cutIdx: this.selectedCutIdx, field: 3, value: Math.max(1, cut[3] + Math.round(dy)) });
         }
     }
 

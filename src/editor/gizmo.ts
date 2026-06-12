@@ -1,5 +1,6 @@
 import { EngineBridge } from './engine-bridge';
 import { EDITOR_CONFIG } from './config';
+import { eventBus } from './event-bus';
 
 export class CanvasGizmo {
     private isDragging = false;
@@ -18,13 +19,15 @@ export class CanvasGizmo {
     constructor(
         private canvas: HTMLCanvasElement,
         private gizmoCanvas: HTMLCanvasElement,
-        private bridge: EngineBridge,
-        private onPropertyChange: (partIdx: number, field: number, value: number) => void,
-        private onSelect: (partIdx: number | null) => void
+        private bridge: EngineBridge
     ) {
         this.ctx = gizmoCanvas.getContext('2d')!;
         this.initEvents();
         this.startLoop();
+
+        eventBus.on('PART_SELECTED', (data) => {
+            this.selectedPartIndex = data.partIdx;
+        });
     }
 
     public setSelectedPart(index: number | null) {
@@ -104,13 +107,7 @@ export class CanvasGizmo {
             }
         }
 
-        if (bestIdx !== null) {
-            this.selectedPartIndex = bestIdx;
-            this.onSelect(bestIdx);
-        } else {
-            this.selectedPartIndex = null;
-            this.onSelect(null);
-        }
+        eventBus.emit('PART_SELECTED', { partIdx: bestIdx });
     }
 
     private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale', val: number, val2: number = 0) {
@@ -139,17 +136,17 @@ export class CanvasGizmo {
         if (this.dragMode === 'translate') {
             const dx = mouse.worldX - this.startWorldX;
             const dy = mouse.worldY - this.startWorldY;
-            this.onPropertyChange(this.selectedPartIndex, 4, this.startPropValue + Math.round(dx));
-            this.onPropertyChange(this.selectedPartIndex, 5, this.startPropValueSecondary + Math.round(dy));
+            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 4, value: this.startPropValue + Math.round(dx), source: 'Gizmo' });
+            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 5, value: this.startPropValueSecondary + Math.round(dy), source: 'Gizmo' });
         } else if (this.dragMode === 'rotate') {
             const currentAngle = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
             const deltaAngle = (currentAngle - this.startAngle) * 1800 / Math.PI;
-            this.onPropertyChange(this.selectedPartIndex, 10, (this.startPropValue + Math.round(deltaAngle)) % 3600);
+            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 10, value: (this.startPropValue + Math.round(deltaAngle)) % 3600, source: 'Gizmo' });
         } else if (this.dragMode === 'scale') {
             const currentDist = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
             const ratio = currentDist / Math.max(1, this.startDist);
-            this.onPropertyChange(this.selectedPartIndex, 8, Math.round(this.startPropValue * ratio));
-            this.onPropertyChange(this.selectedPartIndex, 9, Math.round(this.startPropValueSecondary * ratio));
+            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 8, value: Math.round(this.startPropValue * ratio), source: 'Gizmo' });
+            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 9, value: Math.round(this.startPropValueSecondary * ratio), source: 'Gizmo' });
         }
     }
 

@@ -1,3 +1,5 @@
+import { eventBus } from '../event-bus';
+
 export class Timeline {
     private frameSlider = document.getElementById('frame-slider') as HTMLInputElement;
     private keyframesContainer = document.getElementById('timeline-keyframes');
@@ -6,13 +8,10 @@ export class Timeline {
     private selectedKeyframe: { partIdx: number, modifType: number, moveIdx: number } | null = null;
 
     constructor(
-        private onFrameSeek: (frame: number) => void,
-        private onKeyframeChange: (partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interp: number, easing: number) => void,
-        private onKeyframeDelete: (partIdx: number, modifType: number, moveIdx: number) => void,
         private onKeyframeSelect: (kf: { partIdx: number, modifType: number, moveIdx: number } | null) => void
     ) {
         this.frameSlider?.addEventListener('input', () => {
-            this.onFrameSeek(parseFloat(this.frameSlider.value));
+            eventBus.emit('FRAME_SEEK', { frame: parseFloat(this.frameSlider.value) });
         });
     }
 
@@ -76,7 +75,7 @@ export class Timeline {
                     dot.oncontextmenu = (e) => {
                         e.preventDefault();
                         if (confirm(`Delete keyframe for Part ${p.ints[0]} at frame ${frame}?`)) {
-                            this.onKeyframeDelete(p.ints[0], p.ints[1], moveIdx);
+                            eventBus.emit('KEYFRAME_DELETED', { partIdx: p.ints[0], modifType: p.ints[1], moveIdx });
                             if (isKFSelected) {
                                 this.selectedKeyframe = null;
                                 this.onKeyframeSelect(null);
@@ -101,7 +100,15 @@ export class Timeline {
                             const frameDelta = Math.round((dx / rect.width) * maxFrame);
                             const newFrame = Math.max(0, Math.min(maxFrame, startFrame + frameDelta));
                             
-                            this.onKeyframeChange(p.ints[0], p.ints[1], moveIdx, newFrame, move[1], move[2], move[3]);
+                            eventBus.emit('KEYFRAME_MODIFIED', {
+                                partIdx: p.ints[0],
+                                modifType: p.ints[1],
+                                moveIdx,
+                                frame: newFrame,
+                                value: move[1],
+                                interp: move[2],
+                                easing: move[3]
+                            });
                         };
                         
                         const onMouseUp = () => {

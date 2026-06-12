@@ -5,6 +5,7 @@ import { PartsTree } from './components/PartsTree';
 import { PropertyInspector } from './components/PropertyInspector';
 import { Timeline } from './components/Timeline';
 import { ImgCutList } from './components/ImgCutList';
+import { eventBus } from './event-bus';
 
 export class UIManager {
     private toastManager = new ToastManager();
@@ -21,46 +22,23 @@ export class UIManager {
     private lastFilesJson = '';
     public selectedPartIndex: number | null = null;
 
-    constructor(
-        onFrameSeek: (frame: number) => void,
-        onPropertyChange: (partIdx: number, field: number, value: number) => void,
-        onImgCutChange: (cutIdx: number, field: number, value: number) => void,
-        onFileSelect: (fileName: string) => void,
-        private onPartSelect?: (partIdx: number | null) => void,
-        private onKeyframeChange?: (partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interp: number, easing: number) => void,
-        private onProjectNameChange?: (name: string) => void,
-        private onPartAdd?: (parent: number) => void,
-        private onPartDelete?: (partIdx: number) => void,
-        private onKeyframeAdd?: (partIdx: number, modifType: number, frame: number, value: number) => void,
-        private onKeyframeDelete?: (partIdx: number, modifType: number, moveIdx: number) => void
-    ) {
+    constructor() {
         new TabManager();
-        this.fileExplorer = new FileExplorer(onFileSelect);
-        this.partsTree = new PartsTree(
-            (idx) => {
-                this.selectedPartIndex = idx;
-                if (this.onPartSelect) this.onPartSelect(idx);
-            },
-            (parent) => { if (this.onPartAdd) this.onPartAdd(parent); },
-            (idx) => { if (this.onPartDelete) this.onPartDelete(idx); }
-        );
-        this.propertyInspector = new PropertyInspector(
-            onPropertyChange, 
-            (p, m, f, v) => { if (this.onKeyframeAdd) this.onKeyframeAdd(p, m, f, v); },
-            (p, m, i, f, v, interp, easing) => { if (this.onKeyframeChange) this.onKeyframeChange(p, m, i, f, v, interp, easing); }
-        );
-        this.timeline = new Timeline(
-            onFrameSeek,
-            (p, m, i, f, v, interp, easing) => { if (this.onKeyframeChange) this.onKeyframeChange(p, m, i, f, v, interp, easing); },
-            (p, m, i) => { if (this.onKeyframeDelete) this.onKeyframeDelete(p, m, i); },
-            (kf) => {
-                this.propertyInspector.setSelectedKeyframe(kf);
-            }
-        );
-        this.imgcutList = new ImgCutList(onImgCutChange);
+        this.fileExplorer = new FileExplorer();
+        this.partsTree = new PartsTree();
+        this.propertyInspector = new PropertyInspector();
+        this.timeline = new Timeline((kf) => {
+            this.propertyInspector.setSelectedKeyframe(kf);
+        });
+        this.imgcutList = new ImgCutList();
 
         this.projectNameInput?.addEventListener('input', () => {
-            if (this.onProjectNameChange) this.onProjectNameChange(this.projectNameInput.value);
+            eventBus.emit('PROJECT_NAME_CHANGED', { name: this.projectNameInput.value });
+        });
+
+        eventBus.on('PART_SELECTED', (data) => {
+            this.selectedPartIndex = data.partIdx;
+            this.lastPartsJson = ''; // Force re-render of tree if needed
         });
     }
 

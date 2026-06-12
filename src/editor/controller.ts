@@ -8,6 +8,7 @@ import { IntegrityChecker } from './integrity';
 import { BCUEngine } from '../../pkg/bcu_api.js';
 import { EditorStateManager } from './state-manager';
 import { ProjectManager } from './project-manager';
+import { eventBus } from './event-bus';
 
 export class BCUController {
     public bridge: EngineBridge | null = null;
@@ -34,80 +35,89 @@ export class BCUController {
         });
 
         this.initMembers();
+        this.initEventSubscriptions();
         this.initGlobalEvents();
         console.log("[Editor] BCUController initialized.");
     }
 
     private initMembers() {
-        const handlePropertyChange = (partIdx: number, field: number, value: number) => {
-            if (this.bridge && this.state.getStatus().isReady) {
-                const state = this.bridge.getState();
-                if (state && state.animation && state.animation.parts[partIdx]) {
-                    const oldValue = state.animation.parts[partIdx].raw_args[field];
-                    this.history?.push({ op: 'PROP', partIdx, field, oldValue, newValue: value });
-                    this.bridge.updateModelPart(partIdx, field, value);
-                }
-            }
-        };
+        this.gizmo = new CanvasGizmo(this.canvas, this.gizmoCanvas, this.bridge!);
+        this.imgcutEditor = new ImgCutEditor(this.imgcutCanvas, this.bridge!);
+        this.ui = new UIManager();
+    }
 
-        const handleImgCutChange = (cutIdx: number, field: number, value: number) => {
-            if (this.bridge && this.state.getStatus().isReady) this.bridge.updateImgCut(cutIdx, field, value);
-        };
-
-        const handleKeyframeChange = (partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interp: number, easing: number) => {
-            if (this.bridge && this.state.getStatus().isReady) {
-                this.bridge.updateAnimKeyframe(partIdx, modifType, moveIdx, newFrame, newValue, interp, easing); 
-            }
-        };
-
-        this.gizmo = new CanvasGizmo(this.canvas, this.gizmoCanvas, this.bridge!, handlePropertyChange, (idx) => {
-            if (this.ui) this.ui.setSelectedPart(idx);
+    private initEventSubscriptions() {
+        eventBus.on('PART_SELECTED', () => {
             if (this.imgcutEditor) this.imgcutEditor.setSelectedCut(null);
         });
 
-        this.imgcutEditor = new ImgCutEditor(this.imgcutCanvas, this.bridge!, handleImgCutChange);
-
-        this.ui = new UIManager(
-            (frame) => { 
-                if (this.bridge && !this.state.getStatus().isPlaying && this.state.getStatus().isReady) {
-                    this.bridge.setFrame(frame); 
-                }
-            },
-            handlePropertyChange,
-            handleImgCutChange,
-            (fileName) => this.selectFile(fileName),
-            (partIdx) => { if (this.gizmo) this.gizmo.setSelectedPart(partIdx); },
-            handleKeyframeChange,
-            (name) => { this.project.setProjectName(name); },
-            (parent) => { 
-                if (this.bridge && this.state.getStatus().isReady) {
-                    this.bridge.addPart(parent);
-                    this.log(`Added part with parent: ${parent}`);
-                }
-            },
-            (partIdx) => {
-                if (this.bridge && this.state.getStatus().isReady) {
-                    if (confirm(`Are you sure you want to delete part ${partIdx}?`)) {
-                        this.bridge.deletePart(partIdx);
-                        if (this.gizmo) this.gizmo.setSelectedPart(null);
-                        if (this.ui) this.ui.setSelectedPart(null);
-                        this.log(`Deleted part: ${partIdx}`);
-                    }
-                }
-            },
-            (partIdx, modifType, frame, value) => {
-                if (this.bridge && this.state.getStatus().isReady) {
-                    this.bridge.addAnimKeyframe(partIdx, modifType, frame, value);
-                    this.log(`Added keyframe: Part ${partIdx}, Type ${modifType}, Frame ${frame}`);
-                }
-            },
-            (partIdx, modifType, moveIdx) => {
-                if (this.bridge && this.state.getStatus().isReady) {
-                    this.bridge.deleteAnimKeyframe(partIdx, modifType, moveIdx);
-                    this.log(`Deleted keyframe: Part ${partIdx}, Type ${modifType}, Index ${moveIdx}`);
+        eventBus.on('PROPERTY_CHANGED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                const state = this.bridge.getState();
+                if (state && state.animation && state.animation.parts[data.partIdx]) {
+                    const oldValue = state.animation.parts[data.partIdx].raw_args[data.field];
+                    this.history?.push({ op: 'PROP', partIdx: data.partIdx, field: data.field, oldValue, newValue: data.value });
+                    this.bridge.updateModelPart(data.partIdx, data.field, data.value);
                 }
             }
-        );
+        });
+
+        eventBus.on('IMGCUT_CHANGED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.updateImgCut(data.cutIdx, data.field, data.value);
+            }
+        });
+
+        eventBus.on('FRAME_SEEK', (data) => {
+            if (this.bridge && !this.state.getStatus().isPlaying && this.state.getStatus().isReady) {
+                this.bridge.setFrame(data.frame); 
+            }
+        });
+
+        eventBus.on('KEYFRAME_MODIFIED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.updateAnimKeyframe(data.partIdx, data.modifType, data.moveIdx, data.frame, data.value, data.interp, data.easing); 
+            }
+        });
+
+        eventBus.on('KEYFRAME_ADDED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.addAnimKeyframe(data.partIdx, data.modifType, data.frame, data.value);
+                this.log(`Added keyframe: Part ${data.partIdx}, Type ${data.modifType}, Frame ${data.frame}`);
+            }
+        });
+
+        eventBus.on('KEYFRAME_DELETED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.deleteAnimKeyframe(data.partIdx, data.modifType, data.moveIdx);
+                this.log(`Deleted keyframe: Part ${data.partIdx}, Type ${data.modifType}, Index ${data.moveIdx}`);
+            }
+        });
+
+        eventBus.on('PART_ADDED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                this.bridge.addPart(data.parent);
+                this.log(`Added part with parent: ${data.parent}`);
+            }
+        });
+
+        eventBus.on('PART_DELETED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                if (confirm(`Are you sure you want to delete part ${data.partIdx}?`)) {
+                    this.bridge.deletePart(data.partIdx);
+                    eventBus.emit('PART_SELECTED', { partIdx: null });
+                    this.log(`Deleted part: ${data.partIdx}`);
+                }
+            }
+        });
+
+        eventBus.on('FILE_SELECTED', (data) => {
+            this.selectFile(data.fileName);
+        });
+
+        eventBus.on('PROJECT_NAME_CHANGED', (data) => {
+            this.project.setProjectName(data.name);
+        });
     }
 
     private initGlobalEvents() {
@@ -134,14 +144,9 @@ export class BCUController {
                     }
                 }
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
-                const selectedPart = (this.ui as any).selectedPartIndex;
-                if (selectedPart !== null) {
-                    if (confirm(`Delete part ${selectedPart}?`)) {
-                        this.bridge?.deletePart(selectedPart);
-                        this.ui?.setSelectedPart(null);
-                        this.gizmo?.setSelectedPart(null);
-                        this.log(`Deleted part: ${selectedPart}`);
-                    }
+                const selectedPart = this.ui?.selectedPartIndex;
+                if (selectedPart !== undefined && selectedPart !== null) {
+                    eventBus.emit('PART_DELETED', { partIdx: selectedPart });
                 }
             }
         });

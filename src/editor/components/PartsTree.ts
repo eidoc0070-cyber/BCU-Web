@@ -1,11 +1,9 @@
+import { eventBus } from '../event-bus';
+
 export class PartsTree {
     private container = document.getElementById('parts-list');
 
-    constructor(
-        private onPartSelect: (idx: number | null) => void,
-        private onPartAdd: (parent: number) => void,
-        private onPartDelete: (idx: number) => void
-    ) {}
+    constructor() {}
 
     public render(parts: any[], selectedIndex: number | null) {
         if (!this.container) return;
@@ -17,7 +15,7 @@ export class PartsTree {
         addRootBtn.style.marginBottom = '1rem';
         addRootBtn.style.fontSize = '0.7rem';
         addRootBtn.innerText = '+ Add Root Part';
-        addRootBtn.onclick = () => this.onPartAdd(-1);
+        addRootBtn.onclick = () => eventBus.emit('PART_ADDED', { parent: -1 });
         this.container.appendChild(addRootBtn);
 
         const tree: any[] = [];
@@ -69,19 +67,19 @@ export class PartsTree {
             
             actions.querySelector('.part-action-add')?.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.onPartAdd(node.index);
+                eventBus.emit('PART_ADDED', { parent: node.index });
             });
             
             actions.querySelector('.part-action-delete')?.addEventListener('click', (e) => {
                 e.stopPropagation();
-                this.onPartDelete(node.index);
+                eventBus.emit('PART_DELETED', { partIdx: node.index });
             });
 
             item.appendChild(actions);
 
             item.onclick = (e) => {
                 e.stopPropagation();
-                this.onPartSelect(node.index);
+                eventBus.emit('PART_SELECTED', { partIdx: node.index });
             };
 
             container.appendChild(item);

@@ -2,6 +2,7 @@ import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { UIManager } from "../src/editor/ui-components";
 import { EngineBridge } from "../src/editor/engine-bridge";
+import { eventBus } from "../src/editor/event-bus";
 
 describe("BCU Editor UI & Bridge Logic", () => {
     beforeAll(() => {
@@ -13,10 +14,12 @@ describe("BCU Editor UI & Bridge Logic", () => {
         
         // Setup DOM
         document.body.innerHTML = `
-            <div id="tab-model"></div>
-            <div id="tab-imgcut"></div>
+            <div id="tab-model" class="tab-btn"></div>
+            <div id="tab-imgcut" class="tab-btn"></div>
+            <div id="tab-files" class="tab-btn"></div>
             <div id="view-model-anim"></div>
             <div id="view-imgcut"></div>
+            <div id="view-files"></div>
             <div id="parts-list"></div>
             <div id="imgcut-list"></div>
             <div id="property-inspector"></div>
@@ -34,9 +37,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
     });
 
     test("UIManager tab switching", () => {
-        new UIManager(
-            () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}
-        );
+        new UIManager();
 
         const tabModel = document.getElementById('tab-model')!;
         const tabImgCut = document.getElementById('tab-imgcut')!;
@@ -72,9 +73,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
     });
 
     test("UIManager hierarchical tree rendering", () => {
-        const ui = new UIManager(
-            () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}, () => {}
-        );
+        const ui = new UIManager();
         
         const mockState = {
             current_frame: 0,
@@ -96,21 +95,12 @@ describe("BCU Editor UI & Bridge Logic", () => {
     });
 
     test("Keyframe selection and editing flow", () => {
-        let capturedCommand: any = null;
-        const mockEngine = {
-            dispatch_editor_command: (json: string) => { capturedCommand = JSON.parse(json); }
-        } as any;
+        let capturedEvent: any = null;
+        eventBus.on('KEYFRAME_MODIFIED', (data) => {
+            capturedEvent = data;
+        });
 
-        const bridge = new EngineBridge(mockEngine, 'test');
-        
-        const ui = new UIManager(
-            () => {},
-            (p, f, v) => bridge.updateModelPart(p, f, v),
-            () => {},
-            () => {},
-            () => {},
-            (p, m, i, f, v, interp, easing) => bridge.updateAnimKeyframe(p, m, i, f, v, interp, easing)
-        );
+        const ui = new UIManager();
 
         const mockState = {
             current_frame: 0,
@@ -128,7 +118,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
         };
 
         ui.update(mockState, false);
-        ui.setSelectedPart(0);
+        eventBus.emit('PART_SELECTED', { partIdx: 0 });
         ui.update(mockState, false);
 
         const timeline = document.getElementById('timeline-keyframes')!;
@@ -149,8 +139,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
         select.value = "1"; // Step
         select.dispatchEvent(new Event('change'));
 
-        expect(capturedCommand).not.toBeNull();
-        expect(capturedCommand.op).toBe('UPDATE_ANIM_KEYFRAME');
-        expect(capturedCommand.data.interpolation).toBe(1);
+        expect(capturedEvent).not.toBeNull();
+        expect(capturedEvent.interp).toBe(1);
     });
 });

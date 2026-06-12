@@ -1,7 +1,9 @@
+import { eventBus } from '../event-bus';
+
 export class FileExplorer {
     private container = document.getElementById('file-explorer');
 
-    constructor(private onFileSelect: (name: string) => void) {}
+    constructor() {}
 
     public render(project: any) {
         if (!this.container) return;
@@ -40,7 +42,7 @@ export class FileExplorer {
                 const icon = file.type === 'maanim' ? '🎞️' : (file.type === 'sprite' || file.type === 'icon' ? '🖼️' : '📄');
                 item.innerHTML = `<span>${icon}</span> <span style="flex: 1">${file.name}</span>`;
 
-                item.onclick = () => this.onFileSelect(file.name);
+                item.onclick = () => eventBus.emit('FILE_SELECTED', { fileName: file.name });
                 this.container?.appendChild(item);
             });
         });

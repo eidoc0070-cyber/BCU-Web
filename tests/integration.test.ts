@@ -87,7 +87,9 @@ describe("BCU Editor Integration & Stability", () => {
             load_sprite: () => {},
             load_animation: () => {},
             resize: () => {},
-            update: () => {}
+            update: () => {},
+            get_part_transform: () => null,
+            get_animation_state: () => null
         } as any;
         
         const canvas = document.getElementById('bcu-canvas') as HTMLCanvasElement;
