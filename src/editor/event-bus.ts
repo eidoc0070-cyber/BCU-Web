@@ -47,6 +47,10 @@ export class EventBus {
         if (!this.listeners[type]) return;
         this.listeners[type]!.forEach(callback => callback(data));
     }
+
+    public clearAllListeners(): void {
+        this.listeners = {};
+    }
 }
 
 export const eventBus = new EventBus();

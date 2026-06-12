@@ -16,6 +16,10 @@ export class CanvasGizmo {
     private hoverMode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y' | null = null;
     private ctx: CanvasRenderingContext2D;
 
+    private _boundMouseDown = (e: MouseEvent) => this.handleMouseDown(e);
+    private _boundMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
+    private _boundMouseUp = () => this.handleMouseUp();
+
     constructor(
         private canvas: HTMLCanvasElement,
         private gizmoCanvas: HTMLCanvasElement,
@@ -35,9 +39,9 @@ export class CanvasGizmo {
     }
 
     private initEvents() {
-        this.canvas.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        window.addEventListener('mouseup', () => this.handleMouseUp());
+        this.canvas.addEventListener('mousedown', this._boundMouseDown);
+        window.addEventListener('mousemove', this._boundMouseMove);
+        window.addEventListener('mouseup', this._boundMouseUp);
     }
 
     private getMousePos(e: MouseEvent) {
@@ -202,8 +206,17 @@ export class CanvasGizmo {
         this.dragMode = null;
     }
 
+    private loopActive = true;
+    public destroy() {
+        this.loopActive = false;
+        this.canvas.removeEventListener('mousedown', this._boundMouseDown);
+        window.removeEventListener('mousemove', this._boundMouseMove);
+        window.removeEventListener('mouseup', this._boundMouseUp);
+    }
+
     private startLoop() {
         const tick = () => {
+            if (!this.loopActive) return;
             if (this.canvas.style.display !== 'none') {
                 this.draw();
             }
