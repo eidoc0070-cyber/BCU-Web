@@ -65,7 +65,8 @@ async function run() {
                     controller.bridge.render(
                         'test_unit', 
                         canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X, 
-                        canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y
+                        canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y,
+                        1.0
                     );
                 }
             },

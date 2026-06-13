@@ -71,21 +71,23 @@ impl SpriteBatch {
     pub fn add_part(
         &mut self,
         part: &EPart,
-        entities: &[EPart],
+        _entities: &[EPart],
         model: &MaModel,
         imgcut: &ImgCut,
         tex_w: f32,
         tex_h: f32,
         off_x: f32,
         off_y: f32,
+        alpha: f32,
     ) {
-        if part.img < 0 || part.img as usize >= imgcut.n {
+        let state = part.prev_state.lerp(&part.curr_state, alpha);
+        
+        if state.img < 0 || state.img as usize >= imgcut.n {
             return;
         }
 
-        let cut = imgcut.cuts[part.img as usize];
-        let (pos, sca, angle) = part.get_transform(entities, model);
-        let opa = part.get_opa(entities, model).to_float() as f32;
+        let cut = imgcut.cuts[state.img as usize];
+        let opa = state.opacity.to_float() as f32;
 
         if opa <= 0.0 {
             return;
@@ -105,14 +107,14 @@ impl SpriteBatch {
         ];
 
         let ri = model.ints[1] as f32;
-        let rad = angle.to_float() as f32 * 2.0 * std::f32::consts::PI / ri;
+        let rad = state.angle.to_float() as f32 * 2.0 * std::f32::consts::PI / ri;
         let cos_a = rad.cos();
         let sin_a = rad.sin();
 
-        let sx = sca.x.to_float() as f32;
-        let sy = sca.y.to_float() as f32;
-        let px_final = pos.x.to_float() as f32 + off_x;
-        let py_final = pos.y.to_float() as f32 + off_y;
+        let sx = state.sca.x.to_float() as f32;
+        let sy = state.sca.y.to_float() as f32;
+        let px_final = state.pos.x.to_float() as f32 + off_x;
+        let py_final = state.pos.y.to_float() as f32 + off_y;
 
         let base_idx = self.next_index;
 
@@ -488,6 +490,7 @@ impl RenderState {
         off_y: f32,
         texture_bind_group: &wgpu::BindGroup,
         batch: &mut SpriteBatch,
+        alpha: f32,
     ) -> Result<(), wgpu::SurfaceError> {
         batch.clear();
         for &idx in &anim.order {
@@ -501,6 +504,7 @@ impl RenderState {
                 tex_h,
                 off_x,
                 off_y,
+                alpha,
             );
         }
 
@@ -609,7 +613,19 @@ mod tests {
             strs: vec!["part".to_string()],
         };
 
-        let part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
+        let mut part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
+        
+        // Sync states manually for test (since we are not using EAnimD::new)
+        let (pos, sca, angle) = part.get_transform(&[], &model);
+        let opacity = part.get_opa(&[], &model);
+        let state = bcu_core::animation::RenderState {
+            pos, sca, angle, opacity,
+            img: part.img,
+            z: part.z,
+        };
+        part.curr_state = state;
+        part.prev_state = state;
+
         let entities = vec![part];
 
         // Texture 100x100, Sprite 100x100 at 0,0 with 0,0 offset
@@ -622,6 +638,7 @@ mod tests {
             100.0,
             0.0,
             0.0,
+            1.0, // alpha
         );
 
         assert_eq!(batch.vertices.len(), 4);

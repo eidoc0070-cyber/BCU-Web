@@ -13,6 +13,8 @@ use wasm_bindgen::prelude::*;
 #[derive(Deserialize)]
 #[serde(tag = "op", content = "data")]
 enum EditorCommand {
+    #[serde(rename = "TICK")]
+    Tick { id: String },
     #[serde(rename = "SET_FRAME")]
     SetFrame { id: String, frame: f32 },
     #[serde(rename = "UPDATE_MODEL_PART")]
@@ -158,6 +160,13 @@ impl BCUEngine {
         Ok(())
     }
 
+    pub fn tick(&mut self, id: &str) {
+        if let Some(anim) = self.animations.get_mut(id) {
+            anim.tick();
+            self.version_counter += 1;
+        }
+    }
+
     pub fn update(&mut self, id: &str) {
         if let Some(anim) = self.animations.get_mut(id) {
             anim.update(true);
@@ -168,6 +177,7 @@ impl BCUEngine {
     pub fn set_frame(&mut self, id: &str, frame: f32) {
         if let Some(anim) = self.animations.get_mut(id) {
             anim.set_frame(frame);
+            anim.reset_snapshots();
             self.version_counter += 1;
         }
     }
@@ -178,6 +188,9 @@ impl BCUEngine {
             .map_err(|e| JsValue::from_str(&format!("Invalid JSON command: {}", e)))?;
 
         match cmd {
+            EditorCommand::Tick { id } => {
+                self.tick(&id);
+            }
             EditorCommand::SetFrame { id, frame } => {
                 self.set_frame(&id, frame);
             }
@@ -365,6 +378,7 @@ impl BCUEngine {
         sprite_id: &str,
         off_x: f32,
         off_y: f32,
+        alpha: f32,
     ) -> Result<(), JsValue> {
         let anim = self
             .animations
@@ -393,6 +407,7 @@ impl BCUEngine {
                 off_y,
                 texture,
                 &mut self.batch,
+                alpha,
             )
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 

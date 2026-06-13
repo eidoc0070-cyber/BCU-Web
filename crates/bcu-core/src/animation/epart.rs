@@ -4,10 +4,56 @@
 
 use crate::data::MaModel;
 use bcu_math::{FixedPoint, Vec2};
+use serde::Serialize;
+use ts_rs::TS;
+
+#[derive(Clone, Copy, Debug, Serialize, TS)]
+#[ts(export)]
+pub struct RenderState {
+    pub pos: Vec2,
+    pub sca: Vec2,
+    pub angle: FixedPoint,
+    pub opacity: FixedPoint,
+    pub img: i32,
+    pub z: i32,
+}
+
+impl RenderState {
+    pub fn lerp(&self, other: &Self, alpha: f32) -> Self {
+        let a = FixedPoint::from_float(alpha as f64);
+        let inv_a = FixedPoint::ONE - a;
+
+        Self {
+            pos: self.pos * inv_a + other.pos * a,
+            sca: self.sca * inv_a + other.sca * a,
+            angle: self.angle * inv_a + other.angle * a,
+            opacity: self.opacity * inv_a + other.opacity * a,
+            img: if alpha > 0.5 { other.img } else { self.img },
+            z: if alpha > 0.5 { other.z } else { self.z },
+        }
+    }
+}
+
+impl Default for RenderState {
+    fn default() -> Self {
+        Self {
+            pos: Vec2::ZERO,
+            sca: Vec2::new(FixedPoint::ONE, FixedPoint::ONE),
+            angle: FixedPoint::ZERO,
+            opacity: FixedPoint::ONE,
+            img: -1,
+            z: 0,
+        }
+    }
+}
 
 pub struct EPart {
     pub name: String,
     pub ind: usize,
+
+    // Snapshots for interpolation
+    pub prev_state: RenderState,
+    pub curr_state: RenderState,
 
     // Pointers (indices)
     pub parent_idx: Option<usize>,
@@ -44,6 +90,8 @@ impl EPart {
             } else {
                 Some(args[0] as usize)
             },
+            prev_state: RenderState::default(),
+            curr_state: RenderState::default(),
             id: args[1],
             img: args[2],
             z: args[3] * (model.n as i32) + (ind as i32),
@@ -70,9 +118,23 @@ impl EPart {
             extend_y: FixedPoint::ZERO,
             args,
         };
-        // Initial gscale/opacity scaling logic from Java setValue() if any
-        // Java setValue(): gsca = model.ints[0]; hf = vf = 1; extendX = extendY = 0;
+        
         part
+    }
+
+    /// Update snapshots: Move current to previous, and capture new hierarchical state.
+    /// Should be called after logic updates.
+    pub fn update_snapshots(&mut self, entities: &[EPart], model: &MaModel) {
+        self.prev_state = self.curr_state;
+        let (pos, sca, angle) = self.get_transform(entities, model);
+        self.curr_state = RenderState {
+            pos,
+            sca,
+            angle,
+            opacity: self.get_opa(entities, model),
+            img: self.img,
+            z: self.z,
+        };
     }
 
     pub fn alter(&mut self, m: i32, v: FixedPoint, n_parts: usize, model: &MaModel) {

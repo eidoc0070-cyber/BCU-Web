@@ -5,7 +5,11 @@
 use crate::FixedPoint;
 use core::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+use serde::Serialize;
+use ts_rs::TS;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default, Serialize, TS)]
+#[ts(export)]
 pub struct Vec2 {
     pub x: FixedPoint,
     pub y: FixedPoint,

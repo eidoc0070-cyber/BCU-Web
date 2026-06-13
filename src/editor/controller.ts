@@ -24,6 +24,11 @@ export class BCUController {
     public state: EditorStateManager;
     public project: ProjectManager;
     
+    private lastTime = performance.now();
+    private accumulator = 0;
+    private readonly TICK_RATE = 30;
+    private readonly TICK_TIME = 1000 / this.TICK_RATE;
+
     constructor(
         private engine: BCUEngine,
         private canvas: HTMLCanvasElement,
@@ -352,24 +357,47 @@ export class BCUController {
             }
             this.state.setReady(true);
             this.setAnimation(defaultAnim);
-            for(let i=0; i<3; i++) { this.bridge?.update(); }
             this.state.setPlaying(true);
             this.updatePlayPauseUI();
         });
     }
 
     public renderTick() {
+        const currentTime = performance.now();
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+
         const status = this.state.getStatus();
         if (!status.isReady || !this.bridge || status.animId === 'none') {
             this.drawPlaceholder();
+            this.accumulator = 0;
             return;
         }
 
-        try {
-            if (status.isPlaying) this.bridge.update();
+        if (status.isPlaying) {
+            this.accumulator += deltaTime;
             
+            // Limit catch-up to avoid "spiral of death" on heavy lag
+            if (this.accumulator > 500) this.accumulator = this.TICK_TIME;
+
+            while (this.accumulator >= this.TICK_TIME) {
+                this.bridge.tick();
+                this.accumulator -= this.TICK_TIME;
+            }
+        } else {
+            this.accumulator = 0;
+        }
+
+        const alpha = status.isPlaying ? this.accumulator / this.TICK_TIME : 1.0;
+
+        try {
             if (this.canvas.style.display !== 'none') {
-                this.bridge.render('test_unit', this.canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X, this.canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y);
+                this.bridge.render(
+                    'test_unit', 
+                    this.canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X, 
+                    this.canvas.height * EDITOR_CONFIG.RENDER_OFFSET_Y,
+                    alpha
+                );
             }
 
             const state = this.bridge.getState();

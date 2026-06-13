@@ -15,9 +15,10 @@ export class BCUEngine {
     list_animations(): any;
     load_animation(id: string, imgcut_txt: string, mamodel_txt: string, maanim_txt: string): void;
     load_sprite(id: string, bytes: Uint8Array): void;
-    render(id: string, sprite_id: string, off_x: number, off_y: number): void;
+    render(id: string, sprite_id: string, off_x: number, off_y: number, alpha: number): void;
     resize(width: number, height: number): void;
     set_frame(id: string, frame: number): void;
+    tick(id: string): void;
     update(id: string): void;
 }
 
@@ -36,9 +37,10 @@ export interface InitOutput {
     readonly bcuengine_list_animations: (a: number) => any;
     readonly bcuengine_load_animation: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number];
     readonly bcuengine_load_sprite: (a: number, b: number, c: number, d: number, e: number) => [number, number];
-    readonly bcuengine_render: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number];
+    readonly bcuengine_render: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => [number, number];
     readonly bcuengine_resize: (a: number, b: number, c: number) => void;
     readonly bcuengine_set_frame: (a: number, b: number, c: number, d: number) => void;
+    readonly bcuengine_tick: (a: number, b: number, c: number) => void;
     readonly bcuengine_update: (a: number, b: number, c: number) => void;
     readonly wgpu_render_pass_draw: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wgpu_render_pass_draw_indexed: (a: number, b: number, c: number, d: number, e: number, f: number) => void;

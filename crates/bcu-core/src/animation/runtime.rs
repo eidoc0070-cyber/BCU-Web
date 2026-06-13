@@ -2,7 +2,7 @@
 //! @logic: Runtime animation update logic, applying keyframes to EPart states.
 //! @parity: 0%
 
-use crate::animation::epart::EPart;
+use crate::animation::epart::{EPart, RenderState};
 use crate::animation::interpolation::get_ti;
 use crate::data::{MaAnim, MaModel, Part};
 use bcu_math::FixedPoint;
@@ -26,6 +26,8 @@ pub struct PartState {
     pub parent: i32,
     pub z_order: i32,
     pub raw_args: [i32; 14],
+    pub prev_state: RenderState,
+    pub curr_state: RenderState,
 }
 
 pub struct EAnimD {
@@ -49,13 +51,15 @@ impl EAnimD {
             ));
             order.push(i);
         }
-        Self {
+        let mut anim_display = Self {
             model,
             anim,
             entities,
             order,
             frame: FixedPoint::ZERO,
-        }
+        };
+        anim_display.reset_snapshots();
+        anim_display
     }
 
     pub fn get_state(&self) -> AnimationState {
@@ -68,6 +72,8 @@ impl EAnimD {
                 parent: e.args[0],
                 z_order: e.z,
                 raw_args: e.args,
+                prev_state: e.prev_state,
+                curr_state: e.curr_state,
             })
             .collect();
 
@@ -235,6 +241,71 @@ impl EAnimD {
                 );
                 self.sort();
             }
+        }
+    }
+
+    pub fn tick(&mut self) {
+        // 1. Advance logic
+        update_maanim(
+            &self.anim,
+            self.frame,
+            &mut self.entities,
+            &self.model,
+            true,
+        );
+        
+        self.frame += FixedPoint::ONE;
+        if self.frame > FixedPoint::from_int(self.anim.max as i64) {
+            self.frame = FixedPoint::ZERO;
+        }
+        
+        self.sort();
+
+        // 2. Update snapshots for interpolation
+        // First pass: move curr to prev
+        for e in self.entities.iter_mut() {
+            e.prev_state = e.curr_state;
+        }
+
+        // Second pass: calculate new hierarchical curr_state
+        use crate::animation::epart::RenderState;
+        let mut new_states = Vec::with_capacity(self.entities.len());
+        for i in 0..self.entities.len() {
+            let (pos, sca, angle) = self.entities[i].get_transform(&self.entities, &self.model);
+            let opacity = self.entities[i].get_opa(&self.entities, &self.model);
+            new_states.push(RenderState {
+                pos,
+                sca,
+                angle,
+                opacity,
+                img: self.entities[i].img,
+                z: self.entities[i].z,
+            });
+        }
+
+        for (i, state) in new_states.into_iter().enumerate() {
+            self.entities[i].curr_state = state;
+        }
+    }
+
+    pub fn reset_snapshots(&mut self) {
+        let mut new_states = Vec::with_capacity(self.entities.len());
+        for i in 0..self.entities.len() {
+            let (pos, sca, angle) = self.entities[i].get_transform(&self.entities, &self.model);
+            let opacity = self.entities[i].get_opa(&self.entities, &self.model);
+            new_states.push(RenderState {
+                pos,
+                sca,
+                angle,
+                opacity,
+                img: self.entities[i].img,
+                z: self.entities[i].z,
+            });
+        }
+
+        for (i, state) in new_states.into_iter().enumerate() {
+            self.entities[i].curr_state = state;
+            self.entities[i].prev_state = state;
         }
     }
 

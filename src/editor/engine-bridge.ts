@@ -118,11 +118,18 @@ export class EngineBridge {
         }
     }
 
+    tick() {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'TICK',
+            data: { id: this.animId }
+        }));
+    }
+
     update() {
         this.engine.update(this.animId);
     }
 
-    render(spriteId: string, offX: number, offY: number) {
-        this.engine.render(this.animId, spriteId, offX, offY);
+    render(spriteId: string, offX: number, offY: number, alpha: number) {
+        this.engine.render(this.animId, spriteId, offX, offY, alpha);
     }
 }

@@ -6,7 +6,11 @@ use core::ops::{
     Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Rem, RemAssign, Sub, SubAssign,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
+use serde::Serialize;
+use ts_rs::TS;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, TS)]
+#[ts(export)]
 pub struct FixedPoint(pub i64);
 
 impl FixedPoint {

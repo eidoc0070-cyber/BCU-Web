@@ -6,5 +6,5 @@ pub mod epart;
 pub mod interpolation;
 pub mod runtime;
 
-pub use epart::EPart;
+pub use epart::{EPart, RenderState};
 pub use runtime::{update_maanim, AnimationState, EAnimD, PartState};
