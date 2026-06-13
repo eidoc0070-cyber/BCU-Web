@@ -36,8 +36,76 @@ export class Timeline {
         const maxFrame = state.max_frame;
         if (maxFrame <= 0) return;
 
+        // Create SVG layer for connections
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '0';
+        this.keyframesContainer.appendChild(svg);
+
+        const interpColors = ['#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#3b82f6'];
+
         state.anim.parts.forEach((p: any) => {
             const isPartSelected = p.ints[0] === selectedPartIndex;
+            if (!isPartSelected) return;
+
+            // Sort moves by frame
+            const sortedMoves = [...p.moves].sort((a, b) => a[0] - b[0]);
+            const modifType = p.ints[1];
+            
+            // vertical offset based on modifType to reduce overlapping
+            // We have about 12 types. Let's spread them between 20% and 80%
+            const y = 20 + (modifType % 12) * 5; 
+            
+            for (let i = 0; i < sortedMoves.length - 1; i++) {
+                const startMove = sortedMoves[i];
+                const endMove = sortedMoves[i + 1];
+                
+                const startFrame = startMove[0] - p.off;
+                const endFrame = endMove[0] - p.off;
+                const interp = startMove[2];
+                
+                const x1 = (startFrame / maxFrame) * 100;
+                const x2 = (endFrame / maxFrame) * 100;
+
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                let d = '';
+                
+                if (interp === 1) { // Step
+                    // Square "staircase" look even on a single line
+                    const midX = x1 + (x2 - x1) * 0.5;
+                    d = `M ${x1}% ${y}% L ${midX}% ${y}% L ${midX}% ${y-3}% L ${midX}% ${y+3}% L ${midX}% ${y}% L ${x2}% ${y}%`;
+                    path.setAttribute('stroke-dasharray', '2,2');
+                } else if (interp === 2 || interp === 4) { // Easing / Sinusoidal
+                    const cp1 = x1 + (x2 - x1) * 0.3;
+                    const cp2 = x1 + (x2 - x1) * 0.7;
+                    // Draw a wave to indicate smooth transition
+                    d = `M ${x1}% ${y}% C ${cp1}% ${y-8}% ${cp2}% ${y+8}% ${x2}% ${y}%`;
+                } else if (interp === 3) { // Lagrange
+                    d = `M ${x1}% ${y}% L ${x2}% ${y}%`;
+                    path.setAttribute('stroke-dasharray', '1,3');
+                } else { // Linear (0)
+                    d = `M ${x1}% ${y}% L ${x2}% ${y}%`;
+                }
+
+                path.setAttribute('d', d);
+                path.setAttribute('stroke', interpColors[interp] || 'white');
+                path.setAttribute('stroke-width', '1');
+                path.setAttribute('fill', 'none');
+                path.setAttribute('opacity', '0.4');
+                svg.appendChild(path);
+            }
+        });
+
+        // Render Dots on top
+        state.anim.parts.forEach((p: any) => {
+            const isPartSelected = p.ints[0] === selectedPartIndex;
+            const modifType = p.ints[1];
+            const yOffset = isPartSelected ? 20 + (modifType % 12) * 5 : 35;
             
             p.moves.forEach((move: any, moveIdx: number) => {
                 const frame = move[0] - p.off;
@@ -47,22 +115,22 @@ export class Timeline {
                                    this.selectedKeyframe?.moveIdx === moveIdx;
                 
                 const dot = document.createElement('div');
+                dot.className = 'timeline-kf-dot';
                 dot.style.position = 'absolute';
                 dot.style.left = `${ratio * 100}%`;
-                dot.style.top = isPartSelected ? (isKFSelected ? '0' : '20%') : '35%';
-                dot.style.width = isKFSelected ? '8px' : (isPartSelected ? '4px' : '2px');
-                dot.style.height = isKFSelected ? '100%' : (isPartSelected ? '60%' : '30%');
+                dot.style.top = `${yOffset}%`;
+                dot.style.transform = 'translate(-50%, -50%)'; 
+                dot.style.width = isKFSelected ? '10px' : (isPartSelected ? '6px' : '3px');
+                dot.style.height = isKFSelected ? '10px' : (isPartSelected ? '6px' : '3px');
                 
-                // Color based on interpolation type: Linear, Step, Easing, Lagrange, Sinusoidal
-                const interpColors = ['#8b5cf6', '#ef4444', '#10b981', '#f59e0b', '#3b82f6'];
                 const color = interpColors[move[2]] || 'var(--accent)';
                 
                 dot.style.background = isPartSelected ? color : 'rgba(255,255,255,0.2)';
                 dot.style.border = isKFSelected ? '2px solid white' : 'none';
-                dot.style.borderRadius = '2px';
+                dot.style.borderRadius = '50%';
                 dot.style.zIndex = isKFSelected ? '20' : (isPartSelected ? '10' : '1');
                 dot.style.cursor = isPartSelected ? 'pointer' : 'default';
-                dot.title = `Part ${p.ints[0]}, Frame ${frame}, Type ${move[2]}`;
+                dot.title = `Part ${p.ints[0]}, Type ${modifType}, Frame ${frame}, Mode ${move[2]}`;
                 
                 if (isPartSelected) {
                     dot.onclick = (e) => {
