@@ -11,12 +11,16 @@ import { ProjectManager } from './project-manager';
 import { PersistenceManager } from './persistence-manager';
 import { eventBus } from './event-bus';
 
+import { UpdatePropertyCommand } from './commands/property-commands';
+import { AddPartCommand, DeletePartCommand } from './commands/hierarchy-commands';
+import { AddKeyframeCommand, ModifyKeyframeCommand, DeleteKeyframeCommand } from './commands/animation-commands';
+
 export class BCUController {
     public bridge: EngineBridge | null = null;
     public ui: UIManager | null = null;
     public gizmo: CanvasGizmo | null = null;
     public imgcutEditor: ImgCutEditor | null = null;
-    public history: HistoryManager | null = null;
+    public history: HistoryManager;
     public state: EditorStateManager;
     public project: ProjectManager;
     
@@ -31,9 +35,7 @@ export class BCUController {
         this.state = new EditorStateManager();
         this.project = new ProjectManager(engine, log);
         this.bridge = new EngineBridge(engine, this.state.getStatus().animId);
-        this.history = new HistoryManager((idx, field, val) => {
-            if (this.bridge) this.bridge.updateModelPart(idx, field, val);
-        });
+        this.history = new HistoryManager();
 
         this.initMembers();
         this.initEventSubscriptions();
@@ -71,9 +73,11 @@ export class BCUController {
                 const state = this.bridge.getState();
                 if (state && state.animation && state.animation.parts[data.partIdx]) {
                     const oldValue = state.animation.parts[data.partIdx].raw_args[data.field];
-                    this.history?.push({ op: 'PROP', partIdx: data.partIdx, field: data.field, oldValue, newValue: data.value });
-                    this.bridge.updateModelPart(data.partIdx, data.field, data.value);
-                    triggerSave();
+                    if (oldValue !== data.value) {
+                        const cmd = new UpdatePropertyCommand(this.bridge, data.partIdx, data.field, oldValue, data.value);
+                        this.history.execute(cmd);
+                        triggerSave();
+                    }
                 }
             }
         });
@@ -94,14 +98,26 @@ export class BCUController {
 
         eventBus.on('KEYFRAME_MODIFIED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                this.bridge.updateAnimKeyframe(data.partIdx, data.modifType, data.moveIdx, data.frame, data.value, data.interp, data.easing); 
-                triggerSave();
+                const state = this.bridge.getState();
+                if (state && state.animation && state.animation.anim) {
+                    const part = state.animation.anim.parts.find((p: any) => p.ints[0] === data.partIdx && p.ints[1] === data.modifType);
+                    if (part) {
+                        const move = part.moves[data.moveIdx];
+                        const oldData = { frame: move[0], value: move[1], interp: move[2], easing: move[3] };
+                        const newData = { frame: data.frame, value: data.value, interp: data.interp, easing: data.easing };
+                        
+                        const cmd = new ModifyKeyframeCommand(this.bridge, data.partIdx, data.modifType, data.moveIdx, oldData, newData);
+                        this.history.execute(cmd);
+                        triggerSave();
+                    }
+                }
             }
         });
 
         eventBus.on('KEYFRAME_ADDED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                this.bridge.addAnimKeyframe(data.partIdx, data.modifType, data.frame, data.value);
+                const cmd = new AddKeyframeCommand(this.bridge, data.partIdx, data.modifType, data.frame, data.value);
+                this.history.execute(cmd);
                 this.log(`Added keyframe: Part ${data.partIdx}, Type ${data.modifType}, Frame ${data.frame}`);
                 triggerSave();
             }
@@ -109,7 +125,8 @@ export class BCUController {
 
         eventBus.on('KEYFRAME_DELETED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                this.bridge.deleteAnimKeyframe(data.partIdx, data.modifType, data.moveIdx);
+                const cmd = new DeleteKeyframeCommand(this.bridge, data.partIdx, data.modifType, data.moveIdx);
+                this.history.execute(cmd);
                 this.log(`Deleted keyframe: Part ${data.partIdx}, Type ${data.modifType}, Index ${data.moveIdx}`);
                 triggerSave();
             }
@@ -117,7 +134,8 @@ export class BCUController {
 
         eventBus.on('PART_ADDED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                this.bridge.addPart(data.parent);
+                const cmd = new AddPartCommand(this.bridge, data.parent);
+                this.history.execute(cmd);
                 this.log(`Added part with parent: ${data.parent}`);
                 triggerSave();
             }
@@ -126,7 +144,8 @@ export class BCUController {
         eventBus.on('PART_DELETED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
                 if (confirm(`Are you sure you want to delete part ${data.partIdx}?`)) {
-                    this.bridge.deletePart(data.partIdx);
+                    const cmd = new DeletePartCommand(this.bridge, data.partIdx);
+                    this.history.execute(cmd);
                     eventBus.emit('PART_SELECTED', { partIdx: null });
                     this.log(`Deleted part: ${data.partIdx}`);
                     triggerSave();
@@ -178,18 +197,12 @@ export class BCUController {
             if (e.ctrlKey || e.metaKey) {
                 if (e.key === 'z') {
                     e.preventDefault();
-                    const entry = this.history?.undo();
-                    if (entry) {
-                        this.log("Undo");
-                        if (this.ui && entry.op === 'PROP') this.ui.flashProperty(entry.field);
-                    }
+                    this.history.undo();
+                    this.log("Undo");
                 } else if (e.key === 'y' || (e.key === 'Z' && e.shiftKey)) {
                     e.preventDefault();
-                    const entry = this.history?.redo();
-                    if (entry) {
-                        this.log("Redo");
-                        if (this.ui && entry.op === 'PROP') this.ui.flashProperty(entry.field);
-                    }
+                    this.history.redo();
+                    this.log("Redo");
                 }
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
                 const selectedPart = this.ui?.selectedPartIndex;

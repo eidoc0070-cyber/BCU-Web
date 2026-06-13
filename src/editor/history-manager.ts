@@ -1,25 +1,15 @@
-export interface CommandRecord {
-    op: string;
-    partIdx: number;
-    field: number;
-    oldValue: number;
-    newValue: number;
-}
+import { Command } from './commands/base';
 
 export class HistoryManager {
-    private undoStack: CommandRecord[] = [];
-    private redoStack: CommandRecord[] = [];
+    private undoStack: Command[] = [];
+    private redoStack: Command[] = [];
     private maxHistory = 100;
 
-    constructor(
-        private onApply: (partIdx: number, field: number, value: number) => void
-    ) {}
+    constructor() {}
 
-    push(record: CommandRecord) {
-        // If the value hasn't actually changed, don't push
-        if (record.oldValue === record.newValue) return;
-
-        this.undoStack.push(record);
+    execute(command: Command) {
+        command.execute();
+        this.undoStack.push(command);
         this.redoStack = []; // Clear redo stack on new action
         
         if (this.undoStack.length > this.maxHistory) {
@@ -27,22 +17,22 @@ export class HistoryManager {
         }
     }
 
-    undo(): CommandRecord | undefined {
-        const record = this.undoStack.pop();
-        if (!record) return undefined;
+    undo(): Command | undefined {
+        const command = this.undoStack.pop();
+        if (!command) return undefined;
 
-        this.onApply(record.partIdx, record.field, record.oldValue);
-        this.redoStack.push(record);
-        return record;
+        command.undo();
+        this.redoStack.push(command);
+        return command;
     }
 
-    redo(): CommandRecord | undefined {
-        const record = this.redoStack.pop();
-        if (!record) return undefined;
+    redo(): Command | undefined {
+        const command = this.redoStack.pop();
+        if (!command) return undefined;
 
-        this.onApply(record.partIdx, record.field, record.newValue);
-        this.undoStack.push(record);
-        return record;
+        command.execute();
+        this.undoStack.push(command);
+        return command;
     }
 
     canUndo(): boolean {
