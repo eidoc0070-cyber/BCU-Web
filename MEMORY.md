@@ -32,7 +32,9 @@
 ---
 
 ## Git History (Recent)
+- `2026-06-13`: Cleanup redundant runtime integrity test configurations, restore clean package.json scripts, verify all 29 TS/Rust tests passing.
 - `2026-06-02`: refactor(web): fix rendering offsets, reset animId loading state, enhance debug diagnostics, and add unit tests.
 - `2026-05-31`: Implement Real-time Editor Property Editing & Undo/Redo System.
 - `2026-05-31`: Refactor TS to Modular Architecture (Bridge/UI/History).
 - `edf1ec7`: feat(web): build WASM module and initialize BCUEngine in main.ts
+
