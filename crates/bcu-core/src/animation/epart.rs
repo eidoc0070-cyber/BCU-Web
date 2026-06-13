@@ -82,7 +82,7 @@ pub struct EPart {
 
 impl EPart {
     pub fn new(ind: usize, name: String, args: [i32; 14], model: &MaModel) -> Self {
-        let part = EPart {
+        EPart {
             name,
             ind,
             parent_idx: if args[0] < 0 {
@@ -117,9 +117,7 @@ impl EPart {
             extend_x: FixedPoint::ZERO,
             extend_y: FixedPoint::ZERO,
             args,
-        };
-        
-        part
+        }
     }
 
     /// Update snapshots: Move current to previous, and capture new hierarchical state.

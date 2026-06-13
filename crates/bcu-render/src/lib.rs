@@ -68,6 +68,7 @@ impl SpriteBatch {
         self.next_index = 0;
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn add_part(
         &mut self,
         part: &EPart,
@@ -81,7 +82,7 @@ impl SpriteBatch {
         alpha: f32,
     ) {
         let state = part.prev_state.lerp(&part.curr_state, alpha);
-        
+
         if state.img < 0 || state.img as usize >= imgcut.n {
             return;
         }
@@ -480,6 +481,7 @@ impl RenderState {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn draw_animation(
         &mut self,
         anim: &EAnimD,
@@ -614,12 +616,15 @@ mod tests {
         };
 
         let mut part = EPart::new(0, "Root".to_string(), model.parts[0], &model);
-        
+
         // Sync states manually for test (since we are not using EAnimD::new)
         let (pos, sca, angle) = part.get_transform(&[], &model);
         let opacity = part.get_opa(&[], &model);
         let state = bcu_core::animation::RenderState {
-            pos, sca, angle, opacity,
+            pos,
+            sca,
+            angle,
+            opacity,
             img: part.img,
             z: part.z,
         };

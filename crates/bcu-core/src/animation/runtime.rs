@@ -126,6 +126,7 @@ impl EAnimD {
         self.sort();
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn update_anim_keyframe(
         &mut self,
         part_idx: usize,
@@ -253,12 +254,12 @@ impl EAnimD {
             &self.model,
             true,
         );
-        
+
         self.frame += FixedPoint::ONE;
         if self.frame > FixedPoint::from_int(self.anim.max as i64) {
             self.frame = FixedPoint::ZERO;
         }
-        
+
         self.sort();
 
         // 2. Update snapshots for interpolation
@@ -832,7 +833,7 @@ mod tests_eanimd {
         let mut part = Part::new(0, 11);
         part.off = 0;
         part.moves = vec![
-            [0, 0, 0, 0],    // Linear
+            [0, 0, 0, 0], // Linear
             [10, 100, 0, 0],
         ];
         part.n = 2;

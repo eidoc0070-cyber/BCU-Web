@@ -7,8 +7,14 @@
     "build:wasm": "wasm-pack build crates/bcu-api --target web --out-dir ../../pkg",
     "build": "bun run build:wasm && vite build",
     "preview": "vite preview",
-    "test": "bun test tests/ && cargo test",
-    "ready": "tsc --noEmit && bun run build && bun run test"
+    "test:ts": "bun test tests/",
+    "test:rust": "cargo test",
+    "test": "bun run test:ts && bun run test:rust",
+    "lint:rust": "cargo fmt -- --check && cargo clippy -- -D warnings",
+    "check:rust": "cargo check",
+    "fmt:rust": "cargo fmt",
+    "parity:check": "cargo run -p parity-tester",
+    "ready": "tsc --noEmit && bun run lint:rust && bun run build && bun run test"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.10.0",
