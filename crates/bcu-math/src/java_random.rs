@@ -13,8 +13,9 @@ pub struct JavaRandom {
 }
 
 impl JavaRandom {
-    /// Create a new JavaRandom with the given seed.
+    /// Create a new `JavaRandom` with the given seed.
     /// This performs the initial scramble: (seed ^ multiplier) & mask.
+    #[must_use]
     pub fn new(seed: u64) -> Self {
         let initial = (seed ^ 0x5DEECE66D) & 0xFFFFFFFFFFFF;
         Self { seed: initial }
@@ -33,20 +34,20 @@ impl JavaRandom {
 
     /// Return the next pseudo-random double between 0.0 and 1.0.
     pub fn next_double(&mut self) -> f64 {
-        let high = (self.next(26) as i64) << 27;
-        let low = self.next(27) as i64;
+        let high = i64::from(self.next(26)) << 27;
+        let low = i64::from(self.next(27));
         (high.wrapping_add(low)) as f64 / 9007199254740992.0
     }
 
     /// Return the next pseudo-random 64-bit integer.
     pub fn next_long(&mut self) -> i64 {
-        let high = (self.next(32) as i64) << 32;
-        let low = self.next(32) as i64;
+        let high = i64::from(self.next(32)) << 32;
+        let low = i64::from(self.next(32));
         high.wrapping_add(low)
     }
 }
 
-/// Helper function to mimic Java's Math.random() thread-safely and without external dependencies.
+/// Helper function to mimic Java's `Math.random()` thread-safely and without external dependencies.
 pub fn ir_double() -> f64 {
     loop {
         let current = GLOBAL_RAND_SEED.load(Ordering::Relaxed);
@@ -60,18 +61,20 @@ pub fn ir_double() -> f64 {
     }
 }
 
-/// Java battle random wrapper (CopRand).
+/// Java battle random wrapper (`CopRand`).
 #[derive(Debug, Clone)]
 pub struct CopRand {
     pub seed: i64,
 }
 
 impl CopRand {
+    #[must_use]
     pub fn new(seed: i64) -> Self {
         Self { seed }
     }
 
-    /// Mimics Math.random() or non-deterministic RNG.
+    /// Mimics `Math.random()` or non-deterministic RNG.
+    #[must_use]
     pub fn ir_double(&self) -> f64 {
         ir_double()
     }
@@ -80,7 +83,7 @@ impl CopRand {
     pub fn next_double(&mut self) -> f64 {
         let mut r = JavaRandom::new(self.seed as u64);
         self.seed = r.next_long();
-        r.next_float() as f64
+        f64::from(r.next_float())
     }
 
     /// Get next float value and update seed.

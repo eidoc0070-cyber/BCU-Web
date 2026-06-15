@@ -1,5 +1,5 @@
 //! @java: common.util.anim.ImgCut
-//! @logic: ImgCut defines sprite sheet partition data defining sub-image rects.
+//! @logic: `ImgCut` defines sprite sheet partition data defining sub-image rects.
 //! @parity: 100%
 
 use crate::ParityTestable;

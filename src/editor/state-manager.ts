@@ -9,7 +9,8 @@ export interface EditorStatus {
 
 export interface EditorSession {
     animId: string;
-    selectedPartIdx: number | null;
+    selectedPartIdxs: number[];
+    selectedKeyframeIds: string[];
     currentFrame: number;
     currentView: 'animation' | 'imgcut' | 'image';
     projectName: string;
@@ -27,6 +28,8 @@ export class EditorStateManager {
         lastRenderedVersion: -1n
     };
 
+    private selectedPartIdxs: Set<number> = new Set();
+    private selectedKeyframeIds: Set<string> = new Set();
     private listeners: StateListener[] = [];
 
     constructor() {}
@@ -47,6 +50,53 @@ export class EditorStateManager {
 
     private notify() {
         this.listeners.forEach(l => l(this.status));
+    }
+
+    // Part Selection management
+    public getSelection(): number[] {
+        return Array.from(this.selectedPartIdxs);
+    }
+
+    public setSelection(idxs: number[]) {
+        this.selectedPartIdxs = new Set(idxs);
+    }
+
+    public toggleSelection(idx: number) {
+        if (this.selectedPartIdxs.has(idx)) {
+            this.selectedPartIdxs.delete(idx);
+        } else {
+            this.selectedPartIdxs.add(idx);
+        }
+    }
+
+    public isSelected(idx: number): boolean {
+        return this.selectedPartIdxs.has(idx);
+    }
+
+    // Keyframe Selection management
+    // ID format: "partIdx:modifType:frame"
+    public getKFSelection(): string[] {
+        return Array.from(this.selectedKeyframeIds);
+    }
+
+    public setKFSelection(ids: string[]) {
+        this.selectedKeyframeIds = new Set(ids);
+    }
+
+    public toggleKFSelection(id: string) {
+        if (this.selectedKeyframeIds.has(id)) {
+            this.selectedKeyframeIds.delete(id);
+        } else {
+            this.selectedKeyframeIds.add(id);
+        }
+    }
+
+    public isKFSelected(id: string): boolean {
+        return this.selectedKeyframeIds.has(id);
+    }
+
+    public clearKFSelection() {
+        this.selectedKeyframeIds.clear();
     }
 
     // Specialized helpers
@@ -70,10 +120,11 @@ export class EditorStateManager {
         this.updateStatus({ selectedFile: file });
     }
 
-    public getSession(selectedPartIdx: number | null, currentFrame: number, projectName: string): EditorSession {
+    public getSession(currentFrame: number, projectName: string): EditorSession {
         return {
             animId: this.status.animId,
-            selectedPartIdx,
+            selectedPartIdxs: this.getSelection(),
+            selectedKeyframeIds: this.getKFSelection(),
             currentFrame,
             currentView: this.status.currentView,
             projectName

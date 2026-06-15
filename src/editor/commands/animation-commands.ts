@@ -42,27 +42,43 @@ export class ModifyKeyframeCommand implements Command {
         private bridge: EngineBridge,
         private partIdx: number,
         private modifType: number,
-        private moveIdx: number,
         private oldData: { frame: number, value: number, interp: number, easing: number },
         private newData: { frame: number, value: number, interp: number, easing: number }
     ) {}
 
+    private findMoveIdx(frame: number): number {
+        const state = this.bridge.getState();
+        if (state && state.animation && state.animation.anim) {
+            const part = state.animation.anim.parts.find((p: any) => p.ints[0] === this.partIdx && p.ints[1] === this.modifType);
+            if (part) {
+                return part.moves.findIndex((m: any) => m[0] === frame);
+            }
+        }
+        return -1;
+    }
+
     execute(): void {
-        this.bridge.updateAnimKeyframe(
-            this.partIdx, this.modifType, this.moveIdx, 
-            this.newData.frame, this.newData.value, this.newData.interp, this.newData.easing
-        );
+        const moveIdx = this.findMoveIdx(this.oldData.frame);
+        if (moveIdx !== -1) {
+            this.bridge.updateAnimKeyframe(
+                this.partIdx, this.modifType, moveIdx, 
+                this.newData.frame, this.newData.value, this.newData.interp, this.newData.easing
+            );
+        }
     }
 
     undo(): void {
-        this.bridge.updateAnimKeyframe(
-            this.partIdx, this.modifType, this.moveIdx, 
-            this.oldData.frame, this.oldData.value, this.oldData.interp, this.oldData.easing
-        );
+        const moveIdx = this.findMoveIdx(this.newData.frame);
+        if (moveIdx !== -1) {
+            this.bridge.updateAnimKeyframe(
+                this.partIdx, this.modifType, moveIdx, 
+                this.oldData.frame, this.oldData.value, this.oldData.interp, this.oldData.easing
+            );
+        }
     }
 
     serialize(): any {
-        return { type: this.type, partIdx: this.partIdx, modifType: this.modifType, moveIdx: this.moveIdx, oldData: this.oldData, newData: this.newData };
+        return { type: this.type, partIdx: this.partIdx, modifType: this.modifType, oldData: this.oldData, newData: this.newData };
     }
 }
 
@@ -74,7 +90,7 @@ export class DeleteKeyframeCommand implements Command {
         private bridge: EngineBridge,
         private partIdx: number,
         private modifType: number,
-        private moveIdx: number
+        private frame: number
     ) {}
 
     execute(): void {
@@ -82,10 +98,13 @@ export class DeleteKeyframeCommand implements Command {
         if (state && state.animation && state.animation.anim) {
             const part = state.animation.anim.parts.find((p: any) => p.ints[0] === this.partIdx && p.ints[1] === this.modifType);
             if (part) {
-                this.deletedData = JSON.parse(JSON.stringify(part.moves[this.moveIdx]));
+                const moveIdx = part.moves.findIndex((m: any) => m[0] === this.frame);
+                if (moveIdx !== -1) {
+                    this.deletedData = JSON.parse(JSON.stringify(part.moves[moveIdx]));
+                    this.bridge.deleteAnimKeyframe(this.partIdx, this.modifType, moveIdx);
+                }
             }
         }
-        this.bridge.deleteAnimKeyframe(this.partIdx, this.modifType, this.moveIdx);
     }
 
     undo(): void {
@@ -95,6 +114,6 @@ export class DeleteKeyframeCommand implements Command {
     }
 
     serialize(): any {
-        return { type: this.type, partIdx: this.partIdx, modifType: this.modifType, moveIdx: this.moveIdx };
+        return { type: this.type, partIdx: this.partIdx, modifType: this.modifType, frame: this.frame };
     }
 }

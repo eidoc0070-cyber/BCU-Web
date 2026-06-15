@@ -32,7 +32,7 @@ When you change the data structure in Rust:
 ---
 
 ## 3. Parity Testing (Java/Kotlin)
-To ensure the Rust engine behaves identically to the original Java BCU, we use the `BCU-java-PC-slow_kotlin` source code as a reference.
+To ensure the Rust engine behaves identically to the original Java BCU, we use the `test_out/BCU-java-PC-slow_kotlin` source code as a reference.
 
 ### 3.1. Running Parity Tests
 1.  **Preparation**: Ensure the Java/Kotlin test suite is available (ignored by git, but present locally).

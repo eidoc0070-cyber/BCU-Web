@@ -1,15 +1,16 @@
 //! @java: common.util.anim.ImgCut
-//! @logic: ImgCut parses sprite sheet partition data defining sub-image rects.
+//! @logic: `ImgCut` parses sprite sheet partition data defining sub-image rects.
 //! @parity: 100%
 
 use bcu_core::{BCUError, ImgCut};
 
+#[must_use]
 pub fn restrict(s: &str) -> String {
     s.chars().take(32).collect()
 }
 
 pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
-    let mut lines = content.lines().map(|line| line.trim_end());
+    let mut lines = content.lines().map(str::trim_end);
 
     // Java code: qs.poll(); qs.poll(); (skips header [imgcut] and version 0)
     lines.next();
@@ -17,7 +18,7 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
 
     let name = match lines.next() {
         Some(l) => restrict(l),
-        None => "".to_string(),
+        None => String::new(),
     };
 
     let n_str = lines
@@ -26,7 +27,7 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
     let n = n_str
         .trim()
         .parse::<usize>()
-        .map_err(|e| BCUError::ParseError(format!("Invalid cut count: {}", e)))?;
+        .map_err(|e| BCUError::ParseError(format!("Invalid cut count: {e}")))?;
 
     let mut cuts = Vec::with_capacity(n);
     let mut strs = Vec::with_capacity(n);
@@ -34,7 +35,7 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
     for i in 0..n {
         let line = lines
             .next()
-            .ok_or_else(|| BCUError::ParseError(format!("Missing cut line at index {}", i)))?;
+            .ok_or_else(|| BCUError::ParseError(format!("Missing cut line at index {i}")))?;
 
         // Java: String[] ss = (line == null ? "0, 0, 1, 1" : line).trim().split(",");
         let trimmed = line.trim();
@@ -46,22 +47,21 @@ pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
 
         if ss.len() < 4 {
             return Err(BCUError::ParseError(format!(
-                "Cut line {} has less than 4 components: {}",
-                i, line
+                "Cut line {i} has less than 4 components: {line}"
             )));
         }
 
         let mut cut = [0; 4];
         for j in 0..4 {
             cut[j] = ss[j].trim().parse::<i32>().map_err(|e| {
-                BCUError::ParseError(format!("Invalid integer at cut {}, index {}: {}", i, j, e))
+                BCUError::ParseError(format!("Invalid integer at cut {i}, index {j}: {e}"))
             })?;
         }
 
         let s_val = if ss.len() == 5 {
             restrict(ss[4])
         } else {
-            "".to_string()
+            String::new()
         };
 
         cuts.push(cut);

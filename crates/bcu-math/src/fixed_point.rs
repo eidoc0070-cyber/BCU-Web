@@ -22,44 +22,50 @@ impl FixedPoint {
     pub const HALF_PI: Self = Self(1_570_796);
     pub const TWO_PI: Self = Self(6_283_185);
 
-    /// Construct FixedPoint from raw i64 value.
+    /// Construct `FixedPoint` from raw i64 value.
+    #[must_use]
     pub const fn from_raw(raw: i64) -> Self {
         Self(raw)
     }
 
     /// Construct from f64 by scaling and rounding.
+    #[must_use]
     pub fn from_float(f: f64) -> Self {
         Self((f * Self::SCALE as f64).round() as i64)
     }
 
     /// Convert to f64 by dividing by scaling factor.
+    #[must_use]
     pub fn to_float(self) -> f64 {
         self.0 as f64 / Self::SCALE as f64
     }
 
     /// Construct from integer.
+    #[must_use]
     pub fn from_int(val: i64) -> Self {
         Self(val * Self::SCALE)
     }
 
     /// Convert to integer by dividing by scaling factor.
+    #[must_use]
     pub fn to_int(self) -> i64 {
         self.0 / Self::SCALE
     }
 
     /// Return absolute value.
+    #[must_use]
     pub fn abs(self) -> Self {
         Self(self.0.abs())
     }
 
     /// Calculate square root using integer square root on u128.
+    #[must_use]
     pub fn sqrt(self) -> Self {
-        if self.0 < 0 {
-            panic!(
-                "Cannot calculate square root of a negative FixedPoint: {}",
-                self.0
-            );
-        }
+        assert!(
+            self.0 >= 0,
+            "Cannot calculate square root of a negative FixedPoint: {}",
+            self.0
+        );
         let val = (self.0 as u128) * (Self::SCALE as u128);
         let mut res = 0u128;
         let mut bit = 1u128 << 126;
@@ -80,6 +86,7 @@ impl FixedPoint {
     }
 
     /// Calculate power with integer exponent.
+    #[must_use]
     pub fn pow_i32(self, n: i32) -> Self {
         if n == 0 {
             return Self::ONE;
@@ -101,6 +108,7 @@ impl FixedPoint {
     }
 
     /// Trigonometric sine approximation using Taylor series.
+    #[must_use]
     pub fn sin(self) -> Self {
         let mut x_raw = self.0 % 6_283_185;
         if x_raw > 3_141_593 {
@@ -115,8 +123,8 @@ impl FixedPoint {
             x_raw = -3_141_593 - x_raw;
         }
 
-        let x = x_raw as i128;
-        let scale = Self::SCALE as i128;
+        let x = i128::from(x_raw);
+        let scale = i128::from(Self::SCALE);
         let x2 = (x * x) / scale;
 
         let term1 = x;
@@ -131,11 +139,13 @@ impl FixedPoint {
     }
 
     /// Trigonometric cosine approximation.
+    #[must_use]
     pub fn cos(self) -> Self {
         Self(self.0 + 1_570_796).sin()
     }
 
     /// Trigonometric arctangent of y/x using CORDIC algorithm.
+    #[must_use]
     pub fn atan2(y: Self, x: Self) -> Self {
         const CORDIC_ANGLES: [i64; 15] = [
             785398, // atan(1.0)
@@ -150,18 +160,18 @@ impl FixedPoint {
             return Self::ZERO;
         }
 
-        let mut curr_x = x.0 as i128;
-        let mut curr_y = y.0 as i128;
+        let mut curr_x = i128::from(x.0);
+        let mut curr_y = i128::from(y.0);
         let mut angle = 0i64;
 
         if curr_x < 0 {
             if curr_y >= 0 {
-                curr_x = -x.0 as i128;
-                curr_y = -y.0 as i128;
+                curr_x = i128::from(-x.0);
+                curr_y = i128::from(-y.0);
                 angle = 3_141_593;
             } else {
-                curr_x = -x.0 as i128;
-                curr_y = -y.0 as i128;
+                curr_x = i128::from(-x.0);
+                curr_y = i128::from(-y.0);
                 angle = -3_141_593;
             }
         }
@@ -190,7 +200,7 @@ impl core::fmt::Display for FixedPoint {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let integral = self.0 / Self::SCALE;
         let fractional = self.0.abs() % Self::SCALE;
-        write!(f, "{}.{:06}", integral, fractional)
+        write!(f, "{integral}.{fractional:06}")
     }
 }
 
@@ -225,7 +235,7 @@ impl SubAssign for FixedPoint {
 impl Mul for FixedPoint {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
-        Self(((self.0 as i128 * rhs.0 as i128) / Self::SCALE as i128) as i64)
+        Self(((i128::from(self.0) * i128::from(rhs.0)) / i128::from(Self::SCALE)) as i64)
     }
 }
 
@@ -238,10 +248,8 @@ impl MulAssign for FixedPoint {
 impl Div for FixedPoint {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
-        if rhs.0 == 0 {
-            panic!("Division by zero in FixedPoint");
-        }
-        Self(((self.0 as i128 * Self::SCALE as i128) / rhs.0 as i128) as i64)
+        assert!(rhs.0 != 0, "Division by zero in FixedPoint");
+        Self(((i128::from(self.0) * i128::from(Self::SCALE)) / i128::from(rhs.0)) as i64)
     }
 }
 
@@ -261,9 +269,7 @@ impl Neg for FixedPoint {
 impl Rem for FixedPoint {
     type Output = Self;
     fn rem(self, rhs: Self) -> Self {
-        if rhs.0 == 0 {
-            panic!("Remainder by zero in FixedPoint");
-        }
+        assert!(rhs.0 != 0, "Remainder by zero in FixedPoint");
         Self(self.0 % rhs.0)
     }
 }

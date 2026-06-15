@@ -1,12 +1,12 @@
 //! @java: common.util.anim.MaAnim / common.util.anim.Part
-//! @logic: MaAnim parses skeletal animation keyframes, handling frame offset translations and validation.
+//! @logic: `MaAnim` parses skeletal animation keyframes, handling frame offset translations and validation.
 //! @parity: 100%
 
 use crate::imgcut::restrict;
 use bcu_core::{BCUError, MaAnim, Part};
 
 pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
-    let mut lines = content.lines().map(|line| line.trim_end());
+    let mut lines = content.lines().map(str::trim_end);
 
     // Java: qs.poll(); qs.poll(); (skips [maanim] and version 1)
     lines.next();
@@ -18,20 +18,19 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
     let n = n_str
         .trim()
         .parse::<usize>()
-        .map_err(|e| BCUError::ParseError(format!("Invalid animation part count: {}", e)))?;
+        .map_err(|e| BCUError::ParseError(format!("Invalid animation part count: {e}")))?;
 
     let mut parts = Vec::with_capacity(n);
 
     for i in 0..n {
         let header_line = lines.next().ok_or_else(|| {
-            BCUError::ParseError(format!("Missing animation part header at index {}", i))
+            BCUError::ParseError(format!("Missing animation part header at index {i}"))
         })?;
         let ss: Vec<&str> = header_line.trim().split(',').collect();
 
         if ss.len() < 5 {
             return Err(BCUError::ParseError(format!(
-                "Animation part header {} has less than 5 elements: {}",
-                i, header_line
+                "Animation part header {i} has less than 5 elements: {header_line}"
             )));
         }
 
@@ -39,8 +38,7 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
         for j in 0..5 {
             let v = ss[j].trim().parse::<i32>().map_err(|e| {
                 BCUError::ParseError(format!(
-                    "Invalid integer at part header {}, index {}: {}",
-                    i, j, e
+                    "Invalid integer at part header {i}, index {j}: {e}"
                 ))
             })?;
             // Java: ints[i] = (isOld && i == 1 && v == 8) ? 53 : v;
@@ -50,31 +48,27 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
         let name = if ss.len() == 6 {
             restrict(ss[5])
         } else {
-            "".to_string()
+            String::new()
         };
 
         let move_count_str = lines.next().ok_or_else(|| {
-            BCUError::ParseError(format!("Missing keyframe count at animation part {}", i))
+            BCUError::ParseError(format!("Missing keyframe count at animation part {i}"))
         })?;
         let move_count = move_count_str.trim().parse::<usize>().map_err(|e| {
-            BCUError::ParseError(format!(
-                "Invalid keyframe count at animation part {}: {}",
-                i, e
-            ))
+            BCUError::ParseError(format!("Invalid keyframe count at animation part {i}: {e}"))
         })?;
 
         let mut moves = Vec::with_capacity(move_count);
 
         for k in 0..move_count {
             let move_line = lines.next().ok_or_else(|| {
-                BCUError::ParseError(format!("Missing keyframe line at part {}, index {}", i, k))
+                BCUError::ParseError(format!("Missing keyframe line at part {i}, index {k}"))
             })?;
             let ss_move: Vec<&str> = move_line.trim().split(',').collect();
 
             if ss_move.len() < 4 {
                 return Err(BCUError::ParseError(format!(
-                    "Keyframe line at part {}, index {} has less than 4 elements: {}",
-                    i, k, move_line
+                    "Keyframe line at part {i}, index {k} has less than 4 elements: {move_line}"
                 )));
             }
 
@@ -82,8 +76,7 @@ pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
             for j in 0..4 {
                 mv[j] = ss_move[j].trim().parse::<i32>().map_err(|e| {
                     BCUError::ParseError(format!(
-                        "Invalid integer at keyframe line at part {}, index {}, component {}: {}",
-                        i, k, j, e
+                        "Invalid integer at keyframe line at part {i}, index {k}, component {j}: {e}"
                     ))
                 })?;
             }

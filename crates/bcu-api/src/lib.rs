@@ -185,7 +185,7 @@ impl BCUEngine {
     pub fn dispatch_editor_command(&mut self, json_str: &str) -> Result<(), JsValue> {
         self.version_counter += 1;
         let cmd: EditorCommand = serde_json::from_str(json_str)
-            .map_err(|e| JsValue::from_str(&format!("Invalid JSON command: {}", e)))?;
+            .map_err(|e| JsValue::from_str(&format!("Invalid JSON command: {e}")))?;
 
         match cmd {
             EditorCommand::Tick { id } => {

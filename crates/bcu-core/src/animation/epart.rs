@@ -19,8 +19,9 @@ pub struct RenderState {
 }
 
 impl RenderState {
+    #[must_use]
     pub fn lerp(&self, other: &Self, alpha: f32) -> Self {
-        let a = FixedPoint::from_float(alpha as f64);
+        let a = FixedPoint::from_float(f64::from(alpha));
         let inv_a = FixedPoint::ONE - a;
 
         Self {
@@ -81,6 +82,7 @@ pub struct EPart {
 }
 
 impl EPart {
+    #[must_use]
     pub fn new(ind: usize, name: String, args: [i32; 14], model: &MaModel) -> Self {
         EPart {
             name,
@@ -96,20 +98,20 @@ impl EPart {
             img: args[2],
             z: args[3] * (model.n as i32) + (ind as i32),
             pos: Vec2::new(
-                FixedPoint::from_int(args[4] as i64),
-                FixedPoint::from_int(args[5] as i64),
+                FixedPoint::from_int(i64::from(args[4])),
+                FixedPoint::from_int(i64::from(args[5])),
             ),
             piv: Vec2::new(
-                FixedPoint::from_int(args[6] as i64),
-                FixedPoint::from_int(args[7] as i64),
+                FixedPoint::from_int(i64::from(args[6])),
+                FixedPoint::from_int(i64::from(args[7])),
             ),
             sca: Vec2::new(
-                FixedPoint::from_int(args[8] as i64),
-                FixedPoint::from_int(args[9] as i64),
+                FixedPoint::from_int(i64::from(args[8])),
+                FixedPoint::from_int(i64::from(args[9])),
             ),
-            gsca: FixedPoint::from_int(model.ints[0] as i64),
-            angle: FixedPoint::from_int(args[10] as i64),
-            opacity: FixedPoint::from_int(args[11] as i64),
+            gsca: FixedPoint::from_int(i64::from(model.ints[0])),
+            angle: FixedPoint::from_int(i64::from(args[10])),
+            opacity: FixedPoint::from_int(i64::from(args[11])),
             hf: 1,
             vf: 1,
             glow: args[12],
@@ -136,8 +138,8 @@ impl EPart {
     }
 
     pub fn alter(&mut self, m: i32, v: FixedPoint, n_parts: usize, model: &MaModel) {
-        let mi = FixedPoint::from_int(model.ints[0] as i64);
-        let oi = FixedPoint::from_int(model.ints[2] as i64);
+        let mi = FixedPoint::from_int(i64::from(model.ints[0]));
+        let oi = FixedPoint::from_int(i64::from(model.ints[2]));
 
         match m {
             0 => {
@@ -152,19 +154,19 @@ impl EPart {
             1 => self.id = v.to_int() as i32,
             2 => self.img = v.to_int() as i32,
             3 => self.z = v.to_int() as i32 * (n_parts as i32) + (self.ind as i32),
-            4 => self.pos.x = FixedPoint::from_int(self.args[4] as i64) + v,
-            5 => self.pos.y = FixedPoint::from_int(self.args[5] as i64) + v,
-            6 => self.piv.x = FixedPoint::from_int(self.args[6] as i64) + v,
-            7 => self.piv.y = FixedPoint::from_int(self.args[7] as i64) + v,
+            4 => self.pos.x = FixedPoint::from_int(i64::from(self.args[4])) + v,
+            5 => self.pos.y = FixedPoint::from_int(i64::from(self.args[5])) + v,
+            6 => self.piv.x = FixedPoint::from_int(i64::from(self.args[6])) + v,
+            7 => self.piv.y = FixedPoint::from_int(i64::from(self.args[7])) + v,
             8 => {
                 let factor = v / mi;
-                self.sca.x = FixedPoint::from_int(self.args[8] as i64) * factor;
-                self.sca.y = FixedPoint::from_int(self.args[9] as i64) * factor;
+                self.sca.x = FixedPoint::from_int(i64::from(self.args[8])) * factor;
+                self.sca.y = FixedPoint::from_int(i64::from(self.args[9])) * factor;
             }
-            9 => self.sca.x = FixedPoint::from_int(self.args[8] as i64) * v / mi,
-            10 => self.sca.y = FixedPoint::from_int(self.args[9] as i64) * v / mi,
-            11 => self.angle = FixedPoint::from_int(self.args[10] as i64) + v,
-            12 => self.opacity = v * FixedPoint::from_int(self.args[11] as i64) / oi,
+            9 => self.sca.x = FixedPoint::from_int(i64::from(self.args[8])) * v / mi,
+            10 => self.sca.y = FixedPoint::from_int(i64::from(self.args[9])) * v / mi,
+            11 => self.angle = FixedPoint::from_int(i64::from(self.args[10])) + v,
+            12 => self.opacity = v * FixedPoint::from_int(i64::from(self.args[11])) / oi,
             13 => self.hf = if v == FixedPoint::ZERO { 1 } else { -1 },
             14 => self.vf = if v == FixedPoint::ZERO { 1 } else { -1 },
             50 => {
@@ -186,9 +188,10 @@ impl EPart {
         }
     }
 
+    #[must_use]
     pub fn get_transform(&self, entities: &[EPart], model: &MaModel) -> (Vec2, Vec2, FixedPoint) {
-        let mi = FixedPoint::from_int(model.ints[0] as i64);
-        let ri = FixedPoint::from_int(model.ints[1] as i64);
+        let mi = FixedPoint::from_int(i64::from(model.ints[0]));
+        let ri = FixedPoint::from_int(i64::from(model.ints[1]));
 
         let mut p_pos = Vec2::ZERO;
         let mut p_sca = Vec2::new(FixedPoint::ONE, FixedPoint::ONE);
@@ -212,16 +215,17 @@ impl EPart {
 
         // 최종 스케일 계산 (부모 스케일 * 내 스케일 * 내 반전)
         let mut final_sca = p_sca * self.sca / mi;
-        final_sca.x *= FixedPoint::from_int(self.hf as i64);
-        final_sca.y *= FixedPoint::from_int(self.vf as i64);
+        final_sca.x *= FixedPoint::from_int(i64::from(self.hf));
+        final_sca.y *= FixedPoint::from_int(i64::from(self.vf));
 
         let final_angle = p_angle + self.angle;
 
         (final_pos, final_sca, final_angle)
     }
 
+    #[must_use]
     pub fn get_size(&self, entities: &[EPart], model: &MaModel) -> Vec2 {
-        let mi = FixedPoint::from_int(model.ints[0] as i64);
+        let mi = FixedPoint::from_int(i64::from(model.ints[0]));
         // mi * mi might overflow if we are not careful with SCALE.
         // In FixedPoint multiplication, it's (a * b) / SCALE.
         // So (mi * mi) / SCALE.
@@ -236,8 +240,9 @@ impl EPart {
         }
     }
 
+    #[must_use]
     pub fn get_opa(&self, entities: &[EPart], model: &MaModel) -> FixedPoint {
-        let oi = FixedPoint::from_int(model.ints[2] as i64);
+        let oi = FixedPoint::from_int(i64::from(model.ints[2]));
         if self.opacity == FixedPoint::ZERO {
             return FixedPoint::ZERO;
         }

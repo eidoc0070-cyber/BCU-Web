@@ -19,11 +19,11 @@ pub enum BCUError {
 impl core::fmt::Display for BCUError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::ParseError(msg) => write!(f, "Parse Error: {}", msg),
-            Self::ValidationError(msg) => write!(f, "Validation Error: {}", msg),
-            Self::MathError(msg) => write!(f, "Math Error: {}", msg),
-            Self::EngineError(msg) => write!(f, "Engine Error: {}", msg),
-            Self::IoError(msg) => write!(f, "IO Error: {}", msg),
+            Self::ParseError(msg) => write!(f, "Parse Error: {msg}"),
+            Self::ValidationError(msg) => write!(f, "Validation Error: {msg}"),
+            Self::MathError(msg) => write!(f, "Math Error: {msg}"),
+            Self::EngineError(msg) => write!(f, "Engine Error: {msg}"),
+            Self::IoError(msg) => write!(f, "IO Error: {msg}"),
         }
     }
 }

@@ -20,6 +20,7 @@ pub struct Sprite {
 }
 
 impl Sprite {
+    #[must_use]
     pub fn new(width: u32, height: u32, rgba: Vec<u8>) -> Self {
         Self {
             width,
@@ -46,6 +47,7 @@ pub struct AssetRegistry {
 }
 
 impl AssetRegistry {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -54,6 +56,7 @@ impl AssetRegistry {
         self.sprites.insert(id.to_string(), sprite);
     }
 
+    #[must_use]
     pub fn get_sprite(&self, id: &str) -> Option<&Sprite> {
         self.sprites.get(id)
     }

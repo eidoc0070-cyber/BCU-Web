@@ -39,9 +39,7 @@ fn main() {
         let diff = (actual - expected).abs();
         assert!(
             diff < 1e-6,
-            "JavaRandom.next_float() failed to match Java output: expected {}, got {}",
-            expected,
-            actual
+            "JavaRandom.next_float() failed to match Java output: expected {expected}, got {actual}"
         );
     }
     println!("✓ JavaRandom Float sequences matched successfully.");
@@ -58,9 +56,7 @@ fn main() {
         let diff = (actual - expected).abs();
         assert!(
             diff < 1e-12,
-            "JavaRandom.next_double() failed to match Java output: expected {}, got {}",
-            expected,
-            actual
+            "JavaRandom.next_double() failed to match Java output: expected {expected}, got {actual}"
         );
     }
     println!("✓ JavaRandom Double sequences matched successfully.");
@@ -80,9 +76,7 @@ fn main() {
         let diff = (actual - expected).abs();
         assert!(
             diff < 1e-6,
-            "CopRand.next_float() failed to match Java output: expected {}, got {}",
-            expected,
-            actual
+            "CopRand.next_float() failed to match Java output: expected {expected}, got {actual}"
         );
     }
     assert_eq!(
@@ -95,7 +89,7 @@ fn main() {
     println!("Checking FixedPoint trig parity...");
     // Let's assert that cos^2(x) + sin^2(x) is extremely close to 1
     for i in 0..100 {
-        let x = FixedPoint::from_float(i as f64 * 0.1);
+        let x = FixedPoint::from_float(f64::from(i) * 0.1);
         let s = x.sin();
         let c = x.cos();
         let sum_sq = s * s + c * c;
@@ -211,9 +205,7 @@ i000_e.png
     use std::path::Path;
 
     let anim_root = Path::new("test_out/animations");
-    if !anim_root.exists() {
-        println!("SKIPPING: test_out/animations not found.");
-    } else {
+    if anim_root.exists() {
         let mut folder_count = 0;
         let mut file_count = 0;
         let entries = fs::read_dir(anim_root).expect("Failed to read anim_root");
@@ -257,10 +249,9 @@ i000_e.png
                 }
             }
         }
-        println!(
-            "✓ Deep scan completed: {} folders, {} files verified.",
-            folder_count, file_count
-        );
+        println!("✓ Deep scan completed: {folder_count} folders, {file_count} files verified.");
+    } else {
+        println!("SKIPPING: test_out/animations not found.");
     }
 
     println!("All math, random, and parser parity tests PASSED successfully.");

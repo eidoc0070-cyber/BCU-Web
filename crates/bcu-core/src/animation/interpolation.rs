@@ -4,6 +4,7 @@
 
 use bcu_math::FixedPoint;
 
+#[must_use]
 pub fn get_ti(ti: FixedPoint, itype: i32, param: i32) -> FixedPoint {
     match itype {
         0 => ti,               // Linear

@@ -1,5 +1,5 @@
 //! @java: (none)
-//! @logic: Expose foundation mathematical modules: FixedPoint, JavaRandom, and Vec2.
+//! @logic: Expose foundation mathematical modules: `FixedPoint`, `JavaRandom`, and Vec2.
 //! @parity: 100%
 
 pub mod fixed_point;

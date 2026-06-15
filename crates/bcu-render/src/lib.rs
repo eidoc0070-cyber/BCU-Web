@@ -16,6 +16,7 @@ pub struct Vertex {
 }
 
 impl Vertex {
+    #[must_use]
     pub fn desc() -> wgpu::VertexBufferLayout<'static> {
         wgpu::VertexBufferLayout {
             array_stride: std::mem::size_of::<Vertex>() as wgpu::BufferAddress,
@@ -54,6 +55,7 @@ impl Default for SpriteBatch {
 }
 
 impl SpriteBatch {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             vertices: Vec::with_capacity(4096),
@@ -244,7 +246,7 @@ impl RenderState {
             .formats
             .iter()
             .copied()
-            .find(|f| f.is_srgb())
+            .find(wgpu::TextureFormat::is_srgb)
             .unwrap_or(surface_caps.formats[0]);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,

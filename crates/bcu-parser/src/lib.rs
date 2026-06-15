@@ -1,5 +1,5 @@
 //! @java: (none)
-//! @logic: BCU parser library for parsing ImgCut, MaModel, and MaAnim formats.
+//! @logic: BCU parser library for parsing `ImgCut`, `MaModel`, and `MaAnim` formats.
 //! @parity: 100%
 
 pub mod imgcut;

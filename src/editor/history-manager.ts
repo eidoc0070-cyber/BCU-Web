@@ -9,6 +9,10 @@ export class HistoryManager {
 
     execute(command: Command) {
         command.execute();
+        this.push(command);
+    }
+
+    push(command: Command) {
         this.undoStack.push(command);
         this.redoStack = []; // Clear redo stack on new action
         

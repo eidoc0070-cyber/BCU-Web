@@ -6,6 +6,7 @@ import { PropertyInspector } from './components/PropertyInspector';
 import { Timeline } from './components/Timeline';
 import { ImgCutList } from './components/ImgCutList';
 import { eventBus } from './event-bus';
+import { EditorStateManager } from './state-manager';
 
 export class UIManager {
     private toastManager = new ToastManager();
@@ -20,15 +21,15 @@ export class UIManager {
     private lastPartsJson = '';
     private lastImgCutJson = '';
     private lastFilesJson = '';
-    public selectedPartIndex: number | null = null;
+    public selectedPartIdxs: number[] = [];
 
-    constructor() {
+    constructor(private stateManager: EditorStateManager) {
         new TabManager();
         this.fileExplorer = new FileExplorer();
         this.partsTree = new PartsTree();
-        this.propertyInspector = new PropertyInspector();
-        this.timeline = new Timeline((kf) => {
-            this.propertyInspector.setSelectedKeyframe(kf);
+        this.propertyInspector = new PropertyInspector(this.stateManager);
+        this.timeline = new Timeline(this.stateManager, () => {
+            // PropertyInspector now uses direct stateManager access in update()
         });
         this.imgcutList = new ImgCutList();
 
@@ -37,7 +38,7 @@ export class UIManager {
         });
 
         eventBus.on('PART_SELECTED', (data) => {
-            this.selectedPartIndex = data.partIdx;
+            this.selectedPartIdxs = data.partIdxs;
             this.lastPartsJson = ''; // Force re-render of tree if needed
         });
     }
@@ -50,8 +51,8 @@ export class UIManager {
         this.propertyInspector.flash(field);
     }
 
-    public setSelectedPart(index: number | null) {
-        this.selectedPartIndex = index;
+    public setSelectedParts(idxs: number[]) {
+        this.selectedPartIdxs = idxs;
         this.lastPartsJson = ''; 
     }
 
@@ -62,12 +63,12 @@ export class UIManager {
     update(state: any, isPlaying: boolean, project?: any, imgcut?: any) {
         if (!state) return;
 
-        this.timeline.update(state, isPlaying, this.selectedPartIndex);
+        this.timeline.update(state, isPlaying, this.selectedPartIdxs);
 
         const partsJson = JSON.stringify(state.parts);
         if (partsJson !== this.lastPartsJson) {
             this.lastPartsJson = partsJson;
-            this.partsTree.render(state.parts, this.selectedPartIndex);
+            this.partsTree.render(state.parts, this.selectedPartIdxs);
         }
 
         if (imgcut) {
@@ -86,8 +87,16 @@ export class UIManager {
             }
         }
 
-        if (this.selectedPartIndex !== null && state.parts[this.selectedPartIndex]) {
-            this.propertyInspector.update(state.parts[this.selectedPartIndex], state.anim, this.timeline.getCurrentFrame());
+        if (this.selectedPartIdxs.length > 0) {
+            const selectedParts = this.selectedPartIdxs
+                .map(idx => state.parts[idx])
+                .filter(p => !!p);
+            
+            if (selectedParts.length > 0) {
+                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame());
+            }
+        } else {
+            this.propertyInspector.update([], null, 0);
         }
     }
 }

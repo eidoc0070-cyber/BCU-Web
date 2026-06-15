@@ -1,73 +1,133 @@
 import { eventBus } from '../event-bus';
+import { EditorStateManager } from '../state-manager';
 
 export class PropertyInspector {
     private container = document.getElementById('property-inspector');
-    private selectedKeyframe: { partIdx: number, modifType: number, moveIdx: number } | null = null;
+    private currentPartIdxs: number[] = [];
 
-    constructor() {
+    constructor(private stateManager: EditorStateManager) {
         eventBus.on('PART_SELECTED', () => {
-            this.selectedKeyframe = null; // Reset KF when changing part
+            // Optional: could trigger a clear if needed, but update() handles it
         });
     }
 
-    public setSelectedKeyframe(kf: { partIdx: number, modifType: number, moveIdx: number } | null) {
-        this.selectedKeyframe = kf;
-    }
+    public update(parts: any[] | any, anim: any, currentFrame: number) {
+        if (!this.container) return;
+        
+        // Normalize input
+        const selectedParts = Array.isArray(parts) ? parts : (parts ? [parts] : []);
+        this.currentPartIdxs = selectedParts.map(p => p.index);
 
-    public update(part: any, anim: any, currentFrame: number) {
-        if (!this.container || !part) return;
+        const kfSelection = this.stateManager.getKFSelection();
+
+        if (selectedParts.length === 0 && kfSelection.length === 0) {
+            this.container.innerHTML = '<div style="color: var(--text-secondary); font-size: 0.7rem; text-align: center; margin-top: 2rem;">No selection</div>';
+            return;
+        }
         if (this.container.contains(document.activeElement)) return;
 
-        const args = part.raw_args;
+        const primaryPart = selectedParts[0];
+        const isMultiPart = selectedParts.length > 1;
+
+        const getMixedValue = (field: number) => {
+            if (selectedParts.length === 0) return { value: 0, isMixed: false };
+            const firstVal = selectedParts[0].raw_args[field];
+            const isMixed = selectedParts.some(p => p.raw_args[field] !== firstVal);
+            return { value: firstVal, isMixed };
+        };
+
+        const renderPropRow = (label: string, field: number, animatable: boolean) => {
+            const { value, isMixed } = getMixedValue(field);
+            return `
+                <div class="prop-group">
+                    <span>${label}</span>
+                    <div class="prop-input-container">
+                        <input type="number" 
+                            data-field="${field}" 
+                            value="${isMixed ? '' : value}" 
+                            placeholder="${isMixed ? 'Mixed' : ''}"
+                            class="prop-input ${isMixed ? 'mixed' : ''}">
+                        ${animatable ? `<button class="btn-add-kf" data-field="${field}" title="Add Keyframe at Frame ${currentFrame}">+</button>` : ''}
+                    </div>
+                </div>
+            `;
+        };
         
-        let html = `
-            <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent);">Part #${part.index} Props</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.7rem; align-items: center; margin-bottom: 1rem;">
-                ${this.renderPropRow("Parent", 0, args[0], false)}
-                ${this.renderPropRow("Z-Order", 1, args[1], true, part.index, currentFrame)}
-                ${this.renderPropRow("Pos X", 4, args[4], true, part.index, currentFrame)}
-                ${this.renderPropRow("Pos Y", 5, args[5], true, part.index, currentFrame)}
-                ${this.renderPropRow("Pivot X", 6, args[6], true, part.index, currentFrame)}
-                ${this.renderPropRow("Pivot Y", 7, args[7], true, part.index, currentFrame)}
-                ${this.renderPropRow("Scale X", 8, args[8], true, part.index, currentFrame)}
-                ${this.renderPropRow("Scale Y", 9, args[9], true, part.index, currentFrame)}
-                ${this.renderPropRow("Angle", 10, args[10], true, part.index, currentFrame)}
-                ${this.renderPropRow("Opacity", 11, args[11], true, part.index, currentFrame)}
-            </div>
-        `;
+        let html = '';
+        
+        if (selectedParts.length > 0) {
+            html += `
+                <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent);">
+                    ${isMultiPart ? `Multiple Parts (${selectedParts.length})` : `Part #${primaryPart.index} Props`}
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.7rem; align-items: center; margin-bottom: 1rem;">
+                    ${renderPropRow("Parent", 0, false)}
+                    ${renderPropRow("Z-Order", 1, true)}
+                    ${renderPropRow("Pos X", 4, true)}
+                    ${renderPropRow("Pos Y", 5, true)}
+                    ${renderPropRow("Pivot X", 6, true)}
+                    ${renderPropRow("Pivot Y", 7, true)}
+                    ${renderPropRow("Scale X", 8, true)}
+                    ${renderPropRow("Scale Y", 9, true)}
+                    ${renderPropRow("Angle", 10, true)}
+                    ${renderPropRow("Opacity", 11, true)}
+                </div>
+            `;
+        }
 
         // Keyframe Editor Section
-        if (this.selectedKeyframe && this.selectedKeyframe.partIdx === part.index) {
-            const kfPart = anim.parts.find((p: any) => p.ints[0] === this.selectedKeyframe!.partIdx && p.ints[1] === this.selectedKeyframe!.modifType);
-            if (kfPart && kfPart.moves[this.selectedKeyframe.moveIdx]) {
-                const move = kfPart.moves[this.selectedKeyframe.moveIdx];
-                const modifName = ["Parent", "Z", "Img", "Glow", "PosX", "PosY", "PivX", "PivY", "ScaleX", "ScaleY", "Angle", "Opacity"][this.selectedKeyframe.modifType] || "Misc";
-                
+        if (kfSelection.length > 0) {
+            const kfData = kfSelection.map(id => {
+                const [pIdx, mType, fr] = id.split(':').map(Number);
+                const part = anim.parts.find((p: any) => p.ints[0] === pIdx && p.ints[1] === mType);
+                if (part) {
+                    const move = part.moves.find((m: any) => (m[0] - part.off) === fr);
+                    if (move) return { pIdx, mType, fr, val: move[1], interp: move[2], easing: move[3] };
+                }
+                return null;
+            }).filter(d => d !== null);
+
+            if (kfData.length > 0) {
+                const isMixedFrame = kfData.some(d => d!.fr !== kfData[0]!.fr);
+                const isMixedVal = kfData.some(d => d!.val !== kfData[0]!.val);
+                const isMixedInterp = kfData.some(d => d!.interp !== kfData[0]!.interp);
+                const isMixedEasing = kfData.some(d => d!.easing !== kfData[0]!.easing);
+                const isMixedType = kfData.some(d => d!.mType !== kfData[0]!.mType);
+
+                const typeNames = ["Parent", "Z", "Img", "Glow", "PosX", "PosY", "PivX", "PivY", "ScaleX", "ScaleY", "Angle", "Opacity"];
+                const modifName = isMixedType ? "Mixed Types" : (typeNames[kfData[0]!.mType] || "Misc");
+
                 html += `
                     <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 0.5rem;">
-                        <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; color: #10b981;">KF Editor: ${modifName}</div>
+                        <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; color: #10b981;">
+                            ${kfSelection.length > 1 ? `Keyframe Batch (${kfSelection.length})` : `KF Editor: ${modifName}`}
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
                             <div class="prop-group">
                                 <span>Frame</span>
-                                <input type="number" class="kf-input" data-type="frame" value="${move[0] - kfPart.off}">
+                                <input type="number" class="kf-input ${isMixedFrame ? 'mixed' : ''}" data-type="frame" 
+                                    value="${isMixedFrame ? '' : kfData[0]!.fr}" placeholder="${isMixedFrame ? 'Mixed' : ''}">
                             </div>
                             <div class="prop-group">
                                 <span>Value</span>
-                                <input type="number" class="kf-input" data-type="value" value="${move[1]}">
+                                <input type="number" class="kf-input ${isMixedVal ? 'mixed' : ''}" data-type="value" 
+                                    value="${isMixedVal ? '' : kfData[0]!.val}" placeholder="${isMixedVal ? 'Mixed' : ''}">
                             </div>
                             <div class="prop-group" style="grid-column: span 2;">
                                 <span>Interpolation</span>
-                                <select class="kf-input" data-type="interp" style="width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.7rem;">
-                                    <option value="0" ${move[2] === 0 ? 'selected' : ''}>Linear</option>
-                                    <option value="1" ${move[2] === 1 ? 'selected' : ''}>Step</option>
-                                    <option value="2" ${move[2] === 2 ? 'selected' : ''}>Easing</option>
-                                    <option value="3" ${move[2] === 3 ? 'selected' : ''}>Lagrange</option>
-                                    <option value="4" ${move[2] === 4 ? 'selected' : ''}>Sinusoidal</option>
+                                <select class="kf-input ${isMixedInterp ? 'mixed' : ''}" data-type="interp" style="width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.7rem;">
+                                    ${isMixedInterp ? '<option value="" disabled selected>Mixed</option>' : ''}
+                                    <option value="0" ${!isMixedInterp && kfData[0]!.interp === 0 ? 'selected' : ''}>Linear</option>
+                                    <option value="1" ${!isMixedInterp && kfData[0]!.interp === 1 ? 'selected' : ''}>Step</option>
+                                    <option value="2" ${!isMixedInterp && kfData[0]!.interp === 2 ? 'selected' : ''}>Easing</option>
+                                    <option value="3" ${!isMixedInterp && kfData[0]!.interp === 3 ? 'selected' : ''}>Lagrange</option>
+                                    <option value="4" ${!isMixedInterp && kfData[0]!.interp === 4 ? 'selected' : ''}>Sinusoidal</option>
                                 </select>
                             </div>
                             <div class="prop-group" style="grid-column: span 2;">
                                 <span>Easing Param</span>
-                                <input type="number" class="kf-input" data-type="easing" value="${move[3]}">
+                                <input type="number" class="kf-input ${isMixedEasing ? 'mixed' : ''}" data-type="easing" 
+                                    value="${isMixedEasing ? '' : kfData[0]!.easing}" placeholder="${isMixedEasing ? 'Mixed' : ''}">
                             </div>
                         </div>
                     </div>
@@ -80,7 +140,10 @@ export class PropertyInspector {
                 .prop-group { display: flex; flex-direction: column; gap: 2px; }
                 .prop-group span { font-size: 0.6rem; color: var(--text-secondary); }
                 .prop-input-container { display: flex; align-items: center; gap: 4px; }
-                .prop-input, .kf-input { background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.75rem; width: 100%; }
+                .prop-input, .kf-input { background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.75rem; width: 100%; outline: none; transition: border-color 0.2s; }
+                .prop-input:focus, .kf-input:focus { border-color: var(--accent); }
+                .prop-input.mixed::placeholder, .kf-input.mixed::placeholder { color: #f59e0b; font-style: italic; opacity: 0.8; }
+                .prop-input.mixed, .kf-input.mixed { border-left: 2px solid #f59e0b; }
                 .btn-add-kf { background: none; border: 1px solid var(--border-color); color: var(--text-secondary); cursor: pointer; border-radius: 4px; padding: 2px 4px; font-size: 0.6rem; }
                 .btn-add-kf:hover { border-color: var(--accent); color: var(--accent); }
             </style>
@@ -93,7 +156,9 @@ export class PropertyInspector {
                 const el = e.target as HTMLInputElement;
                 const field = parseInt(el.getAttribute('data-field')!);
                 const value = parseInt(el.value);
-                eventBus.emit('PROPERTY_CHANGED', { partIdx: part.index, field, value, source: 'Inspector' });
+                if (!isNaN(value)) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: this.currentPartIdxs, field, value, source: 'Inspector' });
+                }
             });
         });
 
@@ -101,39 +166,57 @@ export class PropertyInspector {
             btn.addEventListener('click', (e) => {
                 const el = e.target as HTMLButtonElement;
                 const field = parseInt(el.getAttribute('data-field')!);
-                const value = parseInt((this.container!.querySelector(`input[data-field="${field}"]`) as HTMLInputElement).value);
-                eventBus.emit('KEYFRAME_ADDED', { partIdx: part.index, modifType: field, frame: currentFrame, value });
+                const input = this.container!.querySelector(`input[data-field="${field}"]`) as HTMLInputElement;
+                const value = parseInt(input.value);
+                if (!isNaN(value)) {
+                    this.currentPartIdxs.forEach(idx => {
+                        eventBus.emit('KEYFRAME_ADDED', { partIdx: idx, modifType: field, frame: currentFrame, value });
+                    });
+                }
             });
         });
 
         this.container.querySelectorAll('.kf-input').forEach(input => {
             input.addEventListener('change', () => {
-                if (!this.selectedKeyframe) return;
-                const frame = parseInt((this.container!.querySelector('.kf-input[data-type="frame"]') as HTMLInputElement).value);
-                const value = parseInt((this.container!.querySelector('.kf-input[data-type="value"]') as HTMLInputElement).value);
-                const interp = parseInt((this.container!.querySelector('.kf-input[data-type="interp"]') as HTMLSelectElement).value);
-                const easing = parseInt((this.container!.querySelector('.kf-input[data-type="easing"]') as HTMLInputElement).value);
+                const frameInput = this.container!.querySelector('.kf-input[data-type="frame"]') as HTMLInputElement;
+                const valueInput = this.container!.querySelector('.kf-input[data-type="value"]') as HTMLInputElement;
+                const interpSelect = this.container!.querySelector('.kf-input[data-type="interp"]') as HTMLSelectElement;
+                const easingInput = this.container!.querySelector('.kf-input[data-type="easing"]') as HTMLInputElement;
                 
-                eventBus.emit('KEYFRAME_MODIFIED', {
-                    partIdx: this.selectedKeyframe!.partIdx,
-                    modifType: this.selectedKeyframe!.modifType,
-                    moveIdx: this.selectedKeyframe!.moveIdx,
-                    frame, value, interp, easing
+                const frame = parseInt(frameInput.value);
+                const value = parseInt(valueInput.value);
+                const interp = parseInt(interpSelect.value);
+                const easing = parseInt(easingInput.value);
+                
+                const kfSelection = this.stateManager.getKFSelection();
+                const changes: any[] = [];
+
+                kfSelection.forEach(id => {
+                    const [pIdx, mType, fr] = id.split(':').map(Number);
+                    const part = anim.parts.find((p: any) => p.ints[0] === pIdx && p.ints[1] === mType);
+                    if (part) {
+                        const move = part.moves.find((m: any) => (m[0] - part.off) === fr);
+                        if (move) {
+                            changes.push({
+                                partIdx: pIdx,
+                                modifType: mType,
+                                oldData: { frame: fr, value: move[1], interp: move[2], easing: move[3] },
+                                newData: {
+                                    frame: isNaN(frame) ? fr : frame,
+                                    value: isNaN(value) ? move[1] : value,
+                                    interp: isNaN(interp) ? move[2] : interp,
+                                    easing: isNaN(easing) ? move[3] : easing
+                                }
+                            });
+                        }
+                    }
                 });
+
+                if (changes.length > 0) {
+                    eventBus.emit('KEYFRAME_BATCH_MODIFIED', { changes });
+                }
             });
         });
-    }
-
-    private renderPropRow(label: string, field: number, value: number, animatable: boolean, _partIdx?: number, frame?: number) {
-        return `
-            <div class="prop-group">
-                <span>${label}</span>
-                <div class="prop-input-container">
-                    <input type="number" data-field="${field}" value="${value}" class="prop-input">
-                    ${animatable ? `<button class="btn-add-kf" data-field="${field}" title="Add Keyframe at Frame ${frame}">+</button>` : ''}
-                </div>
-            </div>
-        `;
     }
 
     public flash(field: number) {

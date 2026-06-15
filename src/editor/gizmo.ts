@@ -7,14 +7,17 @@ export class CanvasGizmo {
     private dragMode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y' | null = null;
     private startWorldX = 0;
     private startWorldY = 0;
-    private startPropValue = 0;
-    private startPropValueSecondary = 0;
-    private startAngle = 0;
-    private startDist = 0;
     
-    private selectedPartIndex: number | null = null;
+    // Store initial values for all selected parts during drag
+    private selectionStartStates: Map<number, { val: number, val2?: number }> = new Map();
+    private startAngleBase = 0;
+    private startDistBase = 0;
+    
+    private selectedPartIdxs: number[] = [];
+    private primarySelectedIdx: number | null = null;
     private hoverMode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y' | null = null;
     private ctx: CanvasRenderingContext2D;
+    private dragFields: number[] = [];
 
     private _boundMouseDown = (e: MouseEvent) => this.handleMouseDown(e);
     private _boundMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
@@ -30,12 +33,14 @@ export class CanvasGizmo {
         this.startLoop();
 
         eventBus.on('PART_SELECTED', (data) => {
-            this.selectedPartIndex = data.partIdx;
+            this.selectedPartIdxs = data.partIdxs;
+            this.primarySelectedIdx = data.partIdxs.length > 0 ? data.partIdxs[0] : null;
         });
     }
 
-    public setSelectedPart(index: number | null) {
-        this.selectedPartIndex = index;
+    public setSelectedParts(idxs: number[]) {
+        this.selectedPartIdxs = idxs;
+        this.primarySelectedIdx = idxs.length > 0 ? idxs[0] : null;
     }
 
     private initEvents() {
@@ -63,46 +68,45 @@ export class CanvasGizmo {
         const state = this.bridge.getState();
         if (!state || !state.animation) return;
 
-        // 1. Check Gizmo Handles first
-        if (this.selectedPartIndex !== null) {
-            const transform = this.bridge.getPartTransform(this.selectedPartIndex);
+        // 1. Check Gizmo Handles first (relative to Primary selection)
+        if (this.primarySelectedIdx !== null) {
+            const transform = this.bridge.getPartTransform(this.primarySelectedIdx);
             if (transform) {
                 const angleRad = transform.angle * Math.PI / 1800;
-                const part = state.animation.parts[this.selectedPartIndex];
                 
-                // Rotation Handle (Top, Local)
+                // Rotation Handle
                 const rotX = transform.x + Math.sin(angleRad) * 45;
                 const rotY = transform.y - Math.cos(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - rotX) ** 2 + (mouse.worldY - rotY) ** 2) < 15) {
-                    this.startDrag(e, 'rotate', part.raw_args[10]);
-                    this.startAngle = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
+                    this.startDrag(e, 'rotate', 10); // Field 10: Angle
+                    this.startAngleBase = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
                     return;
                 }
 
-                // Scale Handle (Right, Local)
+                // Scale Handle
                 const scX = transform.x + Math.cos(angleRad) * 45;
                 const scY = transform.y + Math.sin(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - scX) ** 2 + (mouse.worldY - scY) ** 2) < 15) {
-                    this.startDrag(e, 'scale', part.raw_args[8], part.raw_args[9]);
-                    this.startDist = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
+                    this.startDrag(e, 'scale', 8, 9); // Field 8,9: ScaleX/Y
+                    this.startDistBase = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
                     return;
                 }
 
-                // Translate X Handle (Right, Screen)
+                // Translate X Handle
                 if (Math.abs(mouse.worldY - transform.y) < 10 && mouse.worldX > transform.x + 20 && mouse.worldX < transform.x + 65) {
-                    this.startDrag(e, 'translate-x', part.raw_args[4]);
+                    this.startDrag(e, 'translate-x', 4); // Field 4: PosX
                     return;
                 }
 
-                // Translate Y Handle (Down, Screen)
+                // Translate Y Handle
                 if (Math.abs(mouse.worldX - transform.x) < 10 && mouse.worldY > transform.y + 20 && mouse.worldY < transform.y + 65) {
-                    this.startDrag(e, 'translate-y', part.raw_args[5]);
+                    this.startDrag(e, 'translate-y', 5); // Field 5: PosY
                     return;
                 }
 
-                // Translate Handle (Center, Free)
+                // Translate Handle (Center)
                 if (Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2) < 20) {
-                    this.startDrag(e, 'translate', part.raw_args[4], part.raw_args[5]);
+                    this.startDrag(e, 'translate', 4, 5); // Field 4,5: PosX/Y
                     return;
                 }
             }
@@ -123,57 +127,99 @@ export class CanvasGizmo {
             }
         }
 
-        eventBus.emit('PART_SELECTED', { partIdx: bestIdx });
+        eventBus.emit('PART_SELECTED', { partIdxs: bestIdx !== null ? [bestIdx] : [] });
     }
 
-    private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y', val: number, val2: number = 0) {
+    private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y', field: number, field2?: number) {
         const mouse = this.getMousePos(e);
+        const state = this.bridge.getState();
+        if (!state || !state.animation) return;
+
         this.isDragging = true;
         this.dragMode = mode;
         this.startWorldX = mouse.worldX;
         this.startWorldY = mouse.worldY;
-        this.startPropValue = val;
-        this.startPropValueSecondary = val2;
+        this.dragFields = field2 !== undefined ? [field, field2] : [field];
+        
+        // Capture start states for all selected parts
+        this.selectionStartStates.clear();
+        this.selectedPartIdxs.forEach(idx => {
+            const part = state.animation.parts[idx];
+            if (part) {
+                this.selectionStartStates.set(idx, {
+                    val: part.raw_args[field],
+                    val2: field2 !== undefined ? part.raw_args[field2] : undefined
+                });
+            }
+        });
     }
 
     private handleMouseMove(e: MouseEvent) {
         const mouse = this.getMousePos(e);
         
         // Update hover state for visual feedback
-        if (!this.isDragging && this.selectedPartIndex !== null) {
+        if (!this.isDragging && this.primarySelectedIdx !== null) {
             this.updateHoverState(mouse);
         }
 
-        if (!this.isDragging || this.selectedPartIndex === null) return;
+        if (!this.isDragging || this.primarySelectedIdx === null || this.selectionStartStates.size === 0) return;
 
-        const transform = this.bridge.getPartTransform(this.selectedPartIndex);
+        const transform = this.bridge.getPartTransform(this.primarySelectedIdx);
         if (!transform) return;
 
         if (this.dragMode === 'translate') {
-            const dx = mouse.worldX - this.startWorldX;
-            const dy = mouse.worldY - this.startWorldY;
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 4, value: this.startPropValue + Math.round(dx), source: 'Gizmo' });
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 5, value: this.startPropValueSecondary + Math.round(dy), source: 'Gizmo' });
+            const dx = Math.round(mouse.worldX - this.startWorldX);
+            const dy = Math.round(mouse.worldY - this.startWorldY);
+            
+            this.selectedPartIdxs.forEach(idx => {
+                const start = this.selectionStartStates.get(idx);
+                if (start) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 4, value: start.val + dx, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 5, value: start.val2! + dy, source: 'Gizmo' });
+                }
+            });
         } else if (this.dragMode === 'translate-x') {
-            const dx = mouse.worldX - this.startWorldX;
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 4, value: this.startPropValue + Math.round(dx), source: 'Gizmo' });
+            const dx = Math.round(mouse.worldX - this.startWorldX);
+            this.selectedPartIdxs.forEach(idx => {
+                const start = this.selectionStartStates.get(idx);
+                if (start) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 4, value: start.val + dx, source: 'Gizmo' });
+                }
+            });
         } else if (this.dragMode === 'translate-y') {
-            const dy = mouse.worldY - this.startWorldY;
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 5, value: this.startPropValue + Math.round(dy), source: 'Gizmo' });
+            const dy = Math.round(mouse.worldY - this.startWorldY);
+            this.selectedPartIdxs.forEach(idx => {
+                const start = this.selectionStartStates.get(idx);
+                if (start) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 5, value: start.val + dy, source: 'Gizmo' });
+                }
+            });
         } else if (this.dragMode === 'rotate') {
             const currentAngle = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
-            const deltaAngle = (currentAngle - this.startAngle) * 1800 / Math.PI;
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 10, value: (this.startPropValue + Math.round(deltaAngle)) % 3600, source: 'Gizmo' });
+            const deltaAngle = Math.round((currentAngle - this.startAngleBase) * 1800 / Math.PI);
+            
+            this.selectedPartIdxs.forEach(idx => {
+                const start = this.selectionStartStates.get(idx);
+                if (start) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 10, value: (start.val + deltaAngle) % 3600, source: 'Gizmo' });
+                }
+            });
         } else if (this.dragMode === 'scale') {
             const currentDist = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
-            const ratio = currentDist / Math.max(1, this.startDist);
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 8, value: Math.round(this.startPropValue * ratio), source: 'Gizmo' });
-            eventBus.emit('PROPERTY_CHANGED', { partIdx: this.selectedPartIndex, field: 9, value: Math.round(this.startPropValueSecondary * ratio), source: 'Gizmo' });
+            const ratio = currentDist / Math.max(1, this.startDistBase);
+            
+            this.selectedPartIdxs.forEach(idx => {
+                const start = this.selectionStartStates.get(idx);
+                if (start) {
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 8, value: Math.round(start.val * ratio), source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 9, value: Math.round(start.val2! * ratio), source: 'Gizmo' });
+                }
+            });
         }
     }
 
     private updateHoverState(mouse: { worldX: number, worldY: number }) {
-        const transform = this.bridge.getPartTransform(this.selectedPartIndex!);
+        const transform = this.bridge.getPartTransform(this.primarySelectedIdx!);
         if (!transform) return;
 
         const angleRad = transform.angle * Math.PI / 1800;
@@ -202,8 +248,33 @@ export class CanvasGizmo {
     }
 
     private handleMouseUp() {
+        if (this.isDragging && this.selectionStartStates.size > 0) {
+            const state = this.bridge.getState();
+            if (state && state.animation) {
+                const targets: { partIdx: number, field: number, oldValue: number, newValue: number }[] = [];
+                
+                this.selectionStartStates.forEach((start, idx) => {
+                    const part = state.animation.parts[idx];
+                    if (part) {
+                        this.dragFields.forEach((field, fIdx) => {
+                            const newValue = part.raw_args[field];
+                            const oldValue = fIdx === 0 ? start.val : start.val2!;
+                            if (newValue !== oldValue) {
+                                targets.push({ partIdx: idx, field, oldValue, newValue });
+                            }
+                        });
+                    }
+                });
+
+                if (targets.length > 0) {
+                    eventBus.emit('TRANSFORM_COMMITTED', { targets });
+                }
+            }
+        }
+
         this.isDragging = false;
         this.dragMode = null;
+        this.dragFields = [];
     }
 
     private loopActive = true;
@@ -227,9 +298,9 @@ export class CanvasGizmo {
 
     private draw() {
         this.ctx.clearRect(0, 0, this.gizmoCanvas.width, this.gizmoCanvas.height);
-        if (this.selectedPartIndex === null || this.canvas.style.display === 'none') return;
+        if (this.primarySelectedIdx === null || this.canvas.style.display === 'none') return;
 
-        const transform = this.bridge.getPartTransform(this.selectedPartIndex);
+        const transform = this.bridge.getPartTransform(this.primarySelectedIdx);
         if (!transform) return;
 
         const screenX = transform.x + this.canvas.width * EDITOR_CONFIG.RENDER_OFFSET_X;
@@ -323,6 +394,9 @@ export class CanvasGizmo {
         this.ctx.fillStyle = '#fff';
         this.ctx.font = 'bold 10px Outfit';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Part ${this.selectedPartIndex}`, screenX, screenY + 80);
+        const labelText = this.selectedPartIdxs.length > 1 
+            ? `Selected: ${this.selectedPartIdxs.length} parts` 
+            : `Part ${this.primarySelectedIdx}`;
+        this.ctx.fillText(labelText, screenX, screenY + 80);
     }
 }

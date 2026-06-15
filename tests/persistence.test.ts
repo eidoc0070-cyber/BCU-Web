@@ -10,7 +10,7 @@ describe("PersistenceManager Unit Tests", () => {
 
     const mockSession: EditorSession = {
         animId: "walk",
-        selectedPartIdx: 5,
+        selectedPartIdxs: [5],
         currentFrame: 10,
         currentView: "animation",
         projectName: "Test Project"
@@ -28,7 +28,7 @@ describe("PersistenceManager Unit Tests", () => {
             const loaded = PersistenceManager.loadSession();
             expect(loaded).not.toBeNull();
             expect(loaded?.animId).toBe("walk");
-            expect(loaded?.selectedPartIdx).toBe(5);
+            expect(loaded?.selectedPartIdxs).toEqual([5]);
             expect(loaded?.projectName).toBe("Test Project");
             done();
         }, 600);

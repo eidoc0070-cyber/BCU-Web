@@ -1,5 +1,5 @@
 //! @java: common.system.P
-//! @logic: 2D Vector/Point using FixedPoint math.
+//! @logic: 2D Vector/Point using `FixedPoint` math.
 //! @parity: 100%
 
 use crate::FixedPoint;
@@ -21,10 +21,12 @@ impl Vec2 {
         y: FixedPoint::ZERO,
     };
 
+    #[must_use]
     pub const fn new(x: FixedPoint, y: FixedPoint) -> Self {
         Self { x, y }
     }
 
+    #[must_use]
     pub fn polar(r: FixedPoint, t: FixedPoint) -> Self {
         Self {
             x: r * t.cos(),
@@ -32,6 +34,7 @@ impl Vec2 {
         }
     }
 
+    #[must_use]
     pub fn reg(cx: FixedPoint) -> FixedPoint {
         if cx < FixedPoint::ZERO {
             FixedPoint::ZERO
@@ -42,22 +45,27 @@ impl Vec2 {
         }
     }
 
+    #[must_use]
     pub fn abs(self) -> FixedPoint {
         self.distance(Self::ZERO)
     }
 
+    #[must_use]
     pub fn atan2(self) -> FixedPoint {
         FixedPoint::atan2(self.y, self.x)
     }
 
+    #[must_use]
     pub fn atan2_to(self, p: Vec2) -> FixedPoint {
         self.sub_from(p).atan2()
     }
 
+    #[must_use]
     pub fn cross_product(self, p: Vec2) -> FixedPoint {
         self.x * p.y - self.y * p.x
     }
 
+    #[must_use]
     pub fn distance(self, p: Vec2) -> FixedPoint {
         let dx = p.x - self.x;
         let dy = p.y - self.y;
@@ -70,6 +78,7 @@ impl Vec2 {
         self
     }
 
+    #[must_use]
     pub fn dot_product(self, p: Vec2) -> FixedPoint {
         self.x * p.x + self.y * p.y
     }
@@ -95,20 +104,24 @@ impl Vec2 {
         ans
     }
 
+    #[must_use]
     pub fn middle(self, p: Vec2, per: FixedPoint) -> Self {
         self + self.sub_from(p) * per
     }
 
+    #[must_use]
     pub fn middle_c(self, p: Vec2, per: FixedPoint) -> Self {
         let half = FixedPoint::from_raw(500_000); // 0.5
         let factor = (FixedPoint::ONE - (per * FixedPoint::PI).cos()) * half;
         self + self.sub_from(p) * factor
     }
 
+    #[must_use]
     pub fn move_out(self, v: Vec2, b2: Vec2, r: FixedPoint) -> bool {
         self.move_out_range(v, Self::ZERO, b2, r)
     }
 
+    #[must_use]
     pub fn move_out_range(self, v: Vec2, b1: Vec2, b2: Vec2, r: FixedPoint) -> bool {
         (self.x + r < b1.x && v.x <= FixedPoint::ZERO)
             || (self.y + r < b1.y && v.y <= FixedPoint::ZERO)
@@ -116,10 +129,12 @@ impl Vec2 {
             || (self.y - r > b2.y && v.y >= FixedPoint::ZERO)
     }
 
+    #[must_use]
     pub fn out(self, b2: Vec2, r: FixedPoint) -> bool {
         self.out_range(Self::ZERO, b2, r)
     }
 
+    #[must_use]
     pub fn out_range(self, b1: Vec2, b2: Vec2, r: FixedPoint) -> bool {
         self.x + r < b1.x || self.y + r < b1.y || self.x - r > b2.x || self.y - r > b2.y
     }
@@ -174,6 +189,7 @@ impl Vec2 {
         self
     }
 
+    #[must_use]
     pub fn sub_from(self, p: Vec2) -> Self {
         Self {
             x: p.x - self.x,

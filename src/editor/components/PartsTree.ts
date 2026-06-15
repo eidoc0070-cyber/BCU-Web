@@ -1,13 +1,16 @@
 import { eventBus } from '../event-bus';
+import { ContextMenu } from './ContextMenu';
 
 export class PartsTree {
     private container = document.getElementById('parts-list');
 
     constructor() {}
 
-    public render(parts: any[], selectedIndex: number | null) {
+    public render(parts: any[], selectedIdxs: number[]) {
         if (!this.container) return;
         this.container.innerHTML = '';
+        
+        const selectedSet = new Set(selectedIdxs);
         
         const addRootBtn = document.createElement('button');
         addRootBtn.className = 'action-btn secondary-btn';
@@ -42,7 +45,7 @@ export class PartsTree {
             item.style.alignItems = 'center';
             item.style.gap = '6px';
             
-            if (selectedIndex === node.index) {
+            if (selectedSet.has(node.index)) {
                 item.style.background = 'rgba(139, 92, 246, 0.2)';
                 item.style.border = '1px solid var(--accent)';
             }
@@ -79,7 +82,65 @@ export class PartsTree {
 
             item.onclick = (e) => {
                 e.stopPropagation();
-                eventBus.emit('PART_SELECTED', { partIdx: node.index });
+                
+                let newSelection: number[];
+                if (e.ctrlKey || e.metaKey) {
+                    if (selectedSet.has(node.index)) {
+                        newSelection = selectedIdxs.filter(id => id !== node.index);
+                    } else {
+                        newSelection = [...selectedIdxs, node.index];
+                    }
+                } else if (e.shiftKey && selectedIdxs.length > 0) {
+                    newSelection = [...selectedIdxs, node.index];
+                } else {
+                    newSelection = [node.index];
+                }
+                
+                eventBus.emit('PART_SELECTED', { partIdxs: newSelection });
+            };
+
+            item.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (!selectedSet.has(node.index)) {
+                    eventBus.emit('PART_SELECTED', { partIdxs: [node.index] });
+                }
+
+                ContextMenu.show(e.clientX, e.clientY, [
+                    {
+                        label: 'Add Child Part',
+                        icon: '➕',
+                        action: () => eventBus.emit('PART_ADDED', { parent: node.index })
+                    },
+                    {
+                        label: `Delete ${selectedSet.size > 1 ? selectedSet.size : ''} Part(s)`,
+                        icon: '🗑️',
+                        danger: true,
+                        action: () => {
+                            if (selectedSet.size > 1) {
+                                if (confirm(`Delete ${selectedSet.size} selected parts?`)) {
+                                    selectedIdxs.forEach(idx => eventBus.emit('PART_DELETED', { partIdx: idx }));
+                                }
+                            } else {
+                                eventBus.emit('PART_DELETED', { partIdx: node.index });
+                            }
+                        }
+                    },
+                    {
+                        label: 'Select All Children',
+                        icon: '🔗',
+                        action: () => {
+                            const childrenIdxs: number[] = [];
+                            const collect = (n: any) => {
+                                childrenIdxs.push(n.index);
+                                n.children.forEach(collect);
+                            };
+                            collect(node);
+                            eventBus.emit('PART_SELECTED', { partIdxs: Array.from(new Set([...selectedIdxs, ...childrenIdxs])) });
+                        }
+                    }
+                ]);
             };
 
             container.appendChild(item);

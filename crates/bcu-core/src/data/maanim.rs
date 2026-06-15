@@ -1,5 +1,5 @@
 //! @java: common.util.anim.MaAnim / common.util.anim.Part
-//! @logic: MaAnim defines skeletal animation keyframes and validation logic.
+//! @logic: `MaAnim` defines skeletal animation keyframes and validation logic.
 //! @parity: 100%
 
 use crate::ParityTestable;
@@ -28,10 +28,11 @@ pub struct MaAnim {
 }
 
 impl Part {
+    #[must_use]
     pub fn new(id: i32, modif: i32) -> Self {
         Part {
             ints: [id, modif, -1, 0, 0],
-            name: "".to_string(),
+            name: String::new(),
             n: 0,
             max: 0,
             off: 0,
@@ -61,15 +62,16 @@ impl Part {
         };
     }
 
+    #[must_use]
     pub fn get_max(&self) -> i32 {
-        if self.ints[2] != -1 {
+        if self.ints[2] == -1 {
+            self.max - std::cmp::min(self.off, 0)
+        } else {
             if self.ints[2] > 1 {
                 self.fir + (self.max - self.fir) * self.ints[2] - self.off
             } else {
                 self.max - self.off
             }
-        } else {
-            self.max - std::cmp::min(self.off, 0)
         }
     }
 }
@@ -110,7 +112,7 @@ impl ParityTestable for MaAnim {
         s.push('\n');
         for p in &self.parts {
             for val in &p.ints {
-                s.push_str(&format!("{},", val));
+                s.push_str(&format!("{val},"));
             }
             s.push_str(&p.name);
             s.push('\n');

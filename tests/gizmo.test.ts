@@ -53,7 +53,7 @@ describe("CanvasGizmo Unit Tests", () => {
 
         gizmo = new CanvasGizmo(canvas, gizmoCanvas, mockBridge);
         // Force the gizmo to know part 0 is selected
-        gizmo.setSelectedPart(0); 
+        gizmo.setSelectedParts([0]); 
     });
 
     afterEach(() => {
@@ -88,6 +88,7 @@ describe("CanvasGizmo Unit Tests", () => {
 
         // 3. Verify: Only X-coordinate event should have been emitted
         expect(lastEvent).not.toBeNull();
+        expect(lastEvent.partIdxs).toEqual([0]);
         expect(lastEvent.field).toBe(4); // PosX
         expect(lastEvent.value).toBeGreaterThan(100);
     });
@@ -123,6 +124,7 @@ describe("CanvasGizmo Unit Tests", () => {
 
         expect(yEvents.length).toBeGreaterThan(0);
         expect(xEvents.length).toBe(0);
+        expect(yEvents[0].partIdxs).toEqual([0]);
     });
 
     test("should allow free movement when dragging center circle", () => {

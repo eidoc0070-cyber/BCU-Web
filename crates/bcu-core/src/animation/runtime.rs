@@ -1,5 +1,5 @@
 //! @java: common.util.anim.MaAnim / common.util.anim.Part
-//! @logic: Runtime animation update logic, applying keyframes to EPart states.
+//! @logic: Runtime animation update logic, applying keyframes to `EPart` states.
 //! @parity: 0%
 
 use crate::animation::epart::{EPart, RenderState};
@@ -39,6 +39,7 @@ pub struct EAnimD {
 }
 
 impl EAnimD {
+    #[must_use]
     pub fn new(model: MaModel, anim: MaAnim) -> Self {
         let mut entities = Vec::with_capacity(model.n);
         let mut order = Vec::with_capacity(model.n);
@@ -62,6 +63,7 @@ impl EAnimD {
         anim_display
     }
 
+    #[must_use]
     pub fn get_state(&self) -> AnimationState {
         let parts = self
             .entities
@@ -86,7 +88,7 @@ impl EAnimD {
     }
 
     pub fn set_frame(&mut self, frame: f32) {
-        self.frame = FixedPoint::from_float(frame as f64);
+        self.frame = FixedPoint::from_float(f64::from(frame));
         update_maanim(
             &self.anim,
             self.frame,
@@ -171,20 +173,19 @@ impl EAnimD {
 
     pub fn add_anim_keyframe(&mut self, part_idx: usize, modif_type: i32, frame: i32, value: i32) {
         // Find or create the animation part
-        let p_idx = match self
+        let p_idx = if let Some(idx) = self
             .anim
             .parts
             .iter()
             .position(|p| p.ints[0] == part_idx as i32 && p.ints[1] == modif_type)
         {
-            Some(idx) => idx,
-            None => {
-                let mut new_p = Part::new(part_idx as i32, modif_type);
-                new_p.ints[2] = 1; // Default to single play
-                self.anim.parts.push(new_p);
-                self.anim.n += 1;
-                self.anim.parts.len() - 1
-            }
+            idx
+        } else {
+            let mut new_p = Part::new(part_idx as i32, modif_type);
+            new_p.ints[2] = 1; // Default to single play
+            self.anim.parts.push(new_p);
+            self.anim.n += 1;
+            self.anim.parts.len() - 1
         };
 
         let p = &mut self.anim.parts[p_idx];
@@ -256,7 +257,7 @@ impl EAnimD {
         );
 
         self.frame += FixedPoint::ONE;
-        if self.frame > FixedPoint::from_int(self.anim.max as i64) {
+        if self.frame > FixedPoint::from_int(i64::from(self.anim.max)) {
             self.frame = FixedPoint::ZERO;
         }
 
@@ -264,7 +265,7 @@ impl EAnimD {
 
         // 2. Update snapshots for interpolation
         // First pass: move curr to prev
-        for e in self.entities.iter_mut() {
+        for e in &mut self.entities {
             e.prev_state = e.curr_state;
         }
 
@@ -319,11 +320,11 @@ impl EAnimD {
             rotate,
         );
         self.frame += FixedPoint::ONE;
-        if self.frame > FixedPoint::from_int(self.anim.max as i64) {
+        if self.frame > FixedPoint::from_int(i64::from(self.anim.max)) {
             if rotate {
                 self.frame = FixedPoint::ZERO;
             } else {
-                self.frame = FixedPoint::from_int(self.anim.max as i64);
+                self.frame = FixedPoint::from_int(i64::from(self.anim.max));
             }
         }
         self.sort();
@@ -334,10 +335,10 @@ impl EAnimD {
         self.order.sort_by(|&a, &b| {
             let za = entities[a].z;
             let zb = entities[b].z;
-            if za != zb {
-                za.cmp(&zb)
-            } else {
+            if za == zb {
                 a.cmp(&b)
+            } else {
+                za.cmp(&zb)
             }
         });
     }
@@ -363,7 +364,7 @@ impl EAnimD {
         new_part_data[13] = 0; // flip-v
 
         self.model.parts.push(new_part_data);
-        let name = format!("Part {}", new_idx);
+        let name = format!("Part {new_idx}");
         self.model.strs0.push(name.clone());
 
         self.entities
@@ -396,7 +397,7 @@ impl EAnimD {
 
         // 3. Adjust animation references
         self.anim.parts.retain(|p| p.ints[0] != idx as i32);
-        for p in self.anim.parts.iter_mut() {
+        for p in &mut self.anim.parts {
             if p.ints[0] > idx as i32 {
                 p.ints[0] -= 1;
             }
@@ -418,7 +419,7 @@ pub fn update_maanim(
     rotate: bool,
 ) {
     let mut f = f;
-    let max_fp = FixedPoint::from_int(anim.max as i64);
+    let max_fp = FixedPoint::from_int(i64::from(anim.max));
     if rotate {
         f %= max_fp + FixedPoint::ONE;
     }
@@ -446,27 +447,27 @@ pub fn update_maanim(
             if mf == 0 {
                 frame = FixedPoint::ZERO;
             } else {
-                let mf_fp = FixedPoint::from_int(mf as i64);
-                frame = (f + FixedPoint::from_int(part.off as i64)) % mf_fp;
+                let mf_fp = FixedPoint::from_int(i64::from(mf));
+                frame = (f + FixedPoint::from_int(i64::from(part.off))) % mf_fp;
             }
         } else {
-            frame = f + FixedPoint::from_int(part.off as i64);
+            frame = f + FixedPoint::from_int(i64::from(part.off));
         }
 
         if loop_flag > 0 && lmax != 0 {
-            let loop_end = FixedPoint::from_int((fir + loop_flag * lmax) as i64);
+            let loop_end = FixedPoint::from_int(i64::from(fir + loop_flag * lmax));
             if frame > loop_end {
                 ensure_last(part, entities, model);
                 continue;
             }
-            if frame <= FixedPoint::from_int(fir as i64) {
+            if frame <= FixedPoint::from_int(i64::from(fir)) {
                 // frame stays as is
             } else if frame < loop_end {
-                let lmax_fp = FixedPoint::from_int(lmax as i64);
-                let fir_fp = FixedPoint::from_int(fir as i64);
+                let lmax_fp = FixedPoint::from_int(i64::from(lmax));
+                let fir_fp = FixedPoint::from_int(i64::from(fir));
                 frame = fir_fp + (frame - fir_fp) % lmax_fp;
             } else {
-                frame = FixedPoint::from_int(smax as i64);
+                frame = FixedPoint::from_int(i64::from(smax));
             }
         }
 
@@ -482,7 +483,7 @@ fn ensure_last(part: &Part, entities: &mut [EPart], model: &MaModel) {
         return;
     }
     let last_move = &part.moves[part.n - 1];
-    let val = FixedPoint::from_int(last_move[1] as i64);
+    let val = FixedPoint::from_int(i64::from(last_move[1]));
     entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
 }
 
@@ -494,16 +495,16 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
     for i in 0..part.n {
         let m0 = &part.moves[i];
         let f0_i = m0[0];
-        let f0 = FixedPoint::from_int(f0_i as i64);
+        let f0 = FixedPoint::from_int(i64::from(f0_i));
 
         if frame == f0 {
-            let val = FixedPoint::from_int(m0[1] as i64);
+            let val = FixedPoint::from_int(i64::from(m0[1]));
             entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
             return;
         } else if i < part.n - 1 {
             let m1 = &part.moves[i + 1];
             let f1_i = m1[0];
-            let f1 = FixedPoint::from_int(f1_i as i64);
+            let f1 = FixedPoint::from_int(i64::from(f1_i));
 
             if frame > f0 && frame < f1 {
                 if part.ints[1] > 1 {
@@ -512,10 +513,10 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
 
                     let mut real_frame = frame;
                     if f1_i - f0_i == 1 {
-                        real_frame = FixedPoint::from_int(frame.to_int() as i32 as i64);
+                        real_frame = FixedPoint::from_int(i64::from(frame.to_int() as i32));
                     }
 
-                    let diff_f = FixedPoint::from_int((f1_i - f0_i) as i64);
+                    let diff_f = FixedPoint::from_int(i64::from(f1_i - f0_i));
                     let mut ti = (real_frame - f0) / diff_f;
 
                     if m0[2] == 1 || part.ints[1] == 13 || part.ints[1] == 14 {
@@ -527,7 +528,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                         let val = ease3(part, i, real_frame);
                         entities[part.ints[0] as usize].alter(
                             part.ints[1],
-                            FixedPoint::from_int(val as i64),
+                            FixedPoint::from_int(i64::from(val)),
                             entities.len(),
                             model,
                         );
@@ -536,13 +537,13 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                         ti = get_ti(ti, m0[2], m0[3]);
                     }
 
-                    let v0_fp = FixedPoint::from_int(v0 as i64);
+                    let v0_fp = FixedPoint::from_int(i64::from(v0));
                     let vd: FixedPoint;
 
                     if part.ints[1] == 2 {
                         // Sprite ID interpolation: if decreasing, use ceil?
                         // Java: if (v1 - v0 < 0) vd = (int) Math.ceil((v1 - v0) * ti + v0); else vd = (int) ((v1 - v0) * ti + v0);
-                        let diff_v = FixedPoint::from_int((v1 - v0) as i64);
+                        let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
                         let multiplied = diff_v * ti;
                         if v1 - v0 < 0 {
                             // Ceiling of a negative number: -0.1 -> 0
@@ -557,12 +558,16 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                             // Truncate(-1.1) is -1. Correct.
                             // Truncate(-0.1) is 0. Correct.
                             // So to_i32() is fine for Sprite ID.
-                            vd = FixedPoint::from_int((multiplied + v0_fp).to_int() as i32 as i64);
+                            vd = FixedPoint::from_int(i64::from(
+                                (multiplied + v0_fp).to_int() as i32
+                            ));
                         } else {
-                            vd = FixedPoint::from_int((multiplied + v0_fp).to_int() as i32 as i64);
+                            vd = FixedPoint::from_int(i64::from(
+                                (multiplied + v0_fp).to_int() as i32
+                            ));
                         }
                     } else {
-                        let diff_v = FixedPoint::from_int((v1 - v0) as i64);
+                        let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
                         vd = diff_v * ti + v0_fp;
                     }
 
@@ -570,7 +575,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                     return;
                 } else if part.ints[1] == 0 {
                     // Parent index: no interpolation
-                    let val = FixedPoint::from_int(m0[1] as i64);
+                    let val = FixedPoint::from_int(i64::from(m0[1]));
                     entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
                     return;
                 }
@@ -578,7 +583,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
         }
     }
 
-    if frame > FixedPoint::from_int(part.moves[part.n - 1][0] as i64) {
+    if frame > FixedPoint::from_int(i64::from(part.moves[part.n - 1][0])) {
         ensure_last(part, entities, model);
     }
 }
@@ -605,11 +610,11 @@ fn ease3(part: &Part, i: usize, frame: FixedPoint) -> i32 {
                           // Java uses double too.
     let f = frame.to_float();
     for j in low..=high {
-        let mut val = part.moves[j][1] as f64 * 4096.0;
+        let mut val = f64::from(part.moves[j][1]) * 4096.0;
         for k in low..=high {
             if j != k {
-                val *= (f - part.moves[k][0] as f64)
-                    / (part.moves[j][0] as f64 - part.moves[k][0] as f64);
+                val *= (f - f64::from(part.moves[k][0]))
+                    / (f64::from(part.moves[j][0]) - f64::from(part.moves[k][0]));
             }
         }
         sum += val;

@@ -1,12 +1,12 @@
 //! @java: common.util.anim.MaModel
-//! @logic: MaModel defines the skeleton hierarchy and initial part states.
+//! @logic: `MaModel` defines the skeleton hierarchy and initial part states.
 //! @parity: 100%
 
 use crate::imgcut::restrict;
 use bcu_core::{BCUError, MaModel};
 
 pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
-    let mut lines = content.lines().map(|line| line.trim_end());
+    let mut lines = content.lines().map(str::trim_end);
 
     // Java: qs.poll(); qs.poll(); (skips [mamodel] and version 3)
     lines.next();
@@ -18,7 +18,7 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     let n = n_str
         .trim()
         .parse::<usize>()
-        .map_err(|e| BCUError::ParseError(format!("Invalid part count: {}", e)))?;
+        .map_err(|e| BCUError::ParseError(format!("Invalid part count: {e}")))?;
 
     let mut parts = Vec::with_capacity(n);
     let mut strs0 = Vec::with_capacity(n);
@@ -26,20 +26,19 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     for i in 0..n {
         let line = lines
             .next()
-            .ok_or_else(|| BCUError::ParseError(format!("Missing part line at index {}", i)))?;
+            .ok_or_else(|| BCUError::ParseError(format!("Missing part line at index {i}")))?;
         let ss: Vec<&str> = line.trim().split(',').collect();
 
         if ss.len() < 13 {
             return Err(BCUError::ParseError(format!(
-                "Part line {} has less than 13 elements: {}",
-                i, line
+                "Part line {i} has less than 13 elements: {line}"
             )));
         }
 
         let mut part = [0; 14];
         for j in 0..13 {
             part[j] = ss[j].trim().parse::<i32>().map_err(|e| {
-                BCUError::ParseError(format!("Invalid integer at part {}, index {}: {}", i, j, e))
+                BCUError::ParseError(format!("Invalid integer at part {i}, index {j}: {e}"))
             })?;
         }
         // part[13] remains 0 as initialized
@@ -47,7 +46,7 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
         let s_val = if ss.len() == 14 {
             restrict(ss[13])
         } else {
-            "".to_string()
+            String::new()
         };
 
         parts.push(part);
@@ -60,14 +59,13 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     let ints_parts: Vec<&str> = ints_line.trim().split(',').collect();
     if ints_parts.len() < 3 {
         return Err(BCUError::ParseError(format!(
-            "Ints config line has less than 3 values: {}",
-            ints_line
+            "Ints config line has less than 3 values: {ints_line}"
         )));
     }
     let mut ints = [0; 3];
     for i in 0..3 {
         ints[i] = ints_parts[i].trim().parse::<i32>().map_err(|e| {
-            BCUError::ParseError(format!("Invalid integer in ints config index {}: {}", i, e))
+            BCUError::ParseError(format!("Invalid integer in ints config index {i}: {e}"))
         })?;
     }
 
@@ -77,38 +75,34 @@ pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     let m = m_str
         .trim()
         .parse::<usize>()
-        .map_err(|e| BCUError::ParseError(format!("Invalid collision box count: {}", e)))?;
+        .map_err(|e| BCUError::ParseError(format!("Invalid collision box count: {e}")))?;
 
     let mut confs = Vec::with_capacity(m);
     let mut strs1 = Vec::with_capacity(m);
 
     for i in 0..m {
-        let line = lines.next().ok_or_else(|| {
-            BCUError::ParseError(format!("Missing collision line at index {}", i))
-        })?;
+        let line = lines
+            .next()
+            .ok_or_else(|| BCUError::ParseError(format!("Missing collision line at index {i}")))?;
         let ss: Vec<&str> = line.trim().split(',').collect();
 
         if ss.len() < 6 {
             return Err(BCUError::ParseError(format!(
-                "Collision line {} has less than 6 elements: {}",
-                i, line
+                "Collision line {i} has less than 6 elements: {line}"
             )));
         }
 
         let mut conf = [0; 6];
         for j in 0..6 {
             conf[j] = ss[j].trim().parse::<i32>().map_err(|e| {
-                BCUError::ParseError(format!(
-                    "Invalid integer at collision {}, index {}: {}",
-                    i, j, e
-                ))
+                BCUError::ParseError(format!("Invalid integer at collision {i}, index {j}: {e}"))
             })?;
         }
 
         let s_val = if ss.len() == 7 {
             restrict(ss[6])
         } else {
-            "".to_string()
+            String::new()
         };
 
         confs.push(conf);

@@ -1,9 +1,11 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { Timeline } from "../src/editor/components/Timeline";
+import { EditorStateManager } from "../src/editor/state-manager";
 
 describe("Timeline Visualization Unit Tests", () => {
     let timeline: Timeline;
+    let stateManager: EditorStateManager;
 
     beforeAll(() => {
         try { GlobalRegistrator.register(); } catch (e) {}
@@ -16,7 +18,8 @@ describe("Timeline Visualization Unit Tests", () => {
             <div id="current-frame-label"></div>
             <div id="max-frame-label"></div>
         `;
-        timeline = new Timeline(() => {});
+        stateManager = new EditorStateManager();
+        timeline = new Timeline(stateManager, () => {});
     });
 
     test("should generate correct SVG paths for different interpolation types", () => {
@@ -38,7 +41,7 @@ describe("Timeline Visualization Unit Tests", () => {
             }
         };
 
-        timeline.update(mockState, false, 0); // Part 0 selected
+        timeline.update(mockState, false, [0]); // Part 0 selected
 
         const container = document.getElementById('timeline-keyframes')!;
         const svg = container.querySelector('svg');
@@ -70,7 +73,7 @@ describe("Timeline Visualization Unit Tests", () => {
             }
         };
 
-        timeline.update(mockState, false, 0);
+        timeline.update(mockState, false, [0]);
 
         const svg = document.querySelector('svg');
         const paths = svg?.querySelectorAll('path');
@@ -93,9 +96,9 @@ describe("Timeline Visualization Unit Tests", () => {
             }
         };
 
-        // Select the keyframe
-        timeline.setSelectedKeyframe({ partIdx: 0, modifType: 4, moveIdx: 0 });
-        timeline.update(mockState, false, 0);
+        // Select the keyframe using state manager
+        stateManager.setKFSelection(["0:4:0"]);
+        timeline.update(mockState, false, [0]);
 
         const dot = document.querySelector('.timeline-kf-dot') as HTMLElement;
         expect(dot.style.width).toBe('10px'); // Larger for selected

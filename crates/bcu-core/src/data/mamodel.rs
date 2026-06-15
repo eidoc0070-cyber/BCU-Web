@@ -1,5 +1,5 @@
 //! @java: common.util.anim.MaModel
-//! @logic: MaModel defines the skeleton hierarchy and initial part states.
+//! @logic: `MaModel` defines the skeleton hierarchy and initial part states.
 //! @parity: 100%
 
 use crate::ParityTestable;
@@ -74,7 +74,7 @@ impl ParityTestable for MaModel {
         s.push('\n');
         for (i, &part) in self.parts.iter().enumerate().take(self.n) {
             for val in part.iter().take(13) {
-                s.push_str(&format!("{},", val));
+                s.push_str(&format!("{val},"));
             }
             s.push_str(&self.strs0[i]);
             s.push('\n');
@@ -86,8 +86,8 @@ impl ParityTestable for MaModel {
         s.push_str(&self.m.to_string());
         s.push('\n');
         for (i, &conf) in self.confs.iter().enumerate().take(self.m) {
-            for val in conf.iter() {
-                s.push_str(&format!("{},", val));
+            for val in &conf {
+                s.push_str(&format!("{val},"));
             }
             s.push_str(&self.strs1[i]);
             s.push('\n');

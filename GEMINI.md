@@ -52,11 +52,14 @@ This is a **hybrid monorepo** combining a Rust Cargo workspace and a Bun/Vite we
 ├── tools/
 │   └── parity-tester/      ← Internal tool: Rust vs Java JSON verification
 │
-├── BCU-java-PC-slow_kotlin/ ← Original Java/Kotlin source (reference only)
+├── test_out/
+│   ├── animations/         ← Sample animation datasets
+│   ├── BCU-java-PC-slow_kotlin/ ← Original Java/Kotlin source (reference only)
+│   ├── BCU 애니메이션 정리파일.md ← Definitive animation system reference
+│   └── TROUBLESHOOTING.md  ← Known issues and solutions
 ├── GEMINI.md               ← This file (AI instruction manual)
 ├── RUST_MIGRATION_PLAN.md  ← Architecture and phase plan
-├── MEMORY.md               ← AI session memory tracker
-└── BCU 애니메이션 정리파일.md ← Definitive animation system reference
+└── MEMORY.md               ← AI session memory tracker
 ```
 
 ### Crate Dependency Flow
@@ -117,5 +120,5 @@ wasm-pack build crates/bcu-api --target web --out-dir ../../pkg
 
 ## 🔍 Animation Reference
 
-Refer to `BCU 애니메이션 정리파일.md` for the definitive `PropertyType` and `Interpolation` logic.
+Refer to `test_out/BCU 애니메이션 정리파일.md` for the definitive `PropertyType` and `Interpolation` logic.
 This overrides any external AI analysis.

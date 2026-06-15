@@ -5,16 +5,23 @@
   "scripts": {
     "dev": "vite",
     "build:wasm": "wasm-pack build crates/bcu-api --target web --out-dir ../../pkg",
-    "build": "bun run build:wasm && vite build",
+    "build": "tsc --noEmit && bun run build:wasm && vite build",
     "preview": "vite preview",
     "test:ts": "bun test tests/",
     "test:rust": "cargo test",
     "test": "bun run test:ts && bun run test:rust",
+    "test:watch": "bun test --watch tests/",
     "lint:rust": "cargo fmt -- --check && cargo clippy -- -D warnings",
-    "check:rust": "cargo check",
+    "lint:pedantic": "cargo clippy -- -D warnings -D clippy::pedantic",
+    "lint:ts": "tsc --noEmit",
+    "lint": "bun run lint:ts && bun run lint:rust",
     "fmt:rust": "cargo fmt",
+    "fmt:ts": "echo 'No TS formatter configured yet'",
+    "format": "bun run fmt:rust && bun run fmt:ts",
+    "check:rust": "cargo check",
     "parity:check": "cargo run -p parity-tester",
-    "ready": "tsc --noEmit && bun run lint:rust && bun run build && bun run test"
+    "ready": "bun run format && bun run lint && bun run build && bun run test",
+    "clean": "rm -rf dist pkg target node_modules/.vite"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^20.10.0",

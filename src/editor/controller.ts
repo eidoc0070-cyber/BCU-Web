@@ -12,6 +12,7 @@ import { PersistenceManager } from './persistence-manager';
 import { eventBus } from './event-bus';
 
 import { UpdatePropertyCommand } from './commands/property-commands';
+import { BatchCommand } from './commands/batch-commands';
 import { AddPartCommand, DeletePartCommand } from './commands/hierarchy-commands';
 import { AddKeyframeCommand, ModifyKeyframeCommand, DeleteKeyframeCommand } from './commands/animation-commands';
 
@@ -53,14 +54,13 @@ export class BCUController {
     private initMembers() {
         this.gizmo = new CanvasGizmo(this.canvas, this.gizmoCanvas, this.bridge!);
         this.imgcutEditor = new ImgCutEditor(this.imgcutCanvas, this.bridge!);
-        this.ui = new UIManager();
+        this.ui = new UIManager(this.state);
     }
 
     private initEventSubscriptions() {
         const triggerSave = () => {
             if (this.ui) {
                 const session = this.state.getSession(
-                    this.ui.selectedPartIndex,
                     this.ui.getCurrentFrame(),
                     this.project.getProjectName()
                 );
@@ -68,7 +68,8 @@ export class BCUController {
             }
         };
 
-        eventBus.on('PART_SELECTED', () => {
+        eventBus.on('PART_SELECTED', (data) => {
+            this.state.setSelection(data.partIdxs);
             if (this.imgcutEditor) this.imgcutEditor.setSelectedCut(null);
             triggerSave();
         });
@@ -76,13 +77,46 @@ export class BCUController {
         eventBus.on('PROPERTY_CHANGED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
                 const state = this.bridge.getState();
-                if (state && state.animation && state.animation.parts[data.partIdx]) {
-                    const oldValue = state.animation.parts[data.partIdx].raw_args[data.field];
-                    if (oldValue !== data.value) {
-                        const cmd = new UpdatePropertyCommand(this.bridge, data.partIdx, data.field, oldValue, data.value);
-                        this.history.execute(cmd);
+                if (state && state.animation) {
+                    const commands: UpdatePropertyCommand[] = [];
+                    
+                    data.partIdxs.forEach(partIdx => {
+                        if (state.animation.parts[partIdx]) {
+                            const oldValue = state.animation.parts[partIdx].raw_args[data.field];
+                            if (oldValue !== data.value) {
+                                if (data.source === 'Gizmo') {
+                                    // Update visual ONLY, no history
+                                    this.bridge!.updateModelPart(partIdx, data.field, data.value);
+                                } else {
+                                    commands.push(new UpdatePropertyCommand(this.bridge!, partIdx, data.field, oldValue, data.value));
+                                }
+                            }
+                        }
+                    });
+
+                    if (commands.length === 1) {
+                        this.history.execute(commands[0]);
+                        triggerSave();
+                    } else if (commands.length > 1) {
+                        this.history.execute(new BatchCommand(commands));
                         triggerSave();
                     }
+                }
+            }
+        });
+
+        eventBus.on('TRANSFORM_COMMITTED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                const commands = data.targets.map(t => 
+                    new UpdatePropertyCommand(this.bridge!, t.partIdx, t.field, t.oldValue, t.newValue)
+                );
+
+                if (commands.length === 1) {
+                    this.history.push(commands[0]); // push instead of execute because it's already applied
+                    triggerSave();
+                } else if (commands.length > 1) {
+                    this.history.push(new BatchCommand(commands));
+                    triggerSave();
                 }
             }
         });
@@ -107,14 +141,88 @@ export class BCUController {
                 if (state && state.animation && state.animation.anim) {
                     const part = state.animation.anim.parts.find((p: any) => p.ints[0] === data.partIdx && p.ints[1] === data.modifType);
                     if (part) {
-                        const move = part.moves[data.moveIdx];
-                        const oldData = { frame: move[0], value: move[1], interp: move[2], easing: move[3] };
-                        const newData = { frame: data.frame, value: data.value, interp: data.interp, easing: data.easing };
+                        const targetFrame = data.oldFrame !== undefined ? data.oldFrame : part.moves[data.moveIdx][0] - part.off;
+                        const moveIdx = part.moves.findIndex((m: any) => (m[0] - part.off) === targetFrame);
                         
-                        const cmd = new ModifyKeyframeCommand(this.bridge, data.partIdx, data.modifType, data.moveIdx, oldData, newData);
-                        this.history.execute(cmd);
-                        triggerSave();
+                        if (moveIdx !== -1) {
+                            const move = part.moves[moveIdx];
+                            const oldData = { 
+                                frame: move[0] - part.off, 
+                                value: move[1], 
+                                interp: move[2], 
+                                easing: move[3] 
+                            };
+                            const newData = { 
+                                frame: data.frame, 
+                                value: data.value, 
+                                interp: data.interp, 
+                                easing: data.easing 
+                            };
+                            
+                            if (JSON.stringify(oldData) !== JSON.stringify(newData)) {
+                                const cmd = new ModifyKeyframeCommand(this.bridge, data.partIdx, data.modifType, oldData, newData);
+                                
+                                if (data.isPreview) {
+                                    cmd.execute();
+                                } else {
+                                    this.history.execute(cmd);
+                                }
+                                
+                                if (!data.isPreview && data.oldFrame !== undefined && data.oldFrame !== data.frame) {
+                                    const oldId = `${data.partIdx}:${data.modifType}:${data.oldFrame}`;
+                                    const newId = `${data.partIdx}:${data.modifType}:${data.frame}`;
+                                    if (this.state.isKFSelected(oldId)) {
+                                        this.state.toggleKFSelection(oldId);
+                                        this.state.toggleKFSelection(newId);
+                                    }
+                                }
+                                
+                                triggerSave();
+                            }
+                        }
                     }
+                }
+            }
+        });
+
+        eventBus.on('KEYFRAME_BATCH_MODIFIED', (data) => {
+            if (this.bridge && this.state.getStatus().isReady) {
+                const commands: ModifyKeyframeCommand[] = [];
+                const selectionUpdates: Array<{old: string, new: string}> = [];
+
+                data.changes.forEach((change: any) => {
+                    const cmd = new ModifyKeyframeCommand(
+                        this.bridge!, 
+                        change.partIdx, 
+                        change.modifType, 
+                        change.oldData, 
+                        change.newData
+                    );
+                    commands.push(cmd);
+                    
+                    if (change.oldData.frame !== change.newData.frame) {
+                        selectionUpdates.push({
+                            old: `${change.partIdx}:${change.modifType}:${change.oldData.frame}`,
+                            new: `${change.partIdx}:${change.modifType}:${change.newData.frame}`
+                        });
+                    }
+                });
+
+                if (commands.length > 0) {
+                    if (commands.length === 1) {
+                        this.history.execute(commands[0]);
+                    } else {
+                        this.history.execute(new BatchCommand(commands));
+                    }
+
+                    selectionUpdates.forEach(update => {
+                        if (this.state.isKFSelected(update.old)) {
+                            this.state.toggleKFSelection(update.old);
+                            this.state.toggleKFSelection(update.new);
+                        }
+                    });
+
+                    triggerSave();
                 }
             }
         });
@@ -130,10 +238,19 @@ export class BCUController {
 
         eventBus.on('KEYFRAME_DELETED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                const cmd = new DeleteKeyframeCommand(this.bridge, data.partIdx, data.modifType, data.moveIdx);
-                this.history.execute(cmd);
-                this.log(`Deleted keyframe: Part ${data.partIdx}, Type ${data.modifType}, Index ${data.moveIdx}`);
-                triggerSave();
+                const targetFrame = data.frame !== undefined ? data.frame : undefined;
+                if (targetFrame !== undefined) {
+                    const cmd = new DeleteKeyframeCommand(this.bridge, data.partIdx, data.modifType, targetFrame);
+                    this.history.execute(cmd);
+                    
+                    const kfId = `${data.partIdx}:${data.modifType}:${targetFrame}`;
+                    if (this.state.isKFSelected(kfId)) {
+                        this.state.toggleKFSelection(kfId);
+                    }
+                    
+                    this.log(`Deleted keyframe at frame ${targetFrame}`);
+                    triggerSave();
+                }
             }
         });
 
@@ -151,7 +268,7 @@ export class BCUController {
                 if (confirm(`Are you sure you want to delete part ${data.partIdx}?`)) {
                     const cmd = new DeletePartCommand(this.bridge, data.partIdx);
                     this.history.execute(cmd);
-                    eventBus.emit('PART_SELECTED', { partIdx: null });
+                    eventBus.emit('PART_SELECTED', { partIdxs: [] });
                     this.log(`Deleted part: ${data.partIdx}`);
                     triggerSave();
                 }
@@ -184,7 +301,10 @@ export class BCUController {
                 setTimeout(() => {
                     if (this.bridge && this.state.getStatus().isReady) {
                         this.bridge.setFrame(session.currentFrame);
-                        eventBus.emit('PART_SELECTED', { partIdx: session.selectedPartIdx });
+                        eventBus.emit('PART_SELECTED', { partIdxs: session.selectedPartIdxs || [] });
+                        if (session.selectedKeyframeIds) {
+                            this.state.setKFSelection(session.selectedKeyframeIds);
+                        }
                         this.setView(session.currentView);
                     }
                 }, 500);
@@ -210,9 +330,12 @@ export class BCUController {
                     this.log("Redo");
                 }
             } else if (e.key === 'Delete' || e.key === 'Backspace') {
-                const selectedPart = this.ui?.selectedPartIndex;
-                if (selectedPart !== undefined && selectedPart !== null) {
-                    eventBus.emit('PART_DELETED', { partIdx: selectedPart });
+                const selection = this.state.getSelection();
+                if (selection.length > 0) {
+                    // Delete all selected parts (one by one for now)
+                    selection.forEach(partIdx => {
+                        eventBus.emit('PART_DELETED', { partIdx });
+                    });
                 }
             }
         });
