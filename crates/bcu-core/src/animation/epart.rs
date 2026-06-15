@@ -190,6 +190,25 @@ impl EPart {
 
     #[must_use]
     pub fn get_transform(&self, entities: &[EPart], model: &MaModel) -> (Vec2, Vec2, FixedPoint) {
+        self.get_transform_recursive(entities, model, 0)
+    }
+
+    #[must_use]
+    fn get_transform_recursive(
+        &self,
+        entities: &[EPart],
+        model: &MaModel,
+        depth: usize,
+    ) -> (Vec2, Vec2, FixedPoint) {
+        if depth > 100 {
+            // Safety break for cycles or extreme depth
+            return (
+                Vec2::ZERO,
+                Vec2::new(FixedPoint::ONE, FixedPoint::ONE),
+                FixedPoint::ZERO,
+            );
+        }
+
         let mi = FixedPoint::from_int(i64::from(model.ints[0]));
         let ri = FixedPoint::from_int(i64::from(model.ints[1]));
 
@@ -198,10 +217,13 @@ impl EPart {
         let mut p_angle = FixedPoint::ZERO;
 
         if let Some(p_idx) = self.parent_idx {
-            let (pp, ps, pa) = entities[p_idx].get_transform(entities, model);
-            p_pos = pp;
-            p_sca = ps;
-            p_angle = pa;
+            if p_idx < entities.len() && p_idx != self.ind {
+                let (pp, ps, pa) =
+                    entities[p_idx].get_transform_recursive(entities, model, depth + 1);
+                p_pos = pp;
+                p_sca = ps;
+                p_angle = pa;
+            }
         }
 
         // 현재 파트의 좌표를 부모의 스케일(반전 포함)에 맞춰 변환

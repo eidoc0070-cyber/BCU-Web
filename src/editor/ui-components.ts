@@ -93,10 +93,10 @@ export class UIManager {
                 .filter(p => !!p);
             
             if (selectedParts.length > 0) {
-                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame());
+                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame(), state.parts);
             }
         } else {
-            this.propertyInspector.update([], null, 0);
+            this.propertyInspector.update([], null, 0, []);
         }
     }
 }

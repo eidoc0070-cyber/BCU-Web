@@ -86,7 +86,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
         expect(inspector.innerHTML).toContain('KF Editor');
 
         // Simulate interpolation change
-        const select = inspector.querySelector('select') as HTMLSelectElement;
+        const select = inspector.querySelector('select[data-type="interp"]') as HTMLSelectElement;
         expect(select).not.toBeNull();
         select.value = "1"; // Step
         select.dispatchEvent(new Event('change'));

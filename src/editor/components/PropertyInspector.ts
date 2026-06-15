@@ -11,11 +11,9 @@ export class PropertyInspector {
         });
     }
 
-    public update(parts: any[] | any, anim: any, currentFrame: number) {
+    public update(selectedParts: any[], anim: any, currentFrame: number, allParts: any[]) {
         if (!this.container) return;
         
-        // Normalize input
-        const selectedParts = Array.isArray(parts) ? parts : (parts ? [parts] : []);
         this.currentPartIdxs = selectedParts.map(p => p.index);
 
         const kfSelection = this.stateManager.getKFSelection();
@@ -38,6 +36,39 @@ export class PropertyInspector {
 
         const renderPropRow = (label: string, field: number, animatable: boolean) => {
             const { value, isMixed } = getMixedValue(field);
+            
+            // Special handling for Parent field: show as select
+            if (field === 0 && !isMultiPart) {
+                const invalidIdxs = new Set<number>();
+                
+                // Cycle prevention: can't be parent of self or descendants
+                const collectDescendants = (idx: number) => {
+                    invalidIdxs.add(idx);
+                    allParts.forEach((p: any) => {
+                        if (p.parent === idx) collectDescendants(p.index);
+                    });
+                };
+                collectDescendants(primaryPart.index);
+
+                let optionsHtml = `<option value="-1" ${value === -1 ? 'selected' : ''}>None (Root)</option>`;
+                allParts.forEach((p: any) => {
+                    if (!invalidIdxs.has(p.index)) {
+                        optionsHtml += `<option value="${p.index}" ${p.index === value ? 'selected' : ''}>${p.index}: ${p.name || 'Part'}</option>`;
+                    }
+                });
+
+                return `
+                    <div class="prop-group">
+                        <span>${label}</span>
+                        <div class="prop-input-container">
+                            <select data-field="0" class="prop-input" style="width: 100%;">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+
             return `
                 <div class="prop-group">
                     <span>${label}</span>

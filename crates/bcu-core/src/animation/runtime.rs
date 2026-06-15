@@ -104,6 +104,15 @@ impl EAnimD {
             return;
         }
 
+        // Cycle Detection for Parent field
+        if field == 0 && value != -1 {
+            let parent_candidate = value as usize;
+            if parent_candidate >= self.model.n || self.is_ancestor(idx, parent_candidate) {
+                // Prevent creating a cycle or setting invalid parent
+                return;
+            }
+        }
+
         // 1. Update the original model data
         self.model.parts[idx][field] = value;
 
@@ -117,6 +126,15 @@ impl EAnimD {
             &self.model,
         );
 
+        // Update parent index in entities
+        if field == 0 {
+            self.entities[idx].parent_idx = if value < 0 {
+                None
+            } else {
+                Some(value as usize)
+            };
+        }
+
         // 3. Re-apply current animation frame to ensure the new base is correctly offset
         update_maanim(
             &self.anim,
@@ -126,6 +144,31 @@ impl EAnimD {
             false,
         );
         self.sort();
+    }
+
+    /// Checks if setting 'parent_candidate' as the parent of 'part_idx' would create a cycle.
+    /// Returns true if 'part_idx' is an ancestor of 'parent_candidate'.
+    pub fn is_ancestor(&self, part_idx: usize, parent_candidate: usize) -> bool {
+        if part_idx == parent_candidate {
+            return true;
+        }
+
+        let mut current = parent_candidate;
+        let mut visited = 0;
+        let max_visit = self.model.n;
+
+        while visited < max_visit {
+            let parent = self.model.parts[current][0];
+            if parent == -1 {
+                return false;
+            }
+            if parent as usize == part_idx {
+                return true;
+            }
+            current = parent as usize;
+            visited += 1;
+        }
+        true // Cycle detected during traversal
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -863,5 +906,41 @@ mod tests_eanimd {
         // 3. New state at frame 5 (Step): should be 0 (stays at first keyframe value until next)
         display.set_frame(5.0);
         assert_eq!(display.entities[0].angle.to_int(), 0);
+    }
+
+    #[test]
+    fn test_hierarchy_cycle_prevention() {
+        let model = MaModel {
+            n: 3,
+            m: 0,
+            parts: vec![
+                [-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Part 0 (Root)
+                [0, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 1 -> Part 0
+                [1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 2 -> Part 1
+            ],
+            strs0: vec!["P0".into(), "P1".into(), "P2".into()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+        let anim = MaAnim {
+            n: 0,
+            parts: vec![],
+            max: 10,
+            len: 10,
+        };
+        let mut display = EAnimD::new(model, anim);
+
+        // Try to set Part 0's parent to Part 2 (Cycle: 0 -> 2 -> 1 -> 0)
+        display.update_model_part(0, 0, 2);
+
+        // Verify that Part 0's parent remains -1
+        assert_eq!(display.model.parts[0][0], -1);
+        assert_eq!(display.entities[0].parent_idx, None);
+
+        // Verify is_ancestor directly
+        assert!(display.is_ancestor(0, 2)); // 0 is ancestor of 2? Yes (0 -> 1 -> 2)
+        assert!(display.is_ancestor(1, 2)); // 1 is ancestor of 2? Yes (1 -> 2)
+        assert!(!display.is_ancestor(2, 0)); // 2 is ancestor of 0? No
     }
 }

@@ -8,11 +8,23 @@ export class HistoryManager {
     constructor() {}
 
     execute(command: Command) {
+        if (!command.metadata) {
+            command.metadata = {
+                source: 'user',
+                timestamp: Date.now()
+            };
+        }
         command.execute();
         this.push(command);
     }
 
     push(command: Command) {
+        if (!command.metadata) {
+            command.metadata = {
+                source: 'user',
+                timestamp: Date.now()
+            };
+        }
         this.undoStack.push(command);
         this.redoStack = []; // Clear redo stack on new action
         
