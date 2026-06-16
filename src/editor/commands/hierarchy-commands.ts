@@ -1,5 +1,6 @@
 import { Command } from './base';
 import { EngineBridge } from '../engine-bridge';
+import { EditorStateManager } from '../state-manager';
 
 export class AddPartCommand implements Command {
     readonly type = 'ADD_PART';
@@ -12,8 +13,6 @@ export class AddPartCommand implements Command {
 
     execute(): void {
         this.bridge.addPart(this.parentIdx);
-        // In a real scenario, we might need to capture the index of the added part 
-        // if the engine returns it, or rely on the fact that it's the last one.
         const state = this.bridge.getState();
         if (state && state.animation) {
             this.addedPartIdx = state.animation.parts.length - 1;
@@ -33,21 +32,57 @@ export class AddPartCommand implements Command {
 
 export class DeletePartCommand implements Command {
     readonly type = 'DELETE_PART';
+    private capturedData: {
+        modelData: number[],
+        name: string,
+        keyframes: any[],
+        selectedKFIds: string[]
+    } | null = null;
 
     constructor(
         private bridge: EngineBridge,
+        private stateManager: EditorStateManager,
         private partIdx: number
     ) {}
 
     execute(): void {
+        // 1. Capture state before deletion
+        const state = this.bridge.getState();
+        if (state && state.animation) {
+            const part = state.animation.parts[this.partIdx];
+            if (part) {
+                // Capture which keyframes of this part were selected
+                const currentKFSelection = this.stateManager.getKFSelection();
+                const selectedKFIds = currentKFSelection.filter(id => id.startsWith(`${this.partIdx}:`));
+
+                this.capturedData = {
+                    modelData: [...part.raw_args],
+                    name: part.name,
+                    keyframes: state.animation.anim.parts
+                        .filter((p: any) => p.ints[0] === this.partIdx)
+                        .map((p: any) => ({ ...p })), // Shallow copy of the anim part
+                    selectedKFIds
+                };
+            }
+        }
+
+        // 2. Perform deletion
         this.bridge.deletePart(this.partIdx);
+        
+        // 3. UI Sync (handled by controller usually, but command needs to be self-contained for undo/redo)
+        // Controller will call remapPartIndices
     }
 
     undo(): void {
-        // This is complex because we need to restore not just the part but its place in hierarchy 
-        // and its keyframes. For now, we'll need a bridge method to "restore" or "insert" a part.
-        // Assuming bridge.addPart followed by property updates for now as a simplified version.
-        console.warn("Undo for DeletePart is partially implemented - requires engine support for raw insertion");
+        if (this.capturedData) {
+            this.bridge.restorePart(
+                this.partIdx, 
+                this.capturedData.modelData, 
+                this.capturedData.name, 
+                this.capturedData.keyframes
+            );
+            this.stateManager.remapPartIndicesReverse(this.partIdx, this.capturedData.selectedKFIds);
+        }
     }
 
     serialize(): any {

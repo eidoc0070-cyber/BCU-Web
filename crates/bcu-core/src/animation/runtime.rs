@@ -389,31 +389,81 @@ impl EAnimD {
 
     pub fn add_part(&mut self, parent: i32) {
         let new_idx = self.model.n;
+        self.insert_part(new_idx, [-1; 14], format!("Part {new_idx}"), Vec::new());
+
+        // Setup default part values after insertion
+        let p = &mut self.model.parts[new_idx];
+        p[0] = parent;
+        p[1] = -1; // z-order
+        p[2] = 0; // img
+        p[3] = 0; // glow
+        p[4] = 0; // x
+        p[5] = 0; // y
+        p[6] = 0; // pivot x
+        p[7] = 0; // pivot y
+        p[8] = 1000; // sx
+        p[9] = 1000; // sy
+        p[10] = 0; // angle
+        p[11] = 1000; // opacity
+        p[12] = 0; // flip-h
+        p[13] = 0; // flip-v
+
+        // Sync entity with updated model data
+        self.entities[new_idx] = EPart::new(
+            new_idx,
+            self.model.strs0[new_idx].clone(),
+            self.model.parts[new_idx],
+            &self.model,
+        );
+        self.reset_snapshots();
+    }
+
+    pub fn insert_part(
+        &mut self,
+        idx: usize,
+        model_data: [i32; 14],
+        name: String,
+        keyframes: Vec<crate::data::Part>,
+    ) {
+        let insert_at = std::cmp::min(idx, self.model.n);
+
+        // 1. Insert into model and entities
+        self.model.parts.insert(insert_at, model_data);
+        self.model.strs0.insert(insert_at, name.clone());
         self.model.n += 1;
 
-        let mut new_part_data = [-1; 14];
-        new_part_data[0] = parent; // parent
-        new_part_data[1] = -1; // z-order
-        new_part_data[2] = 0; // img
-        new_part_data[3] = 0; // glow
-        new_part_data[4] = 0; // x
-        new_part_data[5] = 0; // y
-        new_part_data[6] = 0; // pivot x
-        new_part_data[7] = 0; // pivot y
-        new_part_data[8] = 1000; // sx
-        new_part_data[9] = 1000; // sy
-        new_part_data[10] = 0; // angle
-        new_part_data[11] = 1000; // opacity
-        new_part_data[12] = 0; // flip-h
-        new_part_data[13] = 0; // flip-v
+        self.entities.insert(
+            insert_at,
+            EPart::new(insert_at, name, model_data, &self.model),
+        );
 
-        self.model.parts.push(new_part_data);
-        let name = format!("Part {new_idx}");
-        self.model.strs0.push(name.clone());
+        // 2. Adjust indices and parents for existing parts
+        for i in 0..self.model.n {
+            self.entities[i].ind = i;
+            let p_val = self.model.parts[i][0];
+            if p_val >= insert_at as i32 {
+                self.model.parts[i][0] += 1;
+            }
+            self.entities[i].args[0] = self.model.parts[i][0];
+        }
 
-        self.entities
-            .push(EPart::new(new_idx, name, new_part_data, &self.model));
-        self.order.push(new_idx);
+        // 3. Adjust animation references for existing parts
+        for p in &mut self.anim.parts {
+            if p.ints[0] >= insert_at as i32 {
+                p.ints[0] += 1;
+            }
+        }
+
+        // 4. Restore captured keyframes for this part
+        for mut kf in keyframes {
+            kf.ints[0] = insert_at as i32;
+            self.anim.parts.push(kf);
+        }
+        self.anim.n = self.anim.parts.len();
+        self.anim.validate();
+
+        // 5. Update order and snapshots
+        self.order = (0..self.model.n).collect();
         self.reset_snapshots();
         self.sort();
     }

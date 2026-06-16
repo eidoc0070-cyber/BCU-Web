@@ -129,6 +129,37 @@ export class EditorStateManager {
         this.selectedKeyframeIds = newKFSelection;
     }
 
+    public remapPartIndicesReverse(insertedIdx: number, restoredKFIds: string[] = []) {
+        const newSelection = new Set<number>();
+        this.selectedPartIdxs.forEach(idx => {
+            if (idx >= insertedIdx) {
+                newSelection.add(idx + 1);
+            } else {
+                newSelection.add(idx);
+            }
+        });
+        // Add the restored part back to selection
+        newSelection.add(insertedIdx);
+        this.selectedPartIdxs = newSelection;
+
+        const newKFSelection = new Set<string>();
+        this.selectedKeyframeIds.forEach(id => {
+            const parts = id.split(':');
+            const pIdx = parseInt(parts[0]);
+            if (pIdx >= insertedIdx) {
+                parts[0] = (pIdx + 1).toString();
+                newKFSelection.add(parts.join(':'));
+            } else {
+                newKFSelection.add(id);
+            }
+        });
+        
+        // Add restored keyframes back to selection
+        restoredKFIds.forEach(id => newKFSelection.add(id));
+        
+        this.selectedKeyframeIds = newKFSelection;
+    }
+
     // Specialized helpers
     public setPlaying(playing: boolean) {
         this.updateStatus({ isPlaying: playing });

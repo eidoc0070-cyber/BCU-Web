@@ -286,10 +286,10 @@ export class BCUController {
         eventBus.on('PART_DELETED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
                 if (confirm(`Are you sure you want to delete part ${data.partIdx}?`)) {
-                    const cmd = new DeletePartCommand(this.bridge, data.partIdx);
+                    const cmd = new DeletePartCommand(this.bridge, this.state, data.partIdx);
                     this.history.execute(cmd);
                     
-                    // Remap selection indices instead of clearing
+                    // Remap selection indices after execution
                     this.state.remapPartIndices(data.partIdx);
                     
                     this.log(`Deleted part: ${data.partIdx}`);

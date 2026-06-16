@@ -67,6 +67,14 @@ enum EditorCommand {
     AddPart { id: String, parent: i32 },
     #[serde(rename = "DELETE_PART")]
     DeletePart { id: String, part_idx: usize },
+    #[serde(rename = "RESTORE_PART")]
+    RestorePart {
+        id: String,
+        part_idx: usize,
+        model_data: [i32; 14],
+        name: String,
+        keyframes: Vec<bcu_core::data::Part>,
+    },
     #[serde(rename = "ADD_ANIMATION")]
     AddAnimation { id: String },
     #[serde(rename = "REMOVE_ANIMATION")]
@@ -275,6 +283,17 @@ impl BCUEngine {
             EditorCommand::DeletePart { id, part_idx } => {
                 if let Some(anim) = self.animations.get_mut(&id) {
                     anim.delete_part(part_idx);
+                }
+            }
+            EditorCommand::RestorePart {
+                id,
+                part_idx,
+                model_data,
+                name,
+                keyframes,
+            } => {
+                if let Some(anim) = self.animations.get_mut(&id) {
+                    anim.insert_part(part_idx, model_data, name, keyframes);
                 }
             }
             EditorCommand::AddAnimation { id } => {

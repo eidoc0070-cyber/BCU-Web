@@ -81,6 +81,19 @@ export class EngineBridge {
         }));
     }
 
+    restorePart(partIdx: number, modelData: number[], name: string, keyframes: any[]) {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'RESTORE_PART',
+            data: { 
+                id: this.animId, 
+                part_idx: partIdx,
+                model_data: modelData,
+                name: name,
+                keyframes: keyframes
+            }
+        }));
+    }
+
     exportImgCut() {
         return this.engine.export_imgcut(this.animId);
     }
