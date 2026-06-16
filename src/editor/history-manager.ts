@@ -1,4 +1,7 @@
 import { Command } from './commands/base';
+import { CommandFactory } from './commands/factory';
+import { EngineBridge } from './engine-bridge';
+import { EditorStateManager } from './state-manager';
 
 export class HistoryManager {
     private undoStack: Command[] = [];
@@ -6,6 +9,23 @@ export class HistoryManager {
     private maxHistory = 100;
 
     constructor() {}
+
+    public serialize(): any {
+        return {
+            undo: this.undoStack.map(cmd => cmd.serialize()),
+            redo: this.redoStack.map(cmd => cmd.serialize())
+        };
+    }
+
+    public deserialize(data: any, bridge: EngineBridge, stateManager: EditorStateManager) {
+        if (!data) return;
+        this.undoStack = (data.undo || [])
+            .map((c: any) => CommandFactory.deserialize(c, bridge, stateManager))
+            .filter((c: any) => c !== null);
+        this.redoStack = (data.redo || [])
+            .map((c: any) => CommandFactory.deserialize(c, bridge, stateManager))
+            .filter((c: any) => c !== null);
+    }
 
     execute(command: Command) {
         if (!command.metadata) {

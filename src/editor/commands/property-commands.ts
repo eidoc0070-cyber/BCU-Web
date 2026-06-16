@@ -35,10 +35,13 @@ export class UpdatePropertyCommand implements Command {
     }
 
     serialize(): any {
+        const oldValuesObj: Record<number, number> = {};
+        this.oldValues.forEach((v, k) => oldValuesObj[k] = v);
         return { 
             type: this.type, 
             partIdxs: this.partIdxs, 
             field: this.field, 
+            oldValues: oldValuesObj,
             newValue: this.newValue 
         };
     }

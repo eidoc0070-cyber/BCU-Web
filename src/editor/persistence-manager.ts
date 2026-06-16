@@ -25,7 +25,15 @@ export class PersistenceManager {
         try {
             const data = localStorage.getItem(STORAGE_KEY);
             if (!data) return null;
-            return JSON.parse(data);
+            const session = JSON.parse(data);
+
+            // Basic validation
+            if (!session.animId || typeof session.currentFrame !== 'number') {
+                console.warn('[Persistence] Invalid session data found, ignoring.');
+                return null;
+            }
+
+            return session;
         } catch (e) {
             console.error('[Persistence] Failed to load session:', e);
             return null;

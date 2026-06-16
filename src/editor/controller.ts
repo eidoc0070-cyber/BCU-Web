@@ -6,7 +6,7 @@ import { ImgCutEditor } from './imgcut-editor';
 import { HistoryManager } from './history-manager';
 import { IntegrityChecker } from './integrity';
 import { BCUEngine } from '../../pkg/bcu_api.js';
-import { EditorStateManager } from './state-manager';
+import { EditorStateManager, EditorSession } from './state-manager';
 import { ProjectManager } from './project-manager';
 import { PersistenceManager } from './persistence-manager';
 import { eventBus } from './event-bus';
@@ -59,19 +59,24 @@ export class BCUController {
 
     private initEventSubscriptions() {
         const triggerSave = () => {
-            if (this.ui) {
+            if (this.ui && this.state.getStatus().isReady) {
                 const session = this.state.getSession(
                     this.ui.getCurrentFrame(),
-                    this.project.getProjectName()
+                    this.project.getProjectName(),
+                    this.history.serialize()
                 );
                 PersistenceManager.saveSession(session);
             }
         };
 
+        // Reactive auto-save: subscribe to any state change
+        this.state.subscribe(() => {
+            if (this.state.getStatus().isReady) triggerSave();
+        });
+
         eventBus.on('PART_SELECTED', (data) => {
             this.state.setSelection(data.partIdxs);
             if (this.imgcutEditor) this.imgcutEditor.setSelectedCut(null);
-            triggerSave();
         });
 
         eventBus.on('PROPERTY_CHANGED', (data) => {
@@ -108,7 +113,7 @@ export class BCUController {
                     if (validPartIdxs.length > 0) {
                         const cmd = new UpdatePropertyCommand(this.bridge!, validPartIdxs, data.field, oldValuesMap, data.value);
                         this.history.execute(cmd);
-                        triggerSave();
+                        // triggerSave will be called via state change or manual trigger
                     }
                 }
             }
@@ -138,7 +143,7 @@ export class BCUController {
                 } else if (commands.length > 1) {
                     this.history.push(new BatchCommand(commands));
                 }
-                triggerSave();
+                triggerSave(); // Explicit trigger for history-only change
             }
         });
 
@@ -152,6 +157,7 @@ export class BCUController {
         eventBus.on('FRAME_SEEK', (data) => {
             if (this.bridge && !this.state.getStatus().isPlaying && this.state.getStatus().isReady) {
                 this.bridge.setFrame(data.frame); 
+                // Seeking changes frame, which should be saved
                 triggerSave();
             }
         });
@@ -187,6 +193,7 @@ export class BCUController {
                                     cmd.execute();
                                 } else {
                                     this.history.execute(cmd);
+                                    triggerSave();
                                 }
                                 
                                 if (!data.isPreview && data.oldFrame !== undefined && data.oldFrame !== data.frame) {
@@ -197,8 +204,6 @@ export class BCUController {
                                         this.state.toggleKFSelection(newId);
                                     }
                                 }
-                                
-                                triggerSave();
                             }
                         }
                     }
@@ -301,17 +306,14 @@ export class BCUController {
 
         eventBus.on('FILE_SELECTED', (data) => {
             this.selectFile(data.fileName);
-            triggerSave();
         });
 
         eventBus.on('PROJECT_NAME_CHANGED', (data) => {
             this.project.setProjectName(data.name);
-            triggerSave();
         });
 
         eventBus.on('ANIMATION_SWITCHED', (data) => {
             this.setAnimation(data.animId);
-            triggerSave();
         });
 
         eventBus.on('SHOW_TOAST', (data) => {
@@ -319,24 +321,57 @@ export class BCUController {
         });
     }
 
-    private restoreSession() {
+    private async restoreSession() {
         const session = PersistenceManager.loadSession();
-        if (session) {
-            console.log('[Persistence] Restoring session:', session);
-            if (session.projectName) this.project.setProjectName(session.projectName);
-            if (session.animId !== 'none') {
-                this.setAnimation(session.animId);
-                setTimeout(() => {
-                    if (this.bridge && this.state.getStatus().isReady) {
-                        this.bridge.setFrame(session.currentFrame);
-                        eventBus.emit('PART_SELECTED', { partIdxs: session.selectedPartIdxs || [] });
-                        if (session.selectedKeyframeIds) {
-                            this.state.setKFSelection(session.selectedKeyframeIds);
-                        }
-                        this.setView(session.currentView);
-                    }
-                }, 500);
+        if (!session) return;
+
+        console.log('[Persistence] Restoring session:', session);
+        
+        // 1. Restore project and history immediately
+        if (session.projectName) this.project.setProjectName(session.projectName);
+        if (this.bridge && session.history) {
+            this.history.deserialize(session.history, this.bridge, this.state);
+        }
+
+        // 2. Wait for character/animation loading if needed
+        if (session.animId !== 'none') {
+            // We need to wait until the project manager has loaded files (e.g. from previous OPFS or similar)
+            // For now, we assume the user might need to drop files again, 
+            // OR if it's a sample unit, it might already be loading.
+            
+            // Poll for bridge readiness if an animation is being restored
+            let attempts = 0;
+            const checkReady = setInterval(() => {
+                if (this.bridge && this.state.getStatus().isReady) {
+                    clearInterval(checkReady);
+                    this.applySessionData(session);
+                }
+                if (++attempts > 20) clearInterval(checkReady); // Timeout after 10s
+            }, 500);
+        }
+    }
+
+    private applySessionData(session: EditorSession) {
+        if (!this.bridge) return;
+
+        try {
+            this.setAnimation(session.animId);
+            this.bridge.setFrame(session.currentFrame);
+            
+            // Restore UI state
+            this.setView(session.currentView);
+            
+            // Selection restoration
+            if (session.selectedPartIdxs) {
+                this.state.setSelection(session.selectedPartIdxs);
             }
+            if (session.selectedKeyframeIds) {
+                this.state.setKFSelection(session.selectedKeyframeIds);
+            }
+
+            this.log(`Session restored: ${session.animId} at frame ${session.currentFrame}`);
+        } catch (e) {
+            console.error('[Persistence] Failed to apply session data:', e);
         }
     }
 

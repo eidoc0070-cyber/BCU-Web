@@ -14,6 +14,8 @@ export interface EditorSession {
     currentFrame: number;
     currentView: 'animation' | 'imgcut' | 'image';
     projectName: string;
+    history?: any;
+    lastModified: number;
 }
 
 export type StateListener = (status: EditorStatus) => void;
@@ -181,14 +183,16 @@ export class EditorStateManager {
         this.updateStatus({ selectedFile: file });
     }
 
-    public getSession(currentFrame: number, projectName: string): EditorSession {
+    public getSession(currentFrame: number, projectName: string, history?: any): EditorSession {
         return {
             animId: this.status.animId,
             selectedPartIdxs: this.getSelection(),
             selectedKeyframeIds: this.getKFSelection(),
             currentFrame,
             currentView: this.status.currentView,
-            projectName
+            projectName,
+            history,
+            lastModified: Date.now()
         };
     }
 }

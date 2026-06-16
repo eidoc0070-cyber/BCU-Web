@@ -11,16 +11,22 @@ describe("PersistenceManager Unit Tests", () => {
     const mockSession: EditorSession = {
         animId: "walk",
         selectedPartIdxs: [5],
+        selectedKeyframeIds: ["5:10:0"],
         currentFrame: 10,
         currentView: "animation",
-        projectName: "Test Project"
+        projectName: "Test Project",
+        history: {
+            undo: [{ type: 'UPDATE_PROPERTY', partIdxs: [0], field: 4, newValue: 100 }],
+            redo: []
+        },
+        lastModified: Date.now()
     };
 
     beforeEach(() => {
         localStorage.clear();
     });
 
-    test("should save and load session correctly", (done) => {
+    test("should save and load session with history correctly", (done) => {
         PersistenceManager.saveSession(mockSession);
         
         // Wait for debounce (500ms + buffer)
@@ -28,8 +34,9 @@ describe("PersistenceManager Unit Tests", () => {
             const loaded = PersistenceManager.loadSession();
             expect(loaded).not.toBeNull();
             expect(loaded?.animId).toBe("walk");
-            expect(loaded?.selectedPartIdxs).toEqual([5]);
-            expect(loaded?.projectName).toBe("Test Project");
+            expect(loaded?.history?.undo?.length).toBe(1);
+            expect(loaded?.history?.undo[0].type).toBe('UPDATE_PROPERTY');
+            expect(loaded?.selectedKeyframeIds).toEqual(["5:10:0"]);
             done();
         }, 600);
     });
@@ -43,6 +50,16 @@ describe("PersistenceManager Unit Tests", () => {
         localStorage.setItem('bcu_editor_session', '{ invalid json ]');
         const loaded = PersistenceManager.loadSession();
         expect(loaded).toBeNull();
+    });
+
+    test("should validate session data on load", () => {
+        // Missing animId
+        localStorage.setItem('bcu_editor_session', JSON.stringify({ currentFrame: 10 }));
+        expect(PersistenceManager.loadSession()).toBeNull();
+
+        // Invalid frame type
+        localStorage.setItem('bcu_editor_session', JSON.stringify({ animId: 'test', currentFrame: '10' }));
+        expect(PersistenceManager.loadSession()).toBeNull();
     });
 
     test("should debounce multiple save calls", async () => {
