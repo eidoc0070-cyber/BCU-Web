@@ -321,6 +321,14 @@ impl BCUEngine {
         serde_wasm_bindgen::to_value(&keys).unwrap()
     }
 
+    pub fn is_ancestor(&self, id: &str, part_idx: usize, parent_candidate: usize) -> bool {
+        if let Some(anim) = self.animations.get(id) {
+            anim.is_ancestor(part_idx, parent_candidate)
+        } else {
+            false
+        }
+    }
+
     pub fn get_animation_state(&self, id: &str) -> Result<JsValue, JsValue> {
         let anim = self
             .animations

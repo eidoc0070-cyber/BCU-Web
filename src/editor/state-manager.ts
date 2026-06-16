@@ -48,7 +48,7 @@ export class EditorStateManager {
         return { ...this.status };
     }
 
-    private notify() {
+    public notify() {
         this.listeners.forEach(l => l(this.status));
     }
 

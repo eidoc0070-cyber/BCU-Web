@@ -12,6 +12,7 @@ export class BCUEngine {
     get_animation_state(id: string): any;
     get_part_transform(id: string, part_idx: number): any;
     static init(canvas: HTMLCanvasElement): Promise<BCUEngine>;
+    is_ancestor(id: string, part_idx: number, parent_candidate: number): boolean;
     list_animations(): any;
     load_animation(id: string, imgcut_txt: string, mamodel_txt: string, maanim_txt: string): void;
     load_sprite(id: string, bytes: Uint8Array): void;
@@ -34,6 +35,7 @@ export interface InitOutput {
     readonly bcuengine_get_animation_state: (a: number, b: number, c: number) => [number, number, number];
     readonly bcuengine_get_part_transform: (a: number, b: number, c: number, d: number) => [number, number, number];
     readonly bcuengine_init: (a: any) => any;
+    readonly bcuengine_is_ancestor: (a: number, b: number, c: number, d: number, e: number) => number;
     readonly bcuengine_list_animations: (a: number) => any;
     readonly bcuengine_load_animation: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number];
     readonly bcuengine_load_sprite: (a: number, b: number, c: number, d: number, e: number) => [number, number];

@@ -78,47 +78,36 @@ export class BCUController {
             if (this.bridge && this.state.getStatus().isReady) {
                 const state = this.bridge.getState();
                 if (state && state.animation) {
-                    const commands: UpdatePropertyCommand[] = [];
+                    const validPartIdxs: number[] = [];
+                    const oldValuesMap: Map<number, number> = new Map();
                     
                     data.partIdxs.forEach(partIdx => {
-                        if (state.animation.parts[partIdx]) {
-                            const oldValue = state.animation.parts[partIdx].raw_args[data.field];
+                        const part = state.animation.parts[partIdx];
+                        if (part) {
+                            const oldValue = part.raw_args[data.field];
                             if (oldValue !== data.value) {
-                                // Cycle detection feedback
+                                // Cycle detection for Parent field
                                 if (data.field === 0 && data.value !== -1) {
-                                    // This is redundant with UI filtering but good for Agent tools
-                                    const isAncestor = (pIdx: number, target: number): boolean => {
-                                        if (pIdx === target) return true;
-                                        let curr = target;
-                                        for (let i = 0; i < state.animation.parts.length; i++) {
-                                            const p = state.animation.parts[curr];
-                                            if (!p || p.raw_args[0] === -1) return false;
-                                            if (p.raw_args[0] === pIdx) return true;
-                                            curr = p.raw_args[0];
-                                        }
-                                        return true;
-                                    };
-                                    if (isAncestor(partIdx, data.value)) {
+                                    if (this.bridge!.isAncestor && this.bridge!.isAncestor(partIdx, data.value)) {
                                         this.ui?.showToast("Hierarchy cycle detected! Action blocked.", "error");
                                         return;
                                     }
                                 }
 
                                 if (data.source === 'Gizmo') {
-                                    // Update visual ONLY, no history
+                                    // Update visual ONLY, no history (handled by TRANSFORM_COMMITTED)
                                     this.bridge!.updateModelPart(partIdx, data.field, data.value);
                                 } else {
-                                    commands.push(new UpdatePropertyCommand(this.bridge!, partIdx, data.field, oldValue, data.value));
+                                    validPartIdxs.push(partIdx);
+                                    oldValuesMap.set(partIdx, oldValue);
                                 }
                             }
                         }
                     });
 
-                    if (commands.length === 1) {
-                        this.history.execute(commands[0]);
-                        triggerSave();
-                    } else if (commands.length > 1) {
-                        this.history.execute(new BatchCommand(commands));
+                    if (validPartIdxs.length > 0) {
+                        const cmd = new UpdatePropertyCommand(this.bridge!, validPartIdxs, data.field, oldValuesMap, data.value);
+                        this.history.execute(cmd);
                         triggerSave();
                     }
                 }
@@ -127,17 +116,29 @@ export class BCUController {
 
         eventBus.on('TRANSFORM_COMMITTED', (data) => {
             if (this.bridge && this.state.getStatus().isReady) {
-                const commands = data.targets.map(t => 
-                    new UpdatePropertyCommand(this.bridge!, t.partIdx, t.field, t.oldValue, t.newValue)
-                );
+                // Group by field to create efficient batch property commands
+                const byField: Map<number, { idxs: number[], olds: Map<number, number>, val: number }> = new Map();
+                
+                data.targets.forEach((t: any) => {
+                    if (!byField.has(t.field)) {
+                        byField.set(t.field, { idxs: [], olds: new Map(), val: t.newValue });
+                    }
+                    const group = byField.get(t.field)!;
+                    group.idxs.push(t.partIdx);
+                    group.olds.set(t.partIdx, t.oldValue);
+                });
+
+                const commands: UpdatePropertyCommand[] = [];
+                byField.forEach((group, field) => {
+                    commands.push(new UpdatePropertyCommand(this.bridge!, group.idxs, field, group.olds, group.val));
+                });
 
                 if (commands.length === 1) {
-                    this.history.push(commands[0]); // push instead of execute because it's already applied
-                    triggerSave();
+                    this.history.push(commands[0]); 
                 } else if (commands.length > 1) {
                     this.history.push(new BatchCommand(commands));
-                    triggerSave();
                 }
+                triggerSave();
             }
         });
 
@@ -311,6 +312,10 @@ export class BCUController {
         eventBus.on('ANIMATION_SWITCHED', (data) => {
             this.setAnimation(data.animId);
             triggerSave();
+        });
+
+        eventBus.on('SHOW_TOAST', (data) => {
+            this.ui?.showToast(data.message, data.type);
         });
     }
 

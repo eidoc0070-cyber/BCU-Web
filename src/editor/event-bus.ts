@@ -13,7 +13,8 @@ export type EditorEventType =
     | 'FILE_SELECTED' 
     | 'ANIMATION_SWITCHED'
     | 'TRANSFORM_COMMITTED'
-    | 'KEYFRAME_BATCH_MODIFIED';
+    | 'KEYFRAME_BATCH_MODIFIED'
+    | 'SHOW_TOAST';
 
 export interface EditorEventData {
     'PART_SELECTED': { partIdxs: number[] };
@@ -50,6 +51,7 @@ export interface EditorEventData {
             newData: { frame: number, value: number, interp: number, easing: number }
         }>
     };
+    'SHOW_TOAST': { message: string, type: 'info' | 'success' | 'error' };
 }
 
 type Callback<T extends EditorEventType> = (data: EditorEventData[T]) => void;

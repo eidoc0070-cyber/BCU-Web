@@ -208,10 +208,39 @@ export class PropertyInspector {
             input.addEventListener('change', (e) => {
                 const el = e.target as HTMLInputElement;
                 const field = parseInt(el.getAttribute('data-field')!);
-                const value = parseInt(el.value);
-                if (!isNaN(value)) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: this.currentPartIdxs, field, value, source: 'Inspector' });
+                let value = parseInt(el.value);
+                
+                if (isNaN(value)) {
+                    // Revert to current value if empty
+                    this.stateManager.notify(); // Triggers re-render
+                    return;
                 }
+
+                // Guard Rails
+                let errorMsg = "";
+
+                switch(field) {
+                    case 8: // Scale X
+                    case 9: // Scale Y
+                        if (value < 1) { // 0.1% minimum
+                            value = 1;
+                            errorMsg = "Scale must be at least 1 (0.1%)";
+                        }
+                        break;
+                    case 11: // Opacity
+                        if (value < 0) value = 0;
+                        if (value > 1000) value = 1000;
+                        break;
+                    case 2: // Img Index (Placeholder for future ImgCut bounds check)
+                        if (value < -1) value = -1;
+                        break;
+                }
+
+                if (errorMsg) {
+                    eventBus.emit('SHOW_TOAST', { message: errorMsg, type: 'error' });
+                }
+
+                eventBus.emit('PROPERTY_CHANGED', { partIdxs: this.currentPartIdxs, field, value, source: 'Inspector' });
             });
         });
 

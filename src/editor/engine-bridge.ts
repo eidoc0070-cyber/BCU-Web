@@ -131,6 +131,15 @@ export class EngineBridge {
         }
     }
 
+    isAncestor(partIdx: number, parentCandidate: number): boolean {
+        // Assume engine has is_ancestor exposed via dispatch_editor_command or direct binding
+        // For now, checking if engine instance has the method
+        if ((this.engine as any).is_ancestor) {
+            return (this.engine as any).is_ancestor(this.animId, partIdx, parentCandidate);
+        }
+        return false;
+    }
+
     tick() {
         this.engine.dispatch_editor_command(JSON.stringify({
             op: 'TICK',

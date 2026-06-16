@@ -9,6 +9,7 @@ export const bcuengine_export_mamodel: (a: number, b: number, c: number) => [num
 export const bcuengine_get_animation_state: (a: number, b: number, c: number) => [number, number, number];
 export const bcuengine_get_part_transform: (a: number, b: number, c: number, d: number) => [number, number, number];
 export const bcuengine_init: (a: any) => any;
+export const bcuengine_is_ancestor: (a: number, b: number, c: number, d: number, e: number) => number;
 export const bcuengine_list_animations: (a: number) => any;
 export const bcuengine_load_animation: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number];
 export const bcuengine_load_sprite: (a: number, b: number, c: number, d: number, e: number) => [number, number];

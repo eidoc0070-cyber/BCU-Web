@@ -3,30 +3,43 @@ import { EngineBridge } from '../engine-bridge';
 
 export class UpdatePropertyCommand implements Command {
     readonly type = 'UPDATE_PROPERTY';
+    private oldValues: Map<number, number> = new Map();
 
     constructor(
         private bridge: EngineBridge,
-        private partIdx: number,
+        private partIdxs: number[],
         private field: number,
-        private oldValue: number,
+        oldValueOrValues: number | Map<number, number>,
         private newValue: number
-    ) {}
+    ) {
+        if (typeof oldValueOrValues === 'number') {
+            partIdxs.forEach(idx => this.oldValues.set(idx, oldValueOrValues));
+        } else {
+            this.oldValues = oldValueOrValues;
+        }
+    }
 
     execute(): void {
-        this.bridge.updateModelPart(this.partIdx, this.field, this.newValue);
+        this.partIdxs.forEach(idx => {
+            this.bridge.updateModelPart(idx, this.field, this.newValue);
+        });
     }
 
     undo(): void {
-        this.bridge.updateModelPart(this.partIdx, this.field, this.oldValue);
+        this.partIdxs.forEach(idx => {
+            const oldVal = this.oldValues.get(idx);
+            if (oldVal !== undefined) {
+                this.bridge.updateModelPart(idx, this.field, oldVal);
+            }
+        });
     }
 
     serialize(): any {
-        return {
-            type: this.type,
-            partIdx: this.partIdx,
-            field: this.field,
-            oldValue: this.oldValue,
-            newValue: this.newValue
+        return { 
+            type: this.type, 
+            partIdxs: this.partIdxs, 
+            field: this.field, 
+            newValue: this.newValue 
         };
     }
 }

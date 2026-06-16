@@ -136,6 +136,18 @@ export class BCUEngine {
         return ret;
     }
     /**
+     * @param {string} id
+     * @param {number} part_idx
+     * @param {number} parent_candidate
+     * @returns {boolean}
+     */
+    is_ancestor(id, part_idx, parent_candidate) {
+        const ptr0 = passStringToWasm0(id, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ret = wasm.bcuengine_is_ancestor(this.__wbg_ptr, ptr0, len0, part_idx, parent_candidate);
+        return ret !== 0;
+    }
+    /**
      * @returns {any}
      */
     list_animations() {
