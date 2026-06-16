@@ -92,4 +92,49 @@ describe("Multi-Edit and Guard Rails Tests", () => {
 
         expect(notifyCalled).toBe(true); // Should trigger re-render to revert UI
     });
+
+    test("PropertyInspector should handle interpolation type changes and Easing guards", () => {
+        const stateManager = new EditorStateManager();
+        const inspector = new PropertyInspector(stateManager);
+        
+        let lastEmitted: any = null;
+        eventBus.on('KEYFRAME_BATCH_MODIFIED', (data) => {
+            lastEmitted = data;
+        });
+
+        const mockAnim = {
+            parts: [{
+                ints: [0, 10, 0, 0, 0], // Part 0, PosX, Linear
+                off: 0,
+                moves: [[0, 100, 0, 0]] // Frame 0, Value 100, Linear, Easing 0
+            }]
+        };
+
+        const mockParts = [{ index: 0, name: "Part 0", raw_args: [ -1, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000] }];
+
+        // 1. Select Keyframe and set to Easing (Type 2)
+        stateManager.setKFSelection(["0:10:0"]);
+        inspector.update(mockParts, mockAnim, 0, mockParts);
+
+        const interpSelect = document.querySelector('select[data-type="interp"]') as HTMLSelectElement;
+        interpSelect.value = "2"; 
+        interpSelect.dispatchEvent(new Event('change'));
+
+        expect(lastEmitted.changes[0].newData.interp).toBe(2);
+
+        // 2. Re-render UI and test Easing Guard (min 0, max 1000)
+        mockAnim.parts[0].moves[0][2] = 2; // Simulate state update
+        inspector.update(mockParts, mockAnim, 0, mockParts);
+
+        const easingInput = document.querySelector('input[data-type="easing"]') as HTMLInputElement;
+        expect(easingInput).not.toBeNull();
+
+        easingInput.value = "1500";
+        easingInput.dispatchEvent(new Event('change'));
+        expect(lastEmitted.changes[0].newData.easing).toBe(1000);
+
+        easingInput.value = "-500";
+        easingInput.dispatchEvent(new Event('change'));
+        expect(lastEmitted.changes[0].newData.easing).toBe(0);
+    });
 });

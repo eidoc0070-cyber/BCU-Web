@@ -149,13 +149,14 @@ export class PropertyInspector {
 
                 const typeNames = ["Parent", "Z", "Img", "Glow", "PosX", "PosY", "PivX", "PivY", "ScaleX", "ScaleY", "Angle", "Opacity"];
                 const modifName = isMixedType ? "Mixed Types" : (typeNames[kfData[0]!.mType] || "Misc");
+                const currentInterp = isMixedInterp ? -1 : kfData[0]!.interp;
 
                 html += `
                     <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 0.5rem;">
                         <div style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.5rem; color: #10b981;">
                             ${kfSelection.length > 1 ? `Keyframe Batch (${kfSelection.length})` : `KF Editor: ${modifName}`}
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
                             <div class="prop-group">
                                 <span>Frame</span>
                                 <input type="number" class="kf-input ${isMixedFrame ? 'mixed' : ''}" data-type="frame" 
@@ -166,23 +167,43 @@ export class PropertyInspector {
                                 <input type="number" class="kf-input ${isMixedVal ? 'mixed' : ''}" data-type="value" 
                                     value="${isMixedVal ? '' : kfData[0]!.val}" placeholder="${isMixedVal ? 'Mixed' : ''}">
                             </div>
-                            <div class="prop-group" style="grid-column: span 2;">
-                                <span>Interpolation</span>
-                                <select class="kf-input ${isMixedInterp ? 'mixed' : ''}" data-type="interp" style="width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.7rem;">
-                                    ${isMixedInterp ? '<option value="" disabled selected>Mixed</option>' : ''}
-                                    <option value="0" ${!isMixedInterp && kfData[0]!.interp === 0 ? 'selected' : ''}>Linear</option>
-                                    <option value="1" ${!isMixedInterp && kfData[0]!.interp === 1 ? 'selected' : ''}>Step</option>
-                                    <option value="2" ${!isMixedInterp && kfData[0]!.interp === 2 ? 'selected' : ''}>Easing</option>
-                                    <option value="3" ${!isMixedInterp && kfData[0]!.interp === 3 ? 'selected' : ''}>Lagrange</option>
-                                    <option value="4" ${!isMixedInterp && kfData[0]!.interp === 4 ? 'selected' : ''}>Sinusoidal</option>
-                                </select>
-                            </div>
-                            <div class="prop-group" style="grid-column: span 2;">
-                                <span>Easing Param</span>
-                                <input type="number" class="kf-input ${isMixedEasing ? 'mixed' : ''}" data-type="easing" 
-                                    value="${isMixedEasing ? '' : kfData[0]!.easing}" placeholder="${isMixedEasing ? 'Mixed' : ''}">
-                            </div>
                         </div>
+
+                        <div class="prop-group" style="margin-bottom: 0.5rem;">
+                            <span>Interpolation</span>
+                            <select class="kf-input ${isMixedInterp ? 'mixed' : ''}" data-type="interp" style="width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.7rem;">
+                                ${isMixedInterp ? '<option value="-1" disabled selected>Mixed</option>' : ''}
+                                <option value="0" ${currentInterp === 0 ? 'selected' : ''}>Linear</option>
+                                <option value="1" ${currentInterp === 1 ? 'selected' : ''}>Step (None)</option>
+                                <option value="2" ${currentInterp === 2 ? 'selected' : ''}>Easing (In/Out)</option>
+                                <option value="3" ${currentInterp === 3 ? 'selected' : ''}>Lagrange (Poly)</option>
+                                <option value="4" ${currentInterp === 4 ? 'selected' : ''}>Sinusoidal (Wave)</option>
+                            </select>
+                        </div>
+
+                        ${currentInterp === 2 ? `
+                            <div class="prop-group" style="background: rgba(16, 185, 129, 0.1); padding: 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="color: #10b981; font-size: 0.6rem;">Easing Param</span>
+                                    <span style="font-family: monospace; font-size: 0.65rem; color: #10b981;">${isMixedEasing ? 'Mixed' : kfData[0]!.easing}</span>
+                                </div>
+                                <input type="range" class="kf-input" data-type="easing-slider" min="0" max="1000" step="1" 
+                                    value="${isMixedEasing ? 500 : kfData[0]!.easing}" style="width: 100%; height: 4px; padding: 0; accent-color: #10b981;">
+                                <input type="number" class="kf-input ${isMixedEasing ? 'mixed' : ''}" data-type="easing" 
+                                    value="${isMixedEasing ? '' : kfData[0]!.easing}" placeholder="0-1000" 
+                                    style="margin-top: 4px; text-align: center;">
+                                <div style="font-size: 0.55rem; color: var(--text-secondary); margin-top: 4px; line-height: 1.2;">
+                                    • 0-499: Ease-In (Accel) | 500: Linear | 501-1000: Ease-Out (Decel)
+                                </div>
+                            </div>
+                        ` : ''}
+
+                        ${currentInterp === 3 ? `
+                            <div style="font-size: 0.55rem; color: #60a5fa; background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2); line-height: 1.2;">
+                                <strong>Lagrange Mode:</strong><br>
+                                Polynomial curve using neighbor keyframes. Best for smooth trajectories.
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }
@@ -259,16 +280,30 @@ export class PropertyInspector {
         });
 
         this.container.querySelectorAll('.kf-input').forEach(input => {
-            input.addEventListener('change', () => {
+            input.addEventListener('change', (e) => {
+                const target = e.target as HTMLInputElement;
+                const inputType = target.getAttribute('data-type');
+                
                 const frameInput = this.container!.querySelector('.kf-input[data-type="frame"]') as HTMLInputElement;
                 const valueInput = this.container!.querySelector('.kf-input[data-type="value"]') as HTMLInputElement;
                 const interpSelect = this.container!.querySelector('.kf-input[data-type="interp"]') as HTMLSelectElement;
                 const easingInput = this.container!.querySelector('.kf-input[data-type="easing"]') as HTMLInputElement;
+                const easingSlider = this.container!.querySelector('.kf-input[data-type="easing-slider"]') as HTMLInputElement;
                 
                 const frame = parseInt(frameInput.value);
                 const value = parseInt(valueInput.value);
                 const interp = parseInt(interpSelect.value);
-                const easing = parseInt(easingInput.value);
+                let easing = easingInput ? parseInt(easingInput.value) : 0;
+                
+                if (inputType === 'easing-slider' && easingSlider) {
+                    easing = parseInt(easingSlider.value);
+                }
+
+                // Guard Rails for Easing
+                if (inputType === 'easing' || inputType === 'easing-slider') {
+                    if (easing < 0) easing = 0;
+                    if (easing > 1000) easing = 1000;
+                }
                 
                 const kfSelection = this.stateManager.getKFSelection();
                 const changes: any[] = [];
@@ -286,7 +321,7 @@ export class PropertyInspector {
                                 newData: {
                                     frame: isNaN(frame) ? fr : frame,
                                     value: isNaN(value) ? move[1] : value,
-                                    interp: isNaN(interp) ? move[2] : interp,
+                                    interp: (isNaN(interp) || interp === -1) ? move[2] : interp,
                                     easing: isNaN(easing) ? move[3] : easing
                                 }
                             });
@@ -296,6 +331,10 @@ export class PropertyInspector {
 
                 if (changes.length > 0) {
                     eventBus.emit('KEYFRAME_BATCH_MODIFIED', { changes });
+                    if (inputType === 'interp' || inputType === 'easing-slider' || inputType === 'easing') {
+                        // Re-render UI to update dynamic interpolation fields or slider labels
+                        setTimeout(() => this.update(selectedParts, anim, currentFrame, allParts, alpha), 10);
+                    }
                 }
             });
         });
