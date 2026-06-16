@@ -99,6 +99,36 @@ export class EditorStateManager {
         this.selectedKeyframeIds.clear();
     }
 
+    public remapPartIndices(deletedIdx: number) {
+        const newSelection = new Set<number>();
+        this.selectedPartIdxs.forEach(idx => {
+            if (idx === deletedIdx) {
+                // Remove deleted part
+            } else if (idx > deletedIdx) {
+                newSelection.add(idx - 1);
+            } else {
+                newSelection.add(idx);
+            }
+        });
+        this.selectedPartIdxs = newSelection;
+        
+        // Also remap Keyframe IDs if they contain partIdx
+        const newKFSelection = new Set<string>();
+        this.selectedKeyframeIds.forEach(id => {
+            const parts = id.split(':');
+            const pIdx = parseInt(parts[0]);
+            if (pIdx === deletedIdx) {
+                // Remove keyframes of deleted part
+            } else if (pIdx > deletedIdx) {
+                parts[0] = (pIdx - 1).toString();
+                newKFSelection.add(parts.join(':'));
+            } else {
+                newKFSelection.add(id);
+            }
+        });
+        this.selectedKeyframeIds = newKFSelection;
+    }
+
     // Specialized helpers
     public setPlaying(playing: boolean) {
         this.updateStatus({ isPlaying: playing });

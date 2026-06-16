@@ -143,6 +143,7 @@ impl EAnimD {
             &self.model,
             false,
         );
+        self.reset_snapshots();
         self.sort();
     }
 
@@ -413,6 +414,7 @@ impl EAnimD {
         self.entities
             .push(EPart::new(new_idx, name, new_part_data, &self.model));
         self.order.push(new_idx);
+        self.reset_snapshots();
         self.sort();
     }
 
@@ -450,6 +452,7 @@ impl EAnimD {
 
         // 4. Update order
         self.order = (0..self.model.n).collect();
+        self.reset_snapshots();
         self.sort();
     }
 }
@@ -906,41 +909,5 @@ mod tests_eanimd {
         // 3. New state at frame 5 (Step): should be 0 (stays at first keyframe value until next)
         display.set_frame(5.0);
         assert_eq!(display.entities[0].angle.to_int(), 0);
-    }
-
-    #[test]
-    fn test_hierarchy_cycle_prevention() {
-        let model = MaModel {
-            n: 3,
-            m: 0,
-            parts: vec![
-                [-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Part 0 (Root)
-                [0, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 1 -> Part 0
-                [1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 2 -> Part 1
-            ],
-            strs0: vec!["P0".into(), "P1".into(), "P2".into()],
-            ints: [1000, 3600, 1000],
-            confs: vec![],
-            strs1: vec![],
-        };
-        let anim = MaAnim {
-            n: 0,
-            parts: vec![],
-            max: 10,
-            len: 10,
-        };
-        let mut display = EAnimD::new(model, anim);
-
-        // Try to set Part 0's parent to Part 2 (Cycle: 0 -> 2 -> 1 -> 0)
-        display.update_model_part(0, 0, 2);
-
-        // Verify that Part 0's parent remains -1
-        assert_eq!(display.model.parts[0][0], -1);
-        assert_eq!(display.entities[0].parent_idx, None);
-
-        // Verify is_ancestor directly
-        assert!(display.is_ancestor(0, 2)); // 0 is ancestor of 2? Yes (0 -> 1 -> 2)
-        assert!(display.is_ancestor(1, 2)); // 1 is ancestor of 2? Yes (1 -> 2)
-        assert!(!display.is_ancestor(2, 0)); // 2 is ancestor of 0? No
     }
 }

@@ -60,7 +60,7 @@ export class UIManager {
         return this.timeline.getCurrentFrame();
     }
 
-    update(state: any, isPlaying: boolean, project?: any, imgcut?: any) {
+    update(state: any, isPlaying: boolean, alpha: number, project?: any, imgcut?: any) {
         if (!state) return;
 
         this.timeline.update(state, isPlaying, this.selectedPartIdxs);
@@ -93,10 +93,10 @@ export class UIManager {
                 .filter(p => !!p);
             
             if (selectedParts.length > 0) {
-                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame(), state.parts);
+                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame(), state.parts, alpha);
             }
         } else {
-            this.propertyInspector.update([], null, 0, []);
+            this.propertyInspector.update([], null, 0, [], alpha);
         }
     }
 }

@@ -11,7 +11,7 @@ export class PropertyInspector {
         });
     }
 
-    public update(selectedParts: any[], anim: any, currentFrame: number, allParts: any[]) {
+    public update(selectedParts: any[], anim: any, currentFrame: number, allParts: any[], alpha: number = 1.0) {
         if (!this.container) return;
         
         this.currentPartIdxs = selectedParts.map(p => p.index);
@@ -27,15 +27,37 @@ export class PropertyInspector {
         const primaryPart = selectedParts[0];
         const isMultiPart = selectedParts.length > 1;
 
+        const getInterpolatedValue = (p: any, field: number) => {
+            const raw = p.raw_args[field];
+            // Only interpolate specific fields that are in RenderState
+            // Note: raw_args[field] is already the value at curr_state (logic tick)
+            // So we interpolate between prev_state and curr_state.
+            
+            const isPlaying = this.stateManager.getStatus().isPlaying;
+            if (!isPlaying || !p.prev_state || !p.curr_state) return raw;
+
+            switch (field) {
+                case 4: return (p.prev_state.pos?.x ?? raw) * (1 - alpha) + (p.curr_state.pos?.x ?? raw) * alpha;
+                case 5: return (p.prev_state.pos?.y ?? raw) * (1 - alpha) + (p.curr_state.pos?.y ?? raw) * alpha;
+                case 8: return (p.prev_state.sca?.x ?? raw) * (1 - alpha) + (p.curr_state.sca?.x ?? raw) * alpha;
+                case 9: return (p.prev_state.sca?.y ?? raw) * (1 - alpha) + (p.curr_state.sca?.y ?? raw) * alpha;
+                case 10: return (p.prev_state.angle ?? raw) * (1 - alpha) + (p.curr_state.angle ?? raw) * alpha;
+                case 11: return (p.prev_state.opacity ?? raw) * (1 - alpha) + (p.curr_state.opacity ?? raw) * alpha;
+                default: return raw;
+            }
+        };
+
         const getMixedValue = (field: number) => {
             if (selectedParts.length === 0) return { value: 0, isMixed: false };
-            const firstVal = selectedParts[0].raw_args[field];
-            const isMixed = selectedParts.some(p => p.raw_args[field] !== firstVal);
+            const firstVal = getInterpolatedValue(selectedParts[0], field);
+            const isMixed = selectedParts.some(p => Math.abs(getInterpolatedValue(p, field) - firstVal) > 0.001);
             return { value: firstVal, isMixed };
         };
 
         const renderPropRow = (label: string, field: number, animatable: boolean) => {
             const { value, isMixed } = getMixedValue(field);
+            const isPlaying = this.stateManager.getStatus().isPlaying;
+            const displayValue = (typeof value === 'number' && isPlaying && animatable) ? value.toFixed(1) : value;
             
             // Special handling for Parent field: show as select
             if (field === 0 && !isMultiPart) {
@@ -75,7 +97,7 @@ export class PropertyInspector {
                     <div class="prop-input-container">
                         <input type="number" 
                             data-field="${field}" 
-                            value="${isMixed ? '' : value}" 
+                            value="${isMixed ? '' : displayValue}" 
                             placeholder="${isMixed ? 'Mixed' : ''}"
                             class="prop-input ${isMixed ? 'mixed' : ''}">
                         ${animatable ? `<button class="btn-add-kf" data-field="${field}" title="Add Keyframe at Frame ${currentFrame}">+</button>` : ''}

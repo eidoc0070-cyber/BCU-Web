@@ -41,13 +41,11 @@ describe("BCU Editor UI & Bridge Logic", () => {
 
         // Update UI with state and selection
         ui.setSelectedParts([0]);
-        ui.update(mockState, false);
+        ui.update(mockState, false, 1.0);
 
         const partsList = document.getElementById('parts-list')!;
         expect(partsList.innerHTML).toContain('Root');
         expect(partsList.innerHTML).toContain('Child');
-        // Selection is visually verified by 'selected' class in real browser,
-        // but can be finicky in Happy-DOM. Checking containment is enough for now.
     });
 
     test("Keyframe batch selection and editing flow", async () => {
@@ -69,7 +67,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
 
         // Select part and update UI to render keyframes
         ui.setSelectedParts([0]);
-        ui.update(mockState, false);
+        ui.update(mockState, false, 1.0);
 
         // Find keyframe dot
         const kfDot = document.querySelector('.timeline-kf-dot') as HTMLElement;
@@ -79,7 +77,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
         kfDot.click();
         
         // Re-update UI to show KF Editor in Inspector
-        ui.update(mockState, false);
+        ui.update(mockState, false, 1.0);
 
         // Check if KF Editor appeared
         const inspector = document.getElementById('property-inspector')!;

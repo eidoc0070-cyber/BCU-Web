@@ -63,6 +63,31 @@ impl MaModel {
         temp[p] = val;
         val
     }
+
+    /// Checks if setting 'parent_candidate' as the parent of 'part_idx' would create a cycle.
+    /// Returns true if 'part_idx' is an ancestor of 'parent_candidate'.
+    pub fn is_ancestor(&self, part_idx: usize, parent_candidate: usize) -> bool {
+        if part_idx == parent_candidate {
+            return true;
+        }
+
+        let mut current = parent_candidate;
+        let mut visited = 0;
+        let max_visit = self.n;
+
+        while visited < max_visit {
+            let parent = self.parts[current][0];
+            if parent == -1 {
+                return false;
+            }
+            if parent as usize == part_idx {
+                return true;
+            }
+            current = parent as usize;
+            visited += 1;
+        }
+        true // Cycle detected during traversal
+    }
 }
 
 impl ParityTestable for MaModel {
@@ -93,5 +118,36 @@ impl ParityTestable for MaModel {
             s.push('\n');
         }
         s
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hierarchy_cycle_detection() {
+        let model = MaModel {
+            n: 3,
+            m: 0,
+            parts: vec![
+                [-1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0], // Part 0 (Root)
+                [0, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 1 -> Part 0
+                [1, -1, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000, 0, 0],  // Part 2 -> Part 1
+            ],
+            strs0: vec!["P0".into(), "P1".into(), "P2".into()],
+            ints: [1000, 3600, 1000],
+            confs: vec![],
+            strs1: vec![],
+        };
+
+        // 0 is ancestor of 2? Yes (0 -> 1 -> 2)
+        assert!(model.is_ancestor(0, 2));
+        // 1 is ancestor of 2? Yes (1 -> 2)
+        assert!(model.is_ancestor(1, 2));
+        // 2 is ancestor of 0? No
+        assert!(!model.is_ancestor(2, 0));
+        // Self check
+        assert!(model.is_ancestor(0, 0));
     }
 }

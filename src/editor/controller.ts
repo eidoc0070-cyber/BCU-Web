@@ -84,6 +84,26 @@ export class BCUController {
                         if (state.animation.parts[partIdx]) {
                             const oldValue = state.animation.parts[partIdx].raw_args[data.field];
                             if (oldValue !== data.value) {
+                                // Cycle detection feedback
+                                if (data.field === 0 && data.value !== -1) {
+                                    // This is redundant with UI filtering but good for Agent tools
+                                    const isAncestor = (pIdx: number, target: number): boolean => {
+                                        if (pIdx === target) return true;
+                                        let curr = target;
+                                        for (let i = 0; i < state.animation.parts.length; i++) {
+                                            const p = state.animation.parts[curr];
+                                            if (!p || p.raw_args[0] === -1) return false;
+                                            if (p.raw_args[0] === pIdx) return true;
+                                            curr = p.raw_args[0];
+                                        }
+                                        return true;
+                                    };
+                                    if (isAncestor(partIdx, data.value)) {
+                                        this.ui?.showToast("Hierarchy cycle detected! Action blocked.", "error");
+                                        return;
+                                    }
+                                }
+
                                 if (data.source === 'Gizmo') {
                                     // Update visual ONLY, no history
                                     this.bridge!.updateModelPart(partIdx, data.field, data.value);
@@ -268,7 +288,10 @@ export class BCUController {
                 if (confirm(`Are you sure you want to delete part ${data.partIdx}?`)) {
                     const cmd = new DeletePartCommand(this.bridge, data.partIdx);
                     this.history.execute(cmd);
-                    eventBus.emit('PART_SELECTED', { partIdxs: [] });
+                    
+                    // Remap selection indices instead of clearing
+                    this.state.remapPartIndices(data.partIdx);
+                    
                     this.log(`Deleted part: ${data.partIdx}`);
                     triggerSave();
                 }
@@ -525,11 +548,20 @@ export class BCUController {
 
             const state = this.bridge.getState();
             if (state && state.animation) {
-                if (state.version !== status.lastRenderedVersion) {
+                const versionChanged = state.version !== status.lastRenderedVersion;
+                if (versionChanged) {
                     this.state.updateStatus({ lastRenderedVersion: state.version });
-                    if (state.animation.parts && state.animation.parts.length > 0) {
-                        this.ui?.update(state.animation, status.isPlaying, this.project.getProject(), state.imgcut);
-                    }
+                }
+                
+                if (state.animation.parts && state.animation.parts.length > 0) {
+                    // Update UI every frame for interpolation
+                    this.ui?.update(
+                        state.animation, 
+                        status.isPlaying, 
+                        alpha, 
+                        versionChanged ? this.project.getProject() : undefined, 
+                        state.imgcut
+                    );
                 }
             }
         } catch (e: any) {
