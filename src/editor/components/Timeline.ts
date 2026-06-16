@@ -81,24 +81,30 @@ export class Timeline {
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 let d = '';
                 
-                if (interp === 1) { // Step
-                    const midX = x1 + (x2 - x1) * 0.5;
-                    d = `M ${x1}% ${y}% L ${midX}% ${y}% L ${midX}% ${y-3}% L ${midX}% ${y+3}% L ${midX}% ${y}% L ${x2}% ${y}%`;
-                    path.setAttribute('stroke-dasharray', '2,2');
-                } else if (interp === 2 || interp === 4) { // Easing / Sinusoidal
-                    const cp1 = x1 + (x2 - x1) * 0.3;
-                    const cp2 = x1 + (x2 - x1) * 0.7;
-                    d = `M ${x1}% ${y}% C ${cp1}% ${y-8}% ${cp2}% ${y+8}% ${x2}% ${y}%`;
-                } else { // Linear / Lagrange
+                if (interp === 1) { // Step: Sharp vertical-horizontal steps
+                    const midX = x1 + (x2 - x1) * 0.99; // Sharp step near the end
+                    d = `M ${x1}% ${y}% L ${midX}% ${y}% L ${midX}% ${y-6}% L ${midX}% ${y+6}% L ${midX}% ${y}% L ${x2}% ${y}%`;
+                    path.setAttribute('stroke-width', '1.5');
+                } else if (interp === 2 || interp === 4) { // Easing / Sinusoidal: Smooth S-curves
+                    const cp1 = x1 + (x2 - x1) * 0.4;
+                    const cp2 = x1 + (x2 - x1) * 0.6;
+                    const curveY = interp === 2 ? 10 : 6;
+                    d = `M ${x1}% ${y}% C ${cp1}% ${y-curveY}% ${cp2}% ${y+curveY}% ${x2}% ${y}%`;
+                    path.setAttribute('stroke-width', '1.2');
+                } else { // Linear / Lagrange: Straight lines
                     d = `M ${x1}% ${y}% L ${x2}% ${y}%`;
-                    if (interp === 3) path.setAttribute('stroke-dasharray', '1,3');
+                    if (interp === 3) {
+                        path.setAttribute('stroke-dasharray', '1,2');
+                        path.setAttribute('stroke-width', '1.2');
+                    } else {
+                        path.setAttribute('stroke-width', '1');
+                    }
                 }
 
                 path.setAttribute('d', d);
                 path.setAttribute('stroke', interpColors[interp] || 'white');
-                path.setAttribute('stroke-width', '1');
                 path.setAttribute('fill', 'none');
-                path.setAttribute('opacity', '0.4');
+                path.setAttribute('opacity', '0.6');
                 svg.appendChild(path);
             }
         });
@@ -114,6 +120,7 @@ export class Timeline {
                 const ratio = frame / maxFrame;
                 const kfId = this.getKFId(p.ints[0], p.ints[1], frame);
                 const isKFSelected = this.stateManager.isKFSelected(kfId);
+                const interp = move[2];
                 
                 const dot = document.createElement('div');
                 dot.className = 'timeline-kf-dot';
@@ -121,17 +128,34 @@ export class Timeline {
                 dot.style.position = 'absolute';
                 dot.style.left = `${ratio * 100}%`;
                 dot.style.top = `${yOffset}%`;
-                dot.style.transform = 'translate(-50%, -50%)'; 
-                dot.style.width = isKFSelected ? '10px' : (isPartSelected ? '6px' : '3px');
-                dot.style.height = isKFSelected ? '10px' : (isPartSelected ? '6px' : '3px');
                 
-                const color = interpColors[move[2]] || 'var(--accent)';
+                const color = interpColors[interp] || 'var(--accent)';
                 
+                // Shape and Size based on Interpolation
+                let size = isKFSelected ? 10 : (isPartSelected ? 7 : 4);
+                let borderRadius = '50%';
+                let transform = 'translate(-50%, -50%)';
+
+                if (interp === 1) { // Step: Square
+                    borderRadius = '0%';
+                } else if (interp === 2) { // Easing: Diamond
+                    borderRadius = '2px';
+                    transform = 'translate(-50%, -50%) rotate(45deg)';
+                } else if (interp === 3) { // Lagrange: Hexagon-like
+                    borderRadius = '30%';
+                    transform = 'translate(-50%, -50%) rotate(30deg)';
+                }
+
+                dot.style.width = `${size}px`;
+                dot.style.height = `${size}px`;
                 dot.style.background = isPartSelected ? color : 'rgba(255,255,255,0.2)';
                 dot.style.border = isKFSelected ? '2px solid white' : 'none';
-                dot.style.borderRadius = '50%';
+                dot.style.borderRadius = borderRadius;
+                dot.style.transform = transform;
+                dot.style.boxShadow = isKFSelected ? `0 0 8px ${color}` : 'none';
                 dot.style.zIndex = isKFSelected ? '20' : (isPartSelected ? '10' : '1');
                 dot.style.cursor = isPartSelected ? 'pointer' : 'default';
+                dot.style.transition = 'all 0.15s ease';
                 
                 if (isPartSelected) {
                     dot.onclick = (e) => {
@@ -177,20 +201,31 @@ export class Timeline {
                                     });
                                 }
                             },
+                            { type: 'separator' },
                             { 
-                                label: 'Set Interpolation: Linear', 
+                                label: 'Linear', 
                                 icon: '📈', 
                                 action: () => this.batchSetInterpolation(state, selectedIds, 0) 
                             },
                             { 
-                                label: 'Set Interpolation: Step', 
+                                label: 'Step (None)', 
                                 icon: '📉', 
                                 action: () => this.batchSetInterpolation(state, selectedIds, 1) 
                             },
                             { 
-                                label: 'Set Interpolation: Easing', 
+                                label: 'Easing (In/Out)', 
                                 icon: '🌊', 
                                 action: () => this.batchSetInterpolation(state, selectedIds, 2) 
+                            },
+                            { 
+                                label: 'Lagrange (Poly)', 
+                                icon: '➰', 
+                                action: () => this.batchSetInterpolation(state, selectedIds, 3) 
+                            },
+                            { 
+                                label: 'Sinusoidal (Wave)', 
+                                icon: '〰️', 
+                                action: () => this.batchSetInterpolation(state, selectedIds, 4) 
                             }
                         ]);
                     };

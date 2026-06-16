@@ -1,8 +1,9 @@
 export interface ContextMenuItem {
-    label: string;
+    label?: string;
     icon?: string;
-    action: () => void;
+    action?: () => void;
     danger?: boolean;
+    type?: 'item' | 'separator';
 }
 
 export class ContextMenu {
@@ -36,15 +37,22 @@ export class ContextMenu {
     private render(x: number, y: number, items: ContextMenuItem[]) {
         this.element.innerHTML = '';
         items.forEach(item => {
+            if (item.type === 'separator') {
+                const sep = document.createElement('div');
+                sep.className = 'context-menu-separator';
+                this.element.appendChild(sep);
+                return;
+            }
+
             const row = document.createElement('div');
             row.className = 'context-menu-item' + (item.danger ? ' danger' : '');
             row.innerHTML = `
                 <span class="icon">${item.icon || ''}</span>
-                <span class="label">${item.label}</span>
+                <span class="label">${item.label || ''}</span>
             `;
             row.onclick = (e) => {
                 e.stopPropagation();
-                item.action();
+                if (item.action) item.action();
                 this.hide();
             };
             this.element.appendChild(row);
@@ -98,6 +106,11 @@ export class ContextMenu {
             .context-menu-item.danger:hover {
                 background: rgba(239, 68, 68, 0.15);
                 color: #f87171;
+            }
+            .context-menu-separator {
+                height: 1px;
+                background: rgba(255, 255, 255, 0.1);
+                margin: 4px 8px;
             }
             .context-menu-item .icon {
                 width: 16px;

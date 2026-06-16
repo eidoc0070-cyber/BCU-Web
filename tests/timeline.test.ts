@@ -55,9 +55,9 @@ describe("Timeline Visualization Unit Tests", () => {
         expect(path1.getAttribute('d')).toContain('L');
         expect(path1.getAttribute('stroke')).toBe('#8b5cf6'); // Linear color
 
-        // Second segment: Step (1) -> should have dash-array and staircase logic
+        // Second segment: Step (1) -> should be sharp step (L)
         const path2 = paths![1];
-        expect(path2.getAttribute('stroke-dasharray')).toBe('2,2');
+        expect(path2.getAttribute('d')).toContain('L'); 
         expect(path2.getAttribute('stroke')).toBe('#ef4444'); // Step color
     });
 
@@ -103,5 +103,39 @@ describe("Timeline Visualization Unit Tests", () => {
         const dot = document.querySelector('.timeline-kf-dot') as HTMLElement;
         expect(dot.style.width).toBe('10px'); // Larger for selected
         expect(dot.style.border).toContain('white');
+    });
+
+    test("should apply different shapes based on interpolation type", () => {
+        const mockState = {
+            max_frame: 100,
+            anim: {
+                parts: [{ 
+                    ints: [0, 4, 0, 0, 0], 
+                    off: 0, 
+                    moves: [
+                        [0, 100, 0, 0],  // Linear (0)
+                        [25, 100, 1, 0], // Step (1)
+                        [50, 100, 2, 0], // Easing (2)
+                        [75, 100, 3, 0], // Lagrange (3)
+                    ] 
+                }]
+            }
+        };
+
+        timeline.update(mockState, false, [0]);
+        const dots = document.querySelectorAll('.timeline-kf-dot') as NodeListOf<HTMLElement>;
+        expect(dots.length).toBe(4);
+
+        // 0: Linear -> Circle (50%)
+        expect(dots[0].style.borderRadius).toBe('50%');
+
+        // 1: Step -> Square (0%)
+        expect(dots[1].style.borderRadius).toBe('0%');
+
+        // 2: Easing -> Diamond (rotated 45deg)
+        expect(dots[2].style.transform).toContain('rotate(45deg)');
+
+        // 3: Lagrange -> Hexagon-like (rotated 30deg)
+        expect(dots[3].style.transform).toContain('rotate(30deg)');
     });
 });
