@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { ModifyKeyframeCommand, DeleteKeyframeCommand } from "../src/editor/commands/animation-commands";
-import { EngineBridge } from "../src/editor/engine-bridge";
+import { ModifyKeyframeCommand, DeleteKeyframeCommand } from "../../src/editor/commands/animation-commands";
+import { EngineBridge } from "../../src/editor/engine-bridge";
 
 describe("Identity-based Keyframe Logic Tests", () => {
     let mockBridge: any;

@@ -1,5 +1,5 @@
 import { expect, test, describe, beforeAll } from "bun:test";
-import init, { BCUEngine } from "../pkg/bcu_api.js";
+import init, { BCUEngine } from "../../pkg/bcu_api.js";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { readFileSync } from "fs";
 import { join } from "path";

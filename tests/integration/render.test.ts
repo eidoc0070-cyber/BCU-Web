@@ -1,6 +1,6 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EngineBridge } from "../src/editor/engine-bridge";
+import { EngineBridge } from "../../src/editor/engine-bridge";
 
 describe("BCU Rendering Logic Verification", () => {
     beforeAll(() => {

@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EditorStateManager } from "../src/editor/state-manager";
-import { DeletePartCommand } from "../src/editor/commands/hierarchy-commands";
-import { EngineBridge } from "../src/editor/engine-bridge";
+import { EditorStateManager } from "../../src/editor/state-manager";
+import { DeletePartCommand } from "../../src/editor/commands/hierarchy-commands";
+import { EngineBridge } from "../../src/editor/engine-bridge";
 
 describe("Hierarchy Restoration (Delete/Undo) Tests", () => {
     beforeAll(() => {

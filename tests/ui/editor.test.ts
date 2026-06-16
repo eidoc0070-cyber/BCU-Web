@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { UIManager } from "../src/editor/ui-components";
-import { EditorStateManager } from "../src/editor/state-manager";
-import { eventBus } from "../src/editor/event-bus";
+import { UIManager } from "../../src/editor/ui-components";
+import { EditorStateManager } from "../../src/editor/state-manager";
+import { eventBus } from "../../src/editor/event-bus";
 
 describe("BCU Editor UI & Bridge Logic", () => {
     beforeAll(() => {

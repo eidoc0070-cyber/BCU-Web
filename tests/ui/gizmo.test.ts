@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, beforeEach, afterEach, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { CanvasGizmo } from "../src/editor/gizmo";
-import { eventBus } from "../src/editor/event-bus";
-import { EDITOR_CONFIG } from "../src/editor/config";
+import { CanvasGizmo } from "../../src/editor/gizmo";
+import { eventBus } from "../../src/editor/event-bus";
+import { EDITOR_CONFIG } from "../../src/editor/config";
 
 describe("CanvasGizmo Unit Tests", () => {
     let mockBridge: any;

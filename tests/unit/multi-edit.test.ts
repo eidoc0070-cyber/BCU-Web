@@ -1,10 +1,10 @@
 import { expect, test, describe, beforeAll } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { UpdatePropertyCommand } from "../src/editor/commands/property-commands";
-import { EngineBridge } from "../src/editor/engine-bridge";
-import { EditorStateManager } from "../src/editor/state-manager";
-import { eventBus } from "../src/editor/event-bus";
-import { PropertyInspector } from "../src/editor/components/PropertyInspector";
+import { UpdatePropertyCommand } from "../../src/editor/commands/property-commands";
+import { EngineBridge } from "../../src/editor/engine-bridge";
+import { EditorStateManager } from "../../src/editor/state-manager";
+import { eventBus } from "../../src/editor/event-bus";
+import { PropertyInspector } from "../../src/editor/components/PropertyInspector";
 
 describe("Multi-Edit and Guard Rails Tests", () => {
     beforeAll(() => {

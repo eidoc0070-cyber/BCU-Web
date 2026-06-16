@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { Timeline } from "../src/editor/components/Timeline";
-import { EditorStateManager } from "../src/editor/state-manager";
-import { eventBus } from "../src/editor/event-bus";
+import { Timeline } from "../../src/editor/components/Timeline";
+import { EditorStateManager } from "../../src/editor/state-manager";
+import { eventBus } from "../../src/editor/event-bus";
 
 describe("Timeline Multi-Keyframe Drag Tests", () => {
     let stateManager: EditorStateManager;

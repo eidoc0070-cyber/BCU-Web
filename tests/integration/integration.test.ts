@@ -1,8 +1,8 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EngineBridge } from "../src/editor/engine-bridge";
-import { BCUController } from "../src/editor/controller";
-import { EDITOR_CONFIG } from "../src/editor/config";
+import { EngineBridge } from "../../src/editor/engine-bridge";
+import { BCUController } from "../../src/editor/controller";
+import { EDITOR_CONFIG } from "../../src/editor/config";
 
 describe("BCU Editor Integration & Stability", () => {
     beforeAll(() => {

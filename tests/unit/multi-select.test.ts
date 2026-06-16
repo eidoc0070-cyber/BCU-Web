@@ -1,6 +1,6 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { EditorStateManager } from "../src/editor/state-manager";
+import { EditorStateManager } from "../../src/editor/state-manager";
 
 describe("Multi-Selection Logic Tests", () => {
     beforeAll(() => {

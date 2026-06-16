@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { ModifyKeyframeCommand } from "../src/editor/commands/animation-commands";
-import { BatchCommand } from "../src/editor/commands/batch-commands";
+import { ModifyKeyframeCommand } from "../../src/editor/commands/animation-commands";
+import { BatchCommand } from "../../src/editor/commands/batch-commands";
 
 describe("Batch Command Logic Tests", () => {
     let mockBridge: any;

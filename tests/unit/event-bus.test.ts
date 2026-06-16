@@ -1,5 +1,5 @@
 import { expect, test, describe, spyOn } from "bun:test";
-import { EventBus } from "../src/editor/event-bus";
+import { EventBus } from "../../src/editor/event-bus";
 
 describe("EventBus Unit Tests", () => {
     test("should correctly emit and receive events", () => {

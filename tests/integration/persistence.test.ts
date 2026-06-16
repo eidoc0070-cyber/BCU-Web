@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach, spyOn, beforeAll } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { PersistenceManager } from "../src/editor/persistence-manager";
-import { EditorSession } from "../src/editor/state-manager";
+import { PersistenceManager } from "../../src/editor/persistence-manager";
+import { EditorSession } from "../../src/editor/state-manager";
 
 describe("PersistenceManager Unit Tests", () => {
     beforeAll(() => {

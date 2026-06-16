@@ -1,7 +1,7 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
-import { Timeline } from "../src/editor/components/Timeline";
-import { EditorStateManager } from "../src/editor/state-manager";
+import { Timeline } from "../../src/editor/components/Timeline";
+import { EditorStateManager } from "../../src/editor/state-manager";
 
 describe("Timeline Visualization Unit Tests", () => {
     let timeline: Timeline;
