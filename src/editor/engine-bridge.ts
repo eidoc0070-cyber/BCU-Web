@@ -94,6 +94,34 @@ export class EngineBridge {
         }));
     }
 
+    addAnimation(id: string) {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'ADD_ANIMATION',
+            data: { id }
+        }));
+    }
+
+    removeAnimation(id: string) {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'REMOVE_ANIMATION',
+            data: { id }
+        }));
+    }
+
+    renameAnimation(oldId: string, newId: string) {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'RENAME_ANIMATION',
+            data: { old_id: oldId, new_id: newId }
+        }));
+    }
+
+    duplicateAnimation(srcId: string, newId: string) {
+        this.engine.dispatch_editor_command(JSON.stringify({
+            op: 'DUPLICATE_ANIMATION',
+            data: { src_id: srcId, new_id: newId }
+        }));
+    }
+
     exportImgCut() {
         return this.engine.export_imgcut(this.animId);
     }

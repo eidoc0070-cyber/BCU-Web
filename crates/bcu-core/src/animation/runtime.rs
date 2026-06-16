@@ -30,6 +30,7 @@ pub struct PartState {
     pub curr_state: RenderState,
 }
 
+#[derive(Clone, Debug)]
 pub struct EAnimD {
     pub model: MaModel,
     pub anim: MaAnim,

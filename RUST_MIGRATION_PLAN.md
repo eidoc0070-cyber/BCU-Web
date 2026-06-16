@@ -81,12 +81,20 @@ This plan focuses on **Minimal Dependencies**, **High Modularity**, and **Strict
 - [x] Render first character animation in browser.
 - [x] Static site deployment via `bun run build`.
 
-### Phase 6: Advanced Editor & UX (IN PROGRESS)
+### Phase 6: Advanced Editor & UX ✅ DONE
 - [x] Refactor UI into modular components (Timeline, Inspector, Tree).
 - [x] Implement advanced keyframe editing (Value, Interpolation, Easing).
 - [x] Enhanced Gizmo with Rotation and Scale handles.
-- [ ] Implement Multi-part selection and group editing.
-- [ ] Setup Local Storage for session auto-save.
+- [x] Implement Multi-part selection and group editing.
+- [x] Setup Local Storage for session auto-save.
+
+### Phase 7: Refinement & Advanced Features (PROPOSED)
+- [ ] Property Index Magic Numbers cleanup (Centralize `PropertyField` enum configuration)
+- [ ] WASM Memory Lifecycle Management (Explicit `.free()` calls on active engine transition)
+- [ ] Editor Keyboard Shortcuts (Play/Pause, Undo/Redo, Timeline control)
+- [ ] Audio (SE) Event Sync system
+- [ ] Multi-language support (Korean, English, Japanese i18n)
+- [ ] GPU Performance Panel (FPS & draw-call overlay)
 
 ---
 

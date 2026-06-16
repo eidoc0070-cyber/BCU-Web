@@ -1,6 +1,12 @@
 import { BCUEngine } from '../../pkg/bcu_api.js';
 import { EngineBridge } from './engine-bridge';
-import { TarBuilder } from './tar-utils';
+import { ExportManager } from './exports/base';
+import { BCUTarExportProvider } from './exports/tar-provider';
+import { RawTextExportProvider } from './exports/raw-provider';
+
+// Register providers once
+ExportManager.registerProvider(new BCUTarExportProvider());
+ExportManager.registerProvider(new RawTextExportProvider());
 
 export interface BCUProject {
     name: string;
@@ -160,41 +166,34 @@ export class ProjectManager {
         }
     }
 
-    public async exportProject(bridge: EngineBridge, animId: string) {
-        this.log(`Exporting project: ${this.project.name}...`);
-        const tar = new TarBuilder();
+    public async exportProject(bridge: EngineBridge, animId: string, providerId: string = 'bcu-tar') {
+        this.log(`Exporting project via ${providerId}: ${this.project.name}...`);
         
         try {
-            for (const [name, file] of this.project.files) {
+            const filesToExport: ProjectFile[] = [];
+            
+            // 1. Add binary assets
+            for (const file of this.project.files.values()) {
                 if (file.type === 'sprite' || file.type === 'icon') {
-                    const bytes = new Uint8Array(await file.data.arrayBuffer());
-                    tar.addFile(name, bytes);
+                    filesToExport.push(file);
                 }
             }
 
+            // 2. Add dynamic text assets from engine
             const animIds = bridge.listAnimations();
             if (animIds.length > 0) {
                 const oldId = animId;
                 bridge.setAnimId(animIds[0]);
-                tar.addFile('imgcut.txt', bridge.exportImgCut());
-                tar.addFile('mamodel.txt', bridge.exportModel());
+                filesToExport.push({ name: 'imgcut.txt', type: 'imgcut', data: bridge.exportImgCut() });
+                filesToExport.push({ name: 'mamodel.txt', type: 'mamodel', data: bridge.exportModel() });
 
                 for (const id of animIds) {
-                    tar.addFile(`maanim_${id}.txt`, bridge.exportAnimById(id));
+                    filesToExport.push({ name: `maanim_${id}.txt`, type: 'maanim', data: bridge.exportAnimById(id) });
                 }
                 bridge.setAnimId(oldId);
             }
 
-            const blob = tar.build();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${this.project.name.trim().replace(/\s+/g, '_') || 'BCU_Project'}.tar`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
+            await ExportManager.export(providerId, this.project.name, filesToExport);
             this.log("Project exported successfully!");
         } catch (e) {
             this.log(`Export failed: ${e}`, 'error');

@@ -81,6 +81,8 @@ enum EditorCommand {
     RemoveAnimation { id: String },
     #[serde(rename = "RENAME_ANIMATION")]
     RenameAnimation { old_id: String, new_id: String },
+    #[serde(rename = "DUPLICATE_ANIMATION")]
+    DuplicateAnimation { src_id: String, new_id: String },
 }
 
 #[derive(Serialize, TS)]
@@ -300,22 +302,48 @@ impl BCUEngine {
                 if let Some(first_anim) = self.animations.values().next() {
                     let model = first_anim.model.clone();
                     let anim = bcu_core::data::MaAnim::default();
-                    self.animations.insert(id, EAnimD::new(model, anim));
+                    self.animations.insert(id.clone(), EAnimD::new(model, anim));
+
+                    if let Some(first_imgcut) = self.imgcuts.values().next() {
+                        let imgcut = first_imgcut.clone();
+                        self.imgcuts.insert(id, imgcut);
+                    }
                 }
             }
             EditorCommand::RemoveAnimation { id } => {
                 self.animations.remove(&id);
+                self.imgcuts.remove(&id);
             }
             EditorCommand::RenameAnimation { old_id, new_id } => {
                 if let Some(anim) = self.animations.remove(&old_id) {
-                    self.animations.insert(new_id, anim);
+                    self.animations.insert(new_id.clone(), anim);
+                }
+                if let Some(imgcut) = self.imgcuts.remove(&old_id) {
+                    self.imgcuts.insert(new_id, imgcut);
+                }
+            }
+            EditorCommand::DuplicateAnimation { src_id, new_id } => {
+                let mut new_anim = None;
+                if let Some(anim) = self.animations.get(&src_id) {
+                    new_anim = Some(anim.clone());
+                }
+                if let Some(anim) = new_anim {
+                    self.animations.insert(new_id.clone(), anim);
+                }
+
+                let mut new_img = None;
+                if let Some(imgcut) = self.imgcuts.get(&src_id) {
+                    new_img = Some(imgcut.clone());
+                }
+                if let Some(imgcut) = new_img {
+                    self.imgcuts.insert(new_id, imgcut);
                 }
             }
         }
 
+        self.version_counter += 1;
         Ok(())
     }
-
     pub fn list_animations(&self) -> JsValue {
         let keys: Vec<String> = self.animations.keys().cloned().collect();
         serde_wasm_bindgen::to_value(&keys).unwrap()

@@ -48,6 +48,7 @@ impl Default for RenderState {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EPart {
     pub name: String,
     pub ind: usize,
