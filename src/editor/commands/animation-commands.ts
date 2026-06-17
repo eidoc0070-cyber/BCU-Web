@@ -1,5 +1,6 @@
 import { Command } from './base';
 import { EngineBridge } from '../engine-bridge';
+import { AnimProp } from '../constants';
 
 export class AddKeyframeCommand implements Command {
     readonly type = 'ADD_KEYFRAME';
@@ -7,7 +8,7 @@ export class AddKeyframeCommand implements Command {
     constructor(
         private bridge: EngineBridge,
         private partIdx: number,
-        private modifType: number,
+        private modifType: AnimProp,
         private frame: number,
         private value: number
     ) {}
@@ -41,7 +42,7 @@ export class ModifyKeyframeCommand implements Command {
     constructor(
         private bridge: EngineBridge,
         private partIdx: number,
-        private modifType: number,
+        private modifType: AnimProp,
         private oldData: { frame: number, value: number, interp: number, easing: number },
         private newData: { frame: number, value: number, interp: number, easing: number }
     ) {}
@@ -89,7 +90,7 @@ export class DeleteKeyframeCommand implements Command {
     constructor(
         private bridge: EngineBridge,
         private partIdx: number,
-        private modifType: number,
+        private modifType: AnimProp,
         private frame: number
     ) {}
 

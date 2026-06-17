@@ -1,5 +1,6 @@
 import { Command } from './base';
 import { EngineBridge } from '../engine-bridge';
+import { AnimProp } from '../constants';
 
 export class UpdatePropertyCommand implements Command {
     readonly type = 'UPDATE_PROPERTY';
@@ -8,7 +9,7 @@ export class UpdatePropertyCommand implements Command {
     constructor(
         private bridge: EngineBridge,
         private partIdxs: number[],
-        private field: number,
+        private field: AnimProp,
         oldValueOrValues: number | Map<number, number>,
         private newValue: number
     ) {

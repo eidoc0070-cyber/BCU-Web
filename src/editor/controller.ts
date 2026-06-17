@@ -10,6 +10,7 @@ import { EditorStateManager, EditorSession } from './state-manager';
 import { ProjectManager } from './project-manager';
 import { PersistenceManager } from './persistence-manager';
 import { eventBus } from './event-bus';
+import { AnimProp } from './constants';
 
 import { UpdatePropertyCommand } from './commands/property-commands';
 import { BatchCommand } from './commands/batch-commands';
@@ -92,7 +93,7 @@ export class BCUController {
                             const oldValue = part.raw_args[data.field];
                             if (oldValue !== data.value) {
                                 // Cycle detection for Parent field
-                                if (data.field === 0 && data.value !== -1) {
+                                if (data.field === AnimProp.Parent && data.value !== -1) {
                                     if (this.bridge!.isAncestor && this.bridge!.isAncestor(partIdx, data.value)) {
                                         this.ui?.showToast("Hierarchy cycle detected! Action blocked.", "error");
                                         return;

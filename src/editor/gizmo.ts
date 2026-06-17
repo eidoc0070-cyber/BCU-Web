@@ -1,6 +1,7 @@
 import { EngineBridge } from './engine-bridge';
 import { EDITOR_CONFIG } from './config';
 import { eventBus } from './event-bus';
+import { AnimProp } from './constants';
 
 export class CanvasGizmo {
     private isDragging = false;
@@ -17,7 +18,7 @@ export class CanvasGizmo {
     private primarySelectedIdx: number | null = null;
     private hoverMode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y' | null = null;
     private ctx: CanvasRenderingContext2D;
-    private dragFields: number[] = [];
+    private dragFields: AnimProp[] = [];
 
     private _boundMouseDown = (e: MouseEvent) => this.handleMouseDown(e);
     private _boundMouseMove = (e: MouseEvent) => this.handleMouseMove(e);
@@ -78,7 +79,7 @@ export class CanvasGizmo {
                 const rotX = transform.x + Math.sin(angleRad) * 45;
                 const rotY = transform.y - Math.cos(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - rotX) ** 2 + (mouse.worldY - rotY) ** 2) < 15) {
-                    this.startDrag(e, 'rotate', 10); // Field 10: Angle
+                    this.startDrag(e, 'rotate', AnimProp.Angle);
                     this.startAngleBase = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
                     return;
                 }
@@ -87,26 +88,26 @@ export class CanvasGizmo {
                 const scX = transform.x + Math.cos(angleRad) * 45;
                 const scY = transform.y + Math.sin(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - scX) ** 2 + (mouse.worldY - scY) ** 2) < 15) {
-                    this.startDrag(e, 'scale', 8, 9); // Field 8,9: ScaleX/Y
+                    this.startDrag(e, 'scale', AnimProp.ScaleX, AnimProp.ScaleY);
                     this.startDistBase = Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2);
                     return;
                 }
 
                 // Translate X Handle
                 if (Math.abs(mouse.worldY - transform.y) < 10 && mouse.worldX > transform.x + 20 && mouse.worldX < transform.x + 65) {
-                    this.startDrag(e, 'translate-x', 4); // Field 4: PosX
+                    this.startDrag(e, 'translate-x', AnimProp.PosX);
                     return;
                 }
 
                 // Translate Y Handle
                 if (Math.abs(mouse.worldX - transform.x) < 10 && mouse.worldY > transform.y + 20 && mouse.worldY < transform.y + 65) {
-                    this.startDrag(e, 'translate-y', 5); // Field 5: PosY
+                    this.startDrag(e, 'translate-y', AnimProp.PosY);
                     return;
                 }
 
                 // Translate Handle (Center)
                 if (Math.sqrt((mouse.worldX - transform.x) ** 2 + (mouse.worldY - transform.y) ** 2) < 20) {
-                    this.startDrag(e, 'translate', 4, 5); // Field 4,5: PosX/Y
+                    this.startDrag(e, 'translate', AnimProp.PosX, AnimProp.PosY);
                     return;
                 }
             }
@@ -130,7 +131,7 @@ export class CanvasGizmo {
         eventBus.emit('PART_SELECTED', { partIdxs: bestIdx !== null ? [bestIdx] : [] });
     }
 
-    private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y', field: number, field2?: number) {
+    private startDrag(e: MouseEvent, mode: 'translate' | 'rotate' | 'scale' | 'translate-x' | 'translate-y', field: AnimProp, field2?: AnimProp) {
         const mouse = this.getMousePos(e);
         const state = this.bridge.getState();
         if (!state || !state.animation) return;
@@ -174,8 +175,8 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 4, value: start.val + dx, source: 'Gizmo' });
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 5, value: start.val2! + dy, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: start.val + dx, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: start.val2! + dy, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'translate-x') {
@@ -183,7 +184,7 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 4, value: start.val + dx, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: start.val + dx, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'translate-y') {
@@ -191,7 +192,7 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 5, value: start.val + dy, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: start.val + dy, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'rotate') {
@@ -201,7 +202,7 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 10, value: (start.val + deltaAngle) % 3600, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.Angle, value: (start.val + deltaAngle) % 3600, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'scale') {
@@ -211,8 +212,8 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 8, value: Math.round(start.val * ratio), source: 'Gizmo' });
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: 9, value: Math.round(start.val2! * ratio), source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleX, value: Math.round(start.val * ratio), source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleY, value: Math.round(start.val2! * ratio), source: 'Gizmo' });
                 }
             });
         }
@@ -251,7 +252,7 @@ export class CanvasGizmo {
         if (this.isDragging && this.selectionStartStates.size > 0) {
             const state = this.bridge.getState();
             if (state && state.animation) {
-                const targets: { partIdx: number, field: number, oldValue: number, newValue: number }[] = [];
+                const targets: { partIdx: number, field: AnimProp, oldValue: number, newValue: number }[] = [];
                 
                 this.selectionStartStates.forEach((start, idx) => {
                     const part = state.animation.parts[idx];

@@ -1,5 +1,6 @@
 import { eventBus } from '../event-bus';
 import { EditorStateManager } from '../state-manager';
+import { AnimProp, InterpolationType, ANIM_PROP_NAMES } from '../constants';
 
 export class PropertyInspector {
     private container = document.getElementById('property-inspector');
@@ -27,7 +28,7 @@ export class PropertyInspector {
         const primaryPart = selectedParts[0];
         const isMultiPart = selectedParts.length > 1;
 
-        const getInterpolatedValue = (p: any, field: number) => {
+        const getInterpolatedValue = (p: any, field: AnimProp) => {
             const raw = p.raw_args[field];
             // Only interpolate specific fields that are in RenderState
             // Note: raw_args[field] is already the value at curr_state (logic tick)
@@ -37,30 +38,30 @@ export class PropertyInspector {
             if (!isPlaying || !p.prev_state || !p.curr_state) return raw;
 
             switch (field) {
-                case 4: return (p.prev_state.pos?.x ?? raw) * (1 - alpha) + (p.curr_state.pos?.x ?? raw) * alpha;
-                case 5: return (p.prev_state.pos?.y ?? raw) * (1 - alpha) + (p.curr_state.pos?.y ?? raw) * alpha;
-                case 8: return (p.prev_state.sca?.x ?? raw) * (1 - alpha) + (p.curr_state.sca?.x ?? raw) * alpha;
-                case 9: return (p.prev_state.sca?.y ?? raw) * (1 - alpha) + (p.curr_state.sca?.y ?? raw) * alpha;
-                case 10: return (p.prev_state.angle ?? raw) * (1 - alpha) + (p.curr_state.angle ?? raw) * alpha;
-                case 11: return (p.prev_state.opacity ?? raw) * (1 - alpha) + (p.curr_state.opacity ?? raw) * alpha;
+                case AnimProp.PosX: return (p.prev_state.pos?.x ?? raw) * (1 - alpha) + (p.curr_state.pos?.x ?? raw) * alpha;
+                case AnimProp.PosY: return (p.prev_state.pos?.y ?? raw) * (1 - alpha) + (p.curr_state.pos?.y ?? raw) * alpha;
+                case AnimProp.ScaleX: return (p.prev_state.sca?.x ?? raw) * (1 - alpha) + (p.curr_state.sca?.x ?? raw) * alpha;
+                case AnimProp.ScaleY: return (p.prev_state.sca?.y ?? raw) * (1 - alpha) + (p.curr_state.sca?.y ?? raw) * alpha;
+                case AnimProp.Angle: return (p.prev_state.angle ?? raw) * (1 - alpha) + (p.curr_state.angle ?? raw) * alpha;
+                case AnimProp.Opacity: return (p.prev_state.opacity ?? raw) * (1 - alpha) + (p.curr_state.opacity ?? raw) * alpha;
                 default: return raw;
             }
         };
 
-        const getMixedValue = (field: number) => {
+        const getMixedValue = (field: AnimProp) => {
             if (selectedParts.length === 0) return { value: 0, isMixed: false };
             const firstVal = getInterpolatedValue(selectedParts[0], field);
             const isMixed = selectedParts.some(p => Math.abs(getInterpolatedValue(p, field) - firstVal) > 0.001);
             return { value: firstVal, isMixed };
         };
 
-        const renderPropRow = (label: string, field: number, animatable: boolean) => {
+        const renderPropRow = (label: string, field: AnimProp, animatable: boolean) => {
             const { value, isMixed } = getMixedValue(field);
             const isPlaying = this.stateManager.getStatus().isPlaying;
             const displayValue = (typeof value === 'number' && isPlaying && animatable) ? value.toFixed(1) : value;
             
             // Special handling for Parent field: show as select
-            if (field === 0 && !isMultiPart) {
+            if (field === AnimProp.Parent && !isMultiPart) {
                 const invalidIdxs = new Set<number>();
                 
                 // Cycle prevention: can't be parent of self or descendants
@@ -83,7 +84,7 @@ export class PropertyInspector {
                     <div class="prop-group">
                         <span>${label}</span>
                         <div class="prop-input-container">
-                            <select data-field="0" class="prop-input" style="width: 100%;">
+                            <select data-field="${AnimProp.Parent}" class="prop-input" style="width: 100%;">
                                 ${optionsHtml}
                             </select>
                         </div>
@@ -114,16 +115,16 @@ export class PropertyInspector {
                     ${isMultiPart ? `Multiple Parts (${selectedParts.length})` : `Part #${primaryPart.index} Props`}
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.7rem; align-items: center; margin-bottom: 1rem;">
-                    ${renderPropRow("Parent", 0, false)}
-                    ${renderPropRow("Z-Order", 1, true)}
-                    ${renderPropRow("Pos X", 4, true)}
-                    ${renderPropRow("Pos Y", 5, true)}
-                    ${renderPropRow("Pivot X", 6, true)}
-                    ${renderPropRow("Pivot Y", 7, true)}
-                    ${renderPropRow("Scale X", 8, true)}
-                    ${renderPropRow("Scale Y", 9, true)}
-                    ${renderPropRow("Angle", 10, true)}
-                    ${renderPropRow("Opacity", 11, true)}
+                    ${renderPropRow("Parent", AnimProp.Parent, false)}
+                    ${renderPropRow("Z-Order", AnimProp.ZOrder, true)}
+                    ${renderPropRow("Pos X", AnimProp.PosX, true)}
+                    ${renderPropRow("Pos Y", AnimProp.PosY, true)}
+                    ${renderPropRow("Pivot X", AnimProp.PivotX, true)}
+                    ${renderPropRow("Pivot Y", AnimProp.PivotY, true)}
+                    ${renderPropRow("Scale X", AnimProp.ScaleX, true)}
+                    ${renderPropRow("Scale Y", AnimProp.ScaleY, true)}
+                    ${renderPropRow("Angle", AnimProp.Angle, true)}
+                    ${renderPropRow("Opacity", AnimProp.Opacity, true)}
                 </div>
             `;
         }
@@ -147,8 +148,7 @@ export class PropertyInspector {
                 const isMixedEasing = kfData.some(d => d!.easing !== kfData[0]!.easing);
                 const isMixedType = kfData.some(d => d!.mType !== kfData[0]!.mType);
 
-                const typeNames = ["Parent", "Z", "Img", "Glow", "PosX", "PosY", "PivX", "PivY", "ScaleX", "ScaleY", "Angle", "Opacity"];
-                const modifName = isMixedType ? "Mixed Types" : (typeNames[kfData[0]!.mType] || "Misc");
+                const modifName = isMixedType ? "Mixed Types" : (ANIM_PROP_NAMES[kfData[0]!.mType as AnimProp] || "Misc");
                 const currentInterp = isMixedInterp ? -1 : kfData[0]!.interp;
 
                 html += `
@@ -173,15 +173,15 @@ export class PropertyInspector {
                             <span>Interpolation</span>
                             <select class="kf-input ${isMixedInterp ? 'mixed' : ''}" data-type="interp" style="width: 100%; background: rgba(0,0,0,0.3); color: white; border: 1px solid var(--border-color); padding: 4px; border-radius: 4px; font-size: 0.7rem;">
                                 ${isMixedInterp ? '<option value="-1" disabled selected>Mixed</option>' : ''}
-                                <option value="0" ${currentInterp === 0 ? 'selected' : ''}>Linear</option>
-                                <option value="1" ${currentInterp === 1 ? 'selected' : ''}>Step (None)</option>
-                                <option value="2" ${currentInterp === 2 ? 'selected' : ''}>Easing (In/Out)</option>
-                                <option value="3" ${currentInterp === 3 ? 'selected' : ''}>Lagrange (Poly)</option>
-                                <option value="4" ${currentInterp === 4 ? 'selected' : ''}>Sinusoidal (Wave)</option>
+                                <option value="${InterpolationType.Linear}" ${currentInterp === InterpolationType.Linear ? 'selected' : ''}>Linear</option>
+                                <option value="${InterpolationType.Step}" ${currentInterp === InterpolationType.Step ? 'selected' : ''}>Step (None)</option>
+                                <option value="${InterpolationType.Easing}" ${currentInterp === InterpolationType.Easing ? 'selected' : ''}>Easing (In/Out)</option>
+                                <option value="${InterpolationType.Lagrange}" ${currentInterp === InterpolationType.Lagrange ? 'selected' : ''}>Lagrange (Poly)</option>
+                                <option value="${InterpolationType.Sinusoidal}" ${currentInterp === InterpolationType.Sinusoidal ? 'selected' : ''}>Sinusoidal (Wave)</option>
                             </select>
                         </div>
 
-                        ${currentInterp === 2 ? `
+                        ${currentInterp === InterpolationType.Easing ? `
                             <div class="prop-group" style="background: rgba(16, 185, 129, 0.1); padding: 8px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.2);">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                                     <span style="color: #10b981; font-size: 0.6rem;">Easing Param</span>
@@ -198,7 +198,7 @@ export class PropertyInspector {
                             </div>
                         ` : ''}
 
-                        ${currentInterp === 3 ? `
+                        ${currentInterp === InterpolationType.Lagrange ? `
                             <div style="font-size: 0.55rem; color: #60a5fa; background: rgba(59, 130, 246, 0.1); padding: 8px; border-radius: 4px; border: 1px solid rgba(59, 130, 246, 0.2); line-height: 1.2;">
                                 <strong>Lagrange Mode:</strong><br>
                                 Polynomial curve using neighbor keyframes. Best for smooth trajectories.
@@ -208,6 +208,7 @@ export class PropertyInspector {
                 `;
             }
         }
+
 
         html += `
             <style>
