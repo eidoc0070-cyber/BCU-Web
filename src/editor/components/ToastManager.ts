@@ -1,13 +1,13 @@
 export class ToastManager {
     private container = document.getElementById('toast-container');
 
-    public show(message: string, type: 'info' | 'success' | 'error' = 'info') {
+    public show(message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') {
         if (!this.container) return;
         
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
         
-        const icons = { info: 'ℹ️', success: '✅', error: '❌' };
+        const icons = { info: 'ℹ️', success: '✅', error: '❌', warning: '⚠️' };
         toast.innerHTML = `<span>${icons[type]}</span> <span>${message}</span>`;
         
         this.container.appendChild(toast);

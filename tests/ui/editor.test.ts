@@ -62,7 +62,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
             max_frame: 100,
             parts: [{ index: 0, parent: -1, name: "Part 0", raw_args: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
             anim: {
-                parts: [{ ints: [0, AnimProp.Angle, 0, 0, 0], off: 0, moves: [[10, 100, InterpolationType.Linear, 0]] }]
+                parts: [{ ints: [0, AnimProp.Rotation, 0, 0, 0], off: 0, moves: [[10, 100, InterpolationType.Linear, 0]] }]
             }
         };
 

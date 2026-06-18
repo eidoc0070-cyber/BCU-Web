@@ -1,6 +1,7 @@
 import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { EditorStateManager } from "../../src/editor/state-manager";
+import { AnimProp } from "../../src/editor/constants";
 
 describe("Multi-Selection Logic Tests", () => {
     beforeAll(() => {
@@ -30,7 +31,7 @@ describe("Multi-Selection Logic Tests", () => {
 
     test("should handle multi-keyframe selection using string IDs", () => {
         const kf1 = "0:4:10"; // part 0, field 4 (PosX), frame 10
-        const kf2 = "1:10:50"; // part 1, field 10 (Angle), frame 50
+        const kf2 = `1:${AnimProp.Rotation}:50`; // part 1, field 11 (Rotation), frame 50
         
         state.setKFSelection([kf1, kf2]);
         expect(state.getKFSelection()).toEqual([kf1, kf2]);

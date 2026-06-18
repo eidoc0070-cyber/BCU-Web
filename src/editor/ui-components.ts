@@ -43,7 +43,7 @@ export class UIManager {
         });
     }
 
-    public showToast(message: string, type: 'info' | 'success' | 'error' = 'info') {
+    public showToast(message: string, type: 'info' | 'success' | 'error' | 'warning' = 'info') {
         this.toastManager.show(message, type);
     }
 

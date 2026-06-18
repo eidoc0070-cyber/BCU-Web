@@ -1,6 +1,7 @@
 import { eventBus } from '../event-bus';
 import { EditorStateManager } from '../state-manager';
 import { AnimProp, InterpolationType, ANIM_PROP_NAMES } from '../constants';
+import { PropertyValidator } from '../integrity';
 
 export class PropertyInspector {
     private container = document.getElementById('property-inspector');
@@ -40,9 +41,9 @@ export class PropertyInspector {
             switch (field) {
                 case AnimProp.PosX: return (p.prev_state.pos?.x ?? raw) * (1 - alpha) + (p.curr_state.pos?.x ?? raw) * alpha;
                 case AnimProp.PosY: return (p.prev_state.pos?.y ?? raw) * (1 - alpha) + (p.curr_state.pos?.y ?? raw) * alpha;
-                case AnimProp.ScaleX: return (p.prev_state.sca?.x ?? raw) * (1 - alpha) + (p.curr_state.sca?.x ?? raw) * alpha;
+                case AnimProp.ScaleX: return (p.prev_state.sca?.x ?? raw) * (1 - alpha) + (p.curr_state.sca?.y ?? raw) * alpha;
                 case AnimProp.ScaleY: return (p.prev_state.sca?.y ?? raw) * (1 - alpha) + (p.curr_state.sca?.y ?? raw) * alpha;
-                case AnimProp.Angle: return (p.prev_state.angle ?? raw) * (1 - alpha) + (p.curr_state.angle ?? raw) * alpha;
+                case AnimProp.Rotation: return (p.prev_state.angle ?? raw) * (1 - alpha) + (p.curr_state.angle ?? raw) * alpha;
                 case AnimProp.Opacity: return (p.prev_state.opacity ?? raw) * (1 - alpha) + (p.curr_state.opacity ?? raw) * alpha;
                 default: return raw;
             }
@@ -116,6 +117,8 @@ export class PropertyInspector {
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.7rem; align-items: center; margin-bottom: 1rem;">
                     ${renderPropRow("Parent", AnimProp.Parent, false)}
+                    ${renderPropRow("Unit ID", AnimProp.UnitID, false)}
+                    ${renderPropRow("ImgCut ID", AnimProp.Image, false)}
                     ${renderPropRow("Z-Order", AnimProp.ZOrder, true)}
                     ${renderPropRow("Pos X", AnimProp.PosX, true)}
                     ${renderPropRow("Pos Y", AnimProp.PosY, true)}
@@ -123,7 +126,7 @@ export class PropertyInspector {
                     ${renderPropRow("Pivot Y", AnimProp.PivotY, true)}
                     ${renderPropRow("Scale X", AnimProp.ScaleX, true)}
                     ${renderPropRow("Scale Y", AnimProp.ScaleY, true)}
-                    ${renderPropRow("Angle", AnimProp.Angle, true)}
+                    ${renderPropRow("Rotation", AnimProp.Rotation, true)}
                     ${renderPropRow("Opacity", AnimProp.Opacity, true)}
                 </div>
             `;
@@ -238,28 +241,19 @@ export class PropertyInspector {
                     return;
                 }
 
-                // Guard Rails
-                let errorMsg = "";
-
-                switch(field) {
-                    case AnimProp.ScaleX:
-                    case AnimProp.ScaleY:
-                        if (value < 1) { // 0.1% minimum
-                            value = 1;
-                            errorMsg = "Scale must be at least 1 (0.1%)";
-                        }
-                        break;
-                    case AnimProp.Opacity:
-                        if (value < 0) value = 0;
-                        if (value > 1000) value = 1000;
-                        break;
-                    case AnimProp.Image: // Img Index (Placeholder for future ImgCut bounds check)
-                        if (value < -1) value = -1;
-                        break;
+                // Guard Rails (BCU Specification)
+                if (field === AnimProp.Parent && !isMultiPart) {
+                    if (PropertyValidator.wouldCreateCycle(primaryPart.index, value, allParts)) {
+                        eventBus.emit('SHOW_TOAST', { message: "Cannot create circular parent reference", type: 'error' });
+                        this.stateManager.notify();
+                        return;
+                    }
                 }
 
-                if (errorMsg) {
-                    eventBus.emit('SHOW_TOAST', { message: errorMsg, type: 'error' });
+                const result = PropertyValidator.clamp(field, value);
+                if (result.corrected) {
+                    value = result.value;
+                    eventBus.emit('SHOW_TOAST', { message: result.message || "Value clamped to valid range", type: 'warning' });
                 }
 
                 eventBus.emit('PROPERTY_CHANGED', { partIdxs: this.currentPartIdxs, field, value, source: 'Inspector' });
@@ -293,7 +287,7 @@ export class PropertyInspector {
                 
                 const frame = parseInt(frameInput.value);
                 const value = parseInt(valueInput.value);
-                const interp = parseInt(interpSelect.value);
+                let interp = parseInt(interpSelect.value);
                 let easing = easingInput ? parseInt(easingInput.value) : 0;
                 
                 if (inputType === 'easing-slider' && easingSlider) {
@@ -302,8 +296,8 @@ export class PropertyInspector {
 
                 // Guard Rails for Easing
                 if (inputType === 'easing' || inputType === 'easing-slider') {
-                    if (easing < 0) easing = 0;
-                    if (easing > 1000) easing = 1000;
+                    const result = PropertyValidator.clamp(AnimProp.Opacity, easing); // Using Opacity bounds for 0-1000 easing
+                    easing = result.value;
                 }
                 
                 const kfSelection = this.stateManager.getKFSelection();
@@ -315,6 +309,9 @@ export class PropertyInspector {
                     if (part) {
                         const move = part.moves.find((m: any) => (m[0] - part.off) === fr);
                         if (move) {
+                            // Validate interpolation for this field
+                            const validatedInterp = PropertyValidator.validateInterpolation(mType, interp);
+
                             changes.push({
                                 partIdx: pIdx,
                                 modifType: mType,
@@ -322,7 +319,7 @@ export class PropertyInspector {
                                 newData: {
                                     frame: isNaN(frame) ? fr : frame,
                                     value: isNaN(value) ? move[1] : value,
-                                    interp: (isNaN(interp) || interp === -1) ? move[2] : interp,
+                                    interp: (isNaN(interp) || interp === -1) ? move[2] : validatedInterp,
                                     easing: isNaN(easing) ? move[3] : easing
                                 }
                             });

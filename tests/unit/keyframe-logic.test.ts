@@ -18,7 +18,7 @@ describe("Identity-based Keyframe Logic Tests", () => {
                 anim: {
                     parts: [
                         {
-                            ints: [0, AnimProp.Angle, 0, 0, 0], // part 0, type 10 (Angle)
+                            ints: [0, AnimProp.Rotation, 0, 0, 0], // part 0, type 11 (Rotation)
                             off: 0,
                             moves: [
                                 [0, 0, InterpolationType.Linear, 0],
@@ -59,7 +59,7 @@ describe("Identity-based Keyframe Logic Tests", () => {
         const oldData = { frame: 10, value: 500, interp: InterpolationType.Linear, easing: 0 };
         const newData = { frame: 15, value: 600, interp: InterpolationType.Linear, easing: 0 };
         
-        const cmd = new ModifyKeyframeCommand(mockBridge as any, 0, AnimProp.Angle, oldData, newData);
+        const cmd = new ModifyKeyframeCommand(mockBridge as any, 0, AnimProp.Rotation, oldData, newData);
         
         // 1. Manually shift indices by inserting a new KF at the beginning
         mockState.animation.anim.parts[0].moves.unshift([-5, -100, InterpolationType.Linear, 0]);
@@ -76,7 +76,7 @@ describe("Identity-based Keyframe Logic Tests", () => {
     });
 
     test("DeleteKeyframeCommand should find keyframe by frame ID", () => {
-        const cmd = new DeleteKeyframeCommand(mockBridge as any, 0, AnimProp.Angle, 10);
+        const cmd = new DeleteKeyframeCommand(mockBridge as any, 0, AnimProp.Rotation, 10);
         
         // Shift indices
         mockState.animation.anim.parts[0].moves.unshift([-5, -100, InterpolationType.Linear, 0]);

@@ -51,7 +51,7 @@ export interface EditorEventData {
             newData: { frame: number, value: number, interp: number, easing: number }
         }>
     };
-    'SHOW_TOAST': { message: string, type: 'info' | 'success' | 'error' };
+    'SHOW_TOAST': { message: string, type: 'info' | 'success' | 'error' | 'warning' };
 }
 
 type Callback<T extends EditorEventType> = (data: EditorEventData[T]) => void;

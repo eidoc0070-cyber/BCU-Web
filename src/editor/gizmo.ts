@@ -2,6 +2,7 @@ import { EngineBridge } from './engine-bridge';
 import { EDITOR_CONFIG } from './config';
 import { eventBus } from './event-bus';
 import { AnimProp } from './constants';
+import { PropertyValidator } from './integrity';
 
 export class CanvasGizmo {
     private isDragging = false;
@@ -79,7 +80,7 @@ export class CanvasGizmo {
                 const rotX = transform.x + Math.sin(angleRad) * 45;
                 const rotY = transform.y - Math.cos(angleRad) * 45;
                 if (Math.sqrt((mouse.worldX - rotX) ** 2 + (mouse.worldY - rotY) ** 2) < 15) {
-                    this.startDrag(e, 'rotate', AnimProp.Angle);
+                    this.startDrag(e, 'rotate', AnimProp.Rotation);
                     this.startAngleBase = Math.atan2(mouse.worldY - transform.y, mouse.worldX - transform.x);
                     return;
                 }
@@ -145,11 +146,11 @@ export class CanvasGizmo {
         // Capture start states for all selected parts
         this.selectionStartStates.clear();
         this.selectedPartIdxs.forEach(idx => {
-            const part = state.animation.parts[idx];
+            const part = state.animation.parts.find((p: any) => p.index === idx);
             if (part) {
-                this.selectionStartStates.set(idx, {
-                    val: part.raw_args[field],
-                    val2: field2 !== undefined ? part.raw_args[field2] : undefined
+                this.selectionStartStates.set(idx, { 
+                    val: (part.raw_args as any)[field] ?? 0,
+                    val2: field2 !== undefined ? (part.raw_args as any)[field2] ?? 0 : undefined
                 });
             }
         });
@@ -175,8 +176,10 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: start.val + dx, source: 'Gizmo' });
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: start.val2! + dy, source: 'Gizmo' });
+                    const xVal = PropertyValidator.clamp(AnimProp.PosX, start.val + dx).value;
+                    const yVal = PropertyValidator.clamp(AnimProp.PosY, start.val2! + dy).value;
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: xVal, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: yVal, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'translate-x') {
@@ -184,7 +187,8 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: start.val + dx, source: 'Gizmo' });
+                    const xVal = PropertyValidator.clamp(AnimProp.PosX, start.val + dx).value;
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosX, value: xVal, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'translate-y') {
@@ -192,7 +196,8 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: start.val + dy, source: 'Gizmo' });
+                    const yVal = PropertyValidator.clamp(AnimProp.PosY, start.val + dy).value;
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.PosY, value: yVal, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'rotate') {
@@ -202,7 +207,8 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.Angle, value: (start.val + deltaAngle) % 3600, source: 'Gizmo' });
+                    const rotVal = PropertyValidator.clamp(AnimProp.Rotation, (start.val + deltaAngle) % 3600).value;
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.Rotation, value: rotVal, source: 'Gizmo' });
                 }
             });
         } else if (this.dragMode === 'scale') {
@@ -212,8 +218,10 @@ export class CanvasGizmo {
             this.selectedPartIdxs.forEach(idx => {
                 const start = this.selectionStartStates.get(idx);
                 if (start) {
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleX, value: Math.round(start.val * ratio), source: 'Gizmo' });
-                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleY, value: Math.round(start.val2! * ratio), source: 'Gizmo' });
+                    const sxVal = PropertyValidator.clamp(AnimProp.ScaleX, Math.round(start.val * ratio)).value;
+                    const syVal = PropertyValidator.clamp(AnimProp.ScaleY, Math.round(start.val2! * ratio)).value;
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleX, value: sxVal, source: 'Gizmo' });
+                    eventBus.emit('PROPERTY_CHANGED', { partIdxs: [idx], field: AnimProp.ScaleY, value: syVal, source: 'Gizmo' });
                 }
             });
         }
@@ -258,9 +266,9 @@ export class CanvasGizmo {
                     const part = state.animation.parts[idx];
                     if (part) {
                         this.dragFields.forEach((field, fIdx) => {
-                            const newValue = part.raw_args[field];
-                            const oldValue = fIdx === 0 ? start.val : start.val2!;
-                            if (newValue !== oldValue) {
+                            const newValue = (part.raw_args as any)[field];
+                            const oldValue = fIdx === 0 ? start.val : (start.val2 ?? 0);
+                            if (newValue !== undefined && newValue !== oldValue) {
                                 targets.push({ partIdx: idx, field, oldValue, newValue });
                             }
                         });
