@@ -1,6 +1,8 @@
 import { eventBus } from '../event-bus';
 import { ContextMenu } from './ContextMenu';
 
+import { AnimProp } from '../constants';
+
 export class PartsTree {
     private container = document.getElementById('parts-list');
 
@@ -29,7 +31,7 @@ export class PartsTree {
         });
         
         parts.forEach(p => {
-            const parentIdx = p.raw_args[0];
+            const parentIdx = p.raw_args[AnimProp.Parent];
             if (parentIdx === -1 || !map[parentIdx]) {
                 tree.push(map[p.index]);
             } else {

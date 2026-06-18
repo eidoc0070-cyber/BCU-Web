@@ -242,18 +242,18 @@ export class PropertyInspector {
                 let errorMsg = "";
 
                 switch(field) {
-                    case 8: // Scale X
-                    case 9: // Scale Y
+                    case AnimProp.ScaleX:
+                    case AnimProp.ScaleY:
                         if (value < 1) { // 0.1% minimum
                             value = 1;
                             errorMsg = "Scale must be at least 1 (0.1%)";
                         }
                         break;
-                    case 11: // Opacity
+                    case AnimProp.Opacity:
                         if (value < 0) value = 0;
                         if (value > 1000) value = 1000;
                         break;
-                    case 2: // Img Index (Placeholder for future ImgCut bounds check)
+                    case AnimProp.Image: // Img Index (Placeholder for future ImgCut bounds check)
                         if (value < -1) value = -1;
                         break;
                 }

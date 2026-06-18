@@ -3,6 +3,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { CanvasGizmo } from "../../src/editor/gizmo";
 import { eventBus } from "../../src/editor/event-bus";
 import { EDITOR_CONFIG } from "../../src/editor/config";
+import { AnimProp } from "../../src/editor/constants";
 
 describe("CanvasGizmo Unit Tests", () => {
     let mockBridge: any;
@@ -89,7 +90,7 @@ describe("CanvasGizmo Unit Tests", () => {
         // 3. Verify: Only X-coordinate event should have been emitted
         expect(lastEvent).not.toBeNull();
         expect(lastEvent.partIdxs).toEqual([0]);
-        expect(lastEvent.field).toBe(4); // PosX
+        expect(lastEvent.field).toBe(AnimProp.PosX);
         expect(lastEvent.value).toBeGreaterThan(100);
     });
 
@@ -118,9 +119,9 @@ describe("CanvasGizmo Unit Tests", () => {
         });
         window.dispatchEvent(mousemove);
 
-        // Verify only Y field (5) is updated
-        const yEvents = events.filter(e => e.field === 5);
-        const xEvents = events.filter(e => e.field === 4);
+        // Verify only Y field (AnimProp.PosY) is updated
+        const yEvents = events.filter(e => e.field === AnimProp.PosY);
+        const xEvents = events.filter(e => e.field === AnimProp.PosX);
 
         expect(yEvents.length).toBeGreaterThan(0);
         expect(xEvents.length).toBe(0);
@@ -152,7 +153,7 @@ describe("CanvasGizmo Unit Tests", () => {
         });
         window.dispatchEvent(mousemove);
 
-        expect(fieldsUpdated.has(4)).toBe(true); // PosX
-        expect(fieldsUpdated.has(5)).toBe(true); // PosY
+        expect(fieldsUpdated.has(AnimProp.PosX)).toBe(true);
+        expect(fieldsUpdated.has(AnimProp.PosY)).toBe(true);
     });
 });

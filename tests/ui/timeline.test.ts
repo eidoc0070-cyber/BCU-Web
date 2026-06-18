@@ -2,6 +2,7 @@ import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { Timeline } from "../../src/editor/components/Timeline";
 import { EditorStateManager } from "../../src/editor/state-manager";
+import { AnimProp, InterpolationType } from "../../src/editor/constants";
 
 describe("Timeline Visualization Unit Tests", () => {
     let timeline: Timeline;
@@ -29,12 +30,12 @@ describe("Timeline Visualization Unit Tests", () => {
             anim: {
                 parts: [
                     {
-                        ints: [0, 4, 1, 0, 0], // Part 0, ModifType 4 (PosX)
+                        ints: [0, AnimProp.PosX, 1, 0, 0], // Part 0, PosX
                         off: 0,
                         moves: [
-                            [0, 100, 0, 0],   // Frame 0, Value 100, Linear
-                            [50, 200, 1, 0],  // Frame 50, Value 200, Step
-                            [100, 300, 2, 0]  // Frame 100, Value 300, Easing
+                            [0, 100, InterpolationType.Linear, 0],   // Frame 0, Value 100, Linear
+                            [50, 200, InterpolationType.Step, 0],  // Frame 50, Value 200, Step
+                            [100, 300, InterpolationType.Easing, 0]  // Frame 100, Value 300, Easing
                         ]
                     }
                 ]
@@ -67,8 +68,8 @@ describe("Timeline Visualization Unit Tests", () => {
             max_frame: 100,
             anim: {
                 parts: [
-                    { ints: [0, 4, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0], [100, 0, 0, 0]] }, // PosX
-                    { ints: [0, 5, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0], [100, 0, 0, 0]] }  // PosY
+                    { ints: [0, AnimProp.PosX, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0], [100, 0, 0, 0]] }, // PosX
+                    { ints: [0, AnimProp.PosY, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0], [100, 0, 0, 0]] }  // PosY
                 ]
             }
         };
@@ -92,12 +93,12 @@ describe("Timeline Visualization Unit Tests", () => {
             current_frame: 0,
             max_frame: 100,
             anim: {
-                parts: [{ ints: [0, 4, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0]] }]
+                parts: [{ ints: [0, AnimProp.PosX, 0, 0, 0], off: 0, moves: [[0, 0, 0, 0]] }]
             }
         };
 
         // Select the keyframe using state manager
-        stateManager.setKFSelection(["0:4:0"]);
+        stateManager.setKFSelection([`0:${AnimProp.PosX}:0`]);
         timeline.update(mockState, false, [0]);
 
         const dot = document.querySelector('.timeline-kf-dot') as HTMLElement;
@@ -110,13 +111,13 @@ describe("Timeline Visualization Unit Tests", () => {
             max_frame: 100,
             anim: {
                 parts: [{ 
-                    ints: [0, 4, 0, 0, 0], 
+                    ints: [0, AnimProp.PosX, 0, 0, 0], 
                     off: 0, 
                     moves: [
-                        [0, 100, 0, 0],  // Linear (0)
-                        [25, 100, 1, 0], // Step (1)
-                        [50, 100, 2, 0], // Easing (2)
-                        [75, 100, 3, 0], // Lagrange (3)
+                        [0, 100, InterpolationType.Linear, 0],  // Linear (0)
+                        [25, 100, InterpolationType.Step, 0], // Step (1)
+                        [50, 100, InterpolationType.Easing, 0], // Easing (2)
+                        [75, 100, InterpolationType.Lagrange, 0], // Lagrange (3)
                     ] 
                 }]
             }

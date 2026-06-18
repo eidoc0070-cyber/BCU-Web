@@ -12,7 +12,6 @@
     "test": "bun run test:ts && bun run test:rust",
     "test:watch": "bun test --watch tests/",
     "lint:rust": "cargo fmt -- --check && cargo clippy -- -D warnings -D clippy::pedantic",
-    "lint:pedantic": "cargo clippy -- -D warnings -D clippy::pedantic",
     "lint:ts": "tsc --noEmit",
     "lint": "bun run lint:ts && bun run lint:rust",
     "fmt:rust": "cargo fmt",

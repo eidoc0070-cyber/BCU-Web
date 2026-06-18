@@ -2,6 +2,7 @@ import { expect, test, describe, beforeAll, beforeEach } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { ModifyKeyframeCommand, DeleteKeyframeCommand } from "../../src/editor/commands/animation-commands";
 import { EngineBridge } from "../../src/editor/engine-bridge";
+import { AnimProp, InterpolationType } from "../../src/editor/constants";
 
 describe("Identity-based Keyframe Logic Tests", () => {
     let mockBridge: any;
@@ -17,12 +18,12 @@ describe("Identity-based Keyframe Logic Tests", () => {
                 anim: {
                     parts: [
                         {
-                            ints: [0, 10, 0, 0, 0], // part 0, type 10 (Angle)
+                            ints: [0, AnimProp.Angle, 0, 0, 0], // part 0, type 10 (Angle)
                             off: 0,
                             moves: [
-                                [0, 0, 0, 0],
-                                [10, 500, 0, 0],
-                                [20, 1000, 0, 0]
+                                [0, 0, InterpolationType.Linear, 0],
+                                [10, 500, InterpolationType.Linear, 0],
+                                [20, 1000, InterpolationType.Linear, 0]
                             ]
                         }
                     ]
@@ -47,7 +48,7 @@ describe("Identity-based Keyframe Logic Tests", () => {
             addAnimKeyframe: (partIdx: number, type: number, frame: number, value: number) => {
                 const part = mockState.animation.anim.parts.find((p: any) => p.ints[0] === partIdx && p.ints[1] === type);
                 if (part) {
-                    part.moves.push([frame, value, 0, 0]);
+                    part.moves.push([frame, value, InterpolationType.Linear, 0]);
                     part.moves.sort((a: any, b: any) => a[0] - b[0]);
                 }
             }
@@ -55,13 +56,13 @@ describe("Identity-based Keyframe Logic Tests", () => {
     });
 
     test("ModifyKeyframeCommand should find keyframe by frame ID, not index", () => {
-        const oldData = { frame: 10, value: 500, interp: 0, easing: 0 };
-        const newData = { frame: 15, value: 600, interp: 0, easing: 0 };
+        const oldData = { frame: 10, value: 500, interp: InterpolationType.Linear, easing: 0 };
+        const newData = { frame: 15, value: 600, interp: InterpolationType.Linear, easing: 0 };
         
-        const cmd = new ModifyKeyframeCommand(mockBridge as any, 0, 10, oldData, newData);
+        const cmd = new ModifyKeyframeCommand(mockBridge as any, 0, AnimProp.Angle, oldData, newData);
         
         // 1. Manually shift indices by inserting a new KF at the beginning
-        mockState.animation.anim.parts[0].moves.unshift([-5, -100, 0, 0]);
+        mockState.animation.anim.parts[0].moves.unshift([-5, -100, InterpolationType.Linear, 0]);
         // Now KF at frame 10 is at index 2 instead of 1
         
         cmd.execute();
@@ -75,10 +76,10 @@ describe("Identity-based Keyframe Logic Tests", () => {
     });
 
     test("DeleteKeyframeCommand should find keyframe by frame ID", () => {
-        const cmd = new DeleteKeyframeCommand(mockBridge as any, 0, 10, 10);
+        const cmd = new DeleteKeyframeCommand(mockBridge as any, 0, AnimProp.Angle, 10);
         
         // Shift indices
-        mockState.animation.anim.parts[0].moves.unshift([-5, -100, 0, 0]);
+        mockState.animation.anim.parts[0].moves.unshift([-5, -100, InterpolationType.Linear, 0]);
         
         cmd.execute();
         expect(mockState.animation.anim.parts[0].moves.some((m: any) => m[0] === 10)).toBe(false);

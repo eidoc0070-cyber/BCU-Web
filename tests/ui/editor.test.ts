@@ -3,6 +3,7 @@ import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { UIManager } from "../../src/editor/ui-components";
 import { EditorStateManager } from "../../src/editor/state-manager";
 import { eventBus } from "../../src/editor/event-bus";
+import { AnimProp, InterpolationType } from "../../src/editor/constants";
 
 describe("BCU Editor UI & Bridge Logic", () => {
     beforeAll(() => {
@@ -61,7 +62,7 @@ describe("BCU Editor UI & Bridge Logic", () => {
             max_frame: 100,
             parts: [{ index: 0, parent: -1, name: "Part 0", raw_args: [-1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }],
             anim: {
-                parts: [{ ints: [0, 10, 0, 0, 0], off: 0, moves: [[10, 100, 0, 0]] }]
+                parts: [{ ints: [0, AnimProp.Angle, 0, 0, 0], off: 0, moves: [[10, 100, InterpolationType.Linear, 0]] }]
             }
         };
 
@@ -86,10 +87,10 @@ describe("BCU Editor UI & Bridge Logic", () => {
         // Simulate interpolation change
         const select = inspector.querySelector('select[data-type="interp"]') as HTMLSelectElement;
         expect(select).not.toBeNull();
-        select.value = "1"; // Step
+        select.value = InterpolationType.Step.toString(); 
         select.dispatchEvent(new Event('change'));
 
         expect(capturedEvent).not.toBeNull();
-        expect(capturedEvent.changes[0].newData.interp).toBe(1);
+        expect(capturedEvent.changes[0].newData.interp).toBe(InterpolationType.Step);
     });
 });

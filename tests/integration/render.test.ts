@@ -1,6 +1,7 @@
 import { expect, test, describe, beforeAll, spyOn } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { EngineBridge } from "../../src/editor/engine-bridge";
+import { AnimProp } from "../../src/editor/constants";
 
 describe("BCU Rendering Logic Verification", () => {
     beforeAll(() => {
@@ -30,8 +31,8 @@ describe("BCU Rendering Logic Verification", () => {
 
         expect(state).not.toBeNull();
         expect(state!.animation.parts.length).toBe(1);
-        expect(state!.animation.parts[0].raw_args[4]).toBe(100); // Pos X
-        expect(state!.animation.parts[0].raw_args[5]).toBe(200); // Pos Y
+        expect(state!.animation.parts[0].raw_args[AnimProp.PosX]).toBe(100);
+        expect(state!.animation.parts[0].raw_args[AnimProp.PosY]).toBe(200);
     });
 
     test("EngineBridge render call should use correct screen coordinates", () => {

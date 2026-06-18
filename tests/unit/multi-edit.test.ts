@@ -5,6 +5,7 @@ import { EngineBridge } from "../../src/editor/engine-bridge";
 import { EditorStateManager } from "../../src/editor/state-manager";
 import { eventBus } from "../../src/editor/event-bus";
 import { PropertyInspector } from "../../src/editor/components/PropertyInspector";
+import { AnimProp, InterpolationType } from "../../src/editor/constants";
 
 describe("Multi-Edit and Guard Rails Tests", () => {
     beforeAll(() => {
@@ -23,7 +24,7 @@ describe("Multi-Edit and Guard Rails Tests", () => {
         } as unknown as EngineBridge;
 
         const partIdxs = [1, 2, 3];
-        const field = 11; // Opacity
+        const field = AnimProp.Opacity;
         const oldValues = new Map([[1, 1000], [2, 500], [3, 0]]);
         const newValue = 800;
 
@@ -57,14 +58,14 @@ describe("Multi-Edit and Guard Rails Tests", () => {
 
         // 1. Test Scale Guard (min 1)
         inspector.update(mockParts, null, 0, mockParts);
-        const scaleInput = document.querySelector('input[data-field="8"]') as HTMLInputElement;
+        const scaleInput = document.querySelector(`input[data-field="${AnimProp.ScaleX}"]`) as HTMLInputElement;
         scaleInput.value = "-50";
         scaleInput.dispatchEvent(new Event('change'));
 
         expect(lastEmitted.value).toBe(1); // Should be clamped to 1
 
         // 2. Test Opacity Guard (0-1000)
-        const opacityInput = document.querySelector('input[data-field="11"]') as HTMLInputElement;
+        const opacityInput = document.querySelector(`input[data-field="${AnimProp.Opacity}"]`) as HTMLInputElement;
         opacityInput.value = "1500";
         opacityInput.dispatchEvent(new Event('change'));
         expect(lastEmitted.value).toBe(1000);
@@ -85,7 +86,7 @@ describe("Multi-Edit and Guard Rails Tests", () => {
         ];
 
         inspector.update(mockParts, null, 0, mockParts);
-        const input = document.querySelector('input[data-field="4"]') as HTMLInputElement;
+        const input = document.querySelector(`input[data-field="${AnimProp.PosX}"]`) as HTMLInputElement;
         input.value = "abc"; // Invalid number
         notifyCalled = false;
         input.dispatchEvent(new Event('change'));
@@ -104,26 +105,27 @@ describe("Multi-Edit and Guard Rails Tests", () => {
 
         const mockAnim = {
             parts: [{
-                ints: [0, 10, 0, 0, 0], // Part 0, PosX, Linear
+                ints: [0, AnimProp.PosX, 0, 0, 0], // Part 0, PosX, Linear
                 off: 0,
-                moves: [[0, 100, 0, 0]] // Frame 0, Value 100, Linear, Easing 0
+                moves: [[0, 100, InterpolationType.Linear, 0]] // Frame 0, Value 100, Linear, Easing 0
             }]
         };
 
         const mockParts = [{ index: 0, name: "Part 0", raw_args: [ -1, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 0, 1000] }];
 
-        // 1. Select Keyframe and set to Easing (Type 2)
-        stateManager.setKFSelection(["0:10:0"]);
+        // 1. Select Keyframe and set to Easing
+        stateManager.setKFSelection([`0:${AnimProp.PosX}:0`]);
         inspector.update(mockParts, mockAnim, 0, mockParts);
 
         const interpSelect = document.querySelector('select[data-type="interp"]') as HTMLSelectElement;
-        interpSelect.value = "2"; 
+        expect(interpSelect).not.toBeNull();
+        interpSelect.value = InterpolationType.Easing.toString(); 
         interpSelect.dispatchEvent(new Event('change'));
 
-        expect(lastEmitted.changes[0].newData.interp).toBe(2);
+        expect(lastEmitted.changes[0].newData.interp).toBe(InterpolationType.Easing);
 
         // 2. Re-render UI and test Easing Guard (min 0, max 1000)
-        mockAnim.parts[0].moves[0][2] = 2; // Simulate state update
+        mockAnim.parts[0].moves[0][2] = InterpolationType.Easing; // Simulate state update
         inspector.update(mockParts, mockAnim, 0, mockParts);
 
         const easingInput = document.querySelector('input[data-type="easing"]') as HTMLInputElement;

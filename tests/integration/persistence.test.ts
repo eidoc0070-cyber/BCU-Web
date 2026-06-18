@@ -2,6 +2,7 @@ import { expect, test, describe, beforeEach, afterEach, spyOn, beforeAll } from 
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { PersistenceManager } from "../../src/editor/persistence-manager";
 import { EditorSession } from "../../src/editor/state-manager";
+import { AnimProp } from "../../src/editor/constants";
 
 describe("PersistenceManager Unit Tests", () => {
     beforeAll(() => {
@@ -16,7 +17,7 @@ describe("PersistenceManager Unit Tests", () => {
         currentView: "animation",
         projectName: "Test Project",
         history: {
-            undo: [{ type: 'UPDATE_PROPERTY', partIdxs: [0], field: 4, newValue: 100 }],
+            undo: [{ type: 'UPDATE_PROPERTY', partIdxs: [0], field: AnimProp.PosX, newValue: 100 }],
             redo: []
         },
         lastModified: Date.now()
