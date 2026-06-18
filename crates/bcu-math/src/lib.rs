@@ -11,6 +11,7 @@ pub use java_random::{ir_double, CopRand, JavaRandom};
 pub use vec2::Vec2;
 
 #[cfg(test)]
+#[allow(clippy::many_single_char_names, clippy::float_cmp)]
 mod tests {
     use super::*;
 

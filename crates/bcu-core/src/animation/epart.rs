@@ -85,19 +85,22 @@ pub struct EPart {
 impl EPart {
     #[must_use]
     pub fn new(ind: usize, name: String, args: [i32; 14], model: &MaModel) -> Self {
+        let n_i32 = i32::try_from(model.n).unwrap_or(i32::MAX);
+        let ind_i32 = i32::try_from(ind).unwrap_or(i32::MAX);
+
         EPart {
             name,
             ind,
             parent_idx: if args[0] < 0 {
                 None
             } else {
-                Some(args[0] as usize)
+                Some(usize::try_from(args[0]).unwrap_or(0))
             },
             prev_state: RenderState::default(),
             curr_state: RenderState::default(),
             id: args[1],
             img: args[2],
-            z: args[3] * (model.n as i32) + (ind as i32),
+            z: args[3] * n_i32 + ind_i32,
             pos: Vec2::new(
                 FixedPoint::from_int(i64::from(args[4])),
                 FixedPoint::from_int(i64::from(args[5])),
@@ -125,6 +128,9 @@ impl EPart {
 
     /// Update snapshots: Move current to previous, and capture new hierarchical state.
     /// Should be called after logic updates.
+    ///
+    /// # Panics
+    /// Panics if parent index is out of bounds for `entities`.
     pub fn update_snapshots(&mut self, entities: &[EPart], model: &MaModel) {
         self.prev_state = self.curr_state;
         let (pos, sca, angle) = self.get_transform(entities, model);
@@ -144,7 +150,7 @@ impl EPart {
 
         match m {
             0 => {
-                let v_i = v.to_int() as usize;
+                let v_i = usize::try_from(v.to_int()).unwrap_or(0);
                 if v_i < n_parts && v_i != self.ind {
                     self.parent_idx = Some(v_i);
                 } else {
@@ -152,9 +158,14 @@ impl EPart {
                 }
                 // TODO: Loop detection? Java has isParentValid check here.
             }
-            1 => self.id = v.to_int() as i32,
-            2 => self.img = v.to_int() as i32,
-            3 => self.z = v.to_int() as i32 * (n_parts as i32) + (self.ind as i32),
+            1 => self.id = i32::try_from(v.to_int()).unwrap_or(0),
+            2 => self.img = i32::try_from(v.to_int()).unwrap_or(-1),
+            3 => {
+                let v_i32 = i32::try_from(v.to_int()).unwrap_or(0);
+                let n_parts_i32 = i32::try_from(n_parts).unwrap_or(i32::MAX);
+                let ind_i32 = i32::try_from(self.ind).unwrap_or(i32::MAX);
+                self.z = v_i32 * n_parts_i32 + ind_i32;
+            }
             4 => self.pos.x = FixedPoint::from_int(i64::from(self.args[4])) + v,
             5 => self.pos.y = FixedPoint::from_int(i64::from(self.args[5])) + v,
             6 => self.piv.x = FixedPoint::from_int(i64::from(self.args[6])) + v,

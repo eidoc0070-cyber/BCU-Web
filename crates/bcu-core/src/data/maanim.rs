@@ -3,6 +3,7 @@
 //! @parity: 100%
 
 use crate::ParityTestable;
+use core::fmt::Write;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -66,12 +67,10 @@ impl Part {
     pub fn get_max(&self) -> i32 {
         if self.ints[2] == -1 {
             self.max - std::cmp::min(self.off, 0)
+        } else if self.ints[2] > 1 {
+            self.fir + (self.max - self.fir) * self.ints[2] - self.off
         } else {
-            if self.ints[2] > 1 {
-                self.fir + (self.max - self.fir) * self.ints[2] - self.off
-            } else {
-                self.max - self.off
-            }
+            self.max - self.off
         }
     }
 }
@@ -106,20 +105,18 @@ impl MaAnim {
 impl ParityTestable for MaAnim {
     fn to_parity_string(&self) -> String {
         let mut s = String::new();
-        s.push_str("[maanim]\n");
-        s.push_str("1\n");
-        s.push_str(&self.parts.len().to_string());
-        s.push('\n');
+        let _ = s.write_str("[maanim]\n");
+        let _ = s.write_str("1\n");
+        let _ = writeln!(s, "{}", self.parts.len());
         for p in &self.parts {
             for val in &p.ints {
-                s.push_str(&format!("{val},"));
+                let _ = write!(s, "{val},");
             }
-            s.push_str(&p.name);
-            s.push('\n');
-            s.push_str(&p.moves.len().to_string());
-            s.push('\n');
+            let _ = s.write_str(&p.name);
+            let _ = s.write_str("\n");
+            let _ = writeln!(s, "{}", p.moves.len());
             for m in &p.moves {
-                s.push_str(&format!("{},{},{},{},\n", m[0] - p.off, m[1], m[2], m[3]));
+                let _ = writeln!(s, "{},{},{},{},", m[0] - p.off, m[1], m[2], m[3]);
             }
         }
         s

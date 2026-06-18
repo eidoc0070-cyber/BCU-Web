@@ -3,7 +3,10 @@
 //! @parity: 100%
 
 use bcu_math::{CopRand, FixedPoint, JavaRandom, Vec2};
+use std::fs;
+use std::path::Path;
 
+#[allow(clippy::too_many_lines)]
 fn main() {
     println!("=== Running BCU Rust Parity Verification ===");
 
@@ -12,11 +15,11 @@ fn main() {
     let mut r = JavaRandom::new(12345);
 
     let expected_longs = [
-        6674089274190705457i64,
-        -1236052134575208584i64,
-        -3078921119283744887i64,
-        6022414958441676900i64,
-        4344647195749500666i64,
+        6_674_089_274_190_705_457_i64,
+        -1_236_052_134_575_208_584_i64,
+        -3_078_921_119_283_744_887_i64,
+        6_022_414_958_441_676_900_i64,
+        4_344_647_195_749_500_666_i64,
     ];
     for &expected in &expected_longs {
         let actual = r.next_long();
@@ -29,10 +32,10 @@ fn main() {
 
     let expected_floats = [
         0.349_115_3_f32,
-        0.98805076f32,
-        0.44807762f32,
-        0.9138467f32,
-        0.6381529f32,
+        0.988_050_76_f32,
+        0.448_077_62_f32,
+        0.913_846_7_f32,
+        0.638_152_9_f32,
     ];
     for &expected in &expected_floats {
         let actual = r.next_float();
@@ -45,11 +48,11 @@ fn main() {
     println!("✓ JavaRandom Float sequences matched successfully.");
 
     let expected_doubles = [
-        0.11559127507010891f64,
-        0.9297478462589988f64,
-        0.2626493565004089f64,
-        0.14479939737297642f64,
-        0.5781572879885327f64,
+        0.115_591_275_070_108_91_f64,
+        0.929_747_846_258_998_8_f64,
+        0.262_649_356_500_408_9_f64,
+        0.144_799_397_372_976_42_f64,
+        0.578_157_287_988_532_7_f64,
     ];
     for &expected in &expected_doubles {
         let actual = r.next_double();
@@ -80,7 +83,7 @@ fn main() {
         );
     }
     assert_eq!(
-        cop.seed, 930898160003145180i64,
+        cop.seed, 930_898_160_003_145_180_i64,
         "CopRand final seed failed to match"
     );
     println!("✓ CopRand sequence and seed updates matched successfully.");
@@ -201,8 +204,6 @@ i000_e.png
 
     // 6. Real Data Scan (test_out/animations)
     println!("=== Scanning test_out/animations for deep parity check ===");
-    use std::fs;
-    use std::path::Path;
 
     let anim_root = Path::new("test_out/animations");
     if anim_root.exists() {
@@ -236,7 +237,11 @@ i000_e.png
                             bcu_parser::parse_mamodel(&content).expect("MaModel parse error");
                         let _ = bcu_core::ParityTestable::to_parity_string(&parsed);
                         file_count += 1;
-                    } else if file_name.starts_with("maanim_") && file_name.ends_with(".txt") {
+                    } else if file_name.starts_with("maanim_")
+                        && sub_path
+                            .extension()
+                            .is_some_and(|ext| ext.eq_ignore_ascii_case("txt"))
+                    {
                         let content = fs::read_to_string(&sub_path).expect("Read failed");
                         // Some anims like burrow_down might be empty (13 bytes), skip if too short
                         if content.len() > 20 {

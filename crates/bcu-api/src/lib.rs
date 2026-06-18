@@ -135,12 +135,22 @@ impl BCUEngine {
         }
     }
 
+    /// Loads a sprite from bytes and creates a GPU texture.
+    ///
+    /// # Errors
+    /// Returns an error if the image bytes are invalid.
+    ///
+    /// # Panics
+    /// Panics if the sprite was not correctly stored in the registry after loading.
     pub fn load_sprite(&mut self, id: &str, bytes: &[u8]) -> Result<(), JsValue> {
         self.assets
             .load_sprite_from_bytes(id, bytes)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
-        let sprite = self.assets.get_sprite(id).unwrap();
+        let sprite = self
+            .assets
+            .get_sprite(id)
+            .expect("Sprite must exist after successful load");
         let texture = self
             .render_state
             .create_texture_from_sprite(sprite, Some(id));
@@ -149,6 +159,10 @@ impl BCUEngine {
         Ok(())
     }
 
+    /// Loads an animation from its component text files.
+    ///
+    /// # Errors
+    /// Returns an error if any of the text files fail to parse.
     pub fn load_animation(
         &mut self,
         id: &str,
@@ -192,6 +206,11 @@ impl BCUEngine {
         }
     }
 
+    /// Dispatches a command to the editor engine.
+    ///
+    /// # Errors
+    /// Returns an error if the JSON command is invalid.
+    #[allow(clippy::too_many_lines)]
     pub fn dispatch_editor_command(&mut self, json_str: &str) -> Result<(), JsValue> {
         self.version_counter += 1;
         let cmd: EditorCommand = serde_json::from_str(json_str)
@@ -217,7 +236,7 @@ impl BCUEngine {
             EditorCommand::UpdateModelStruct { id, part_idx, name } => {
                 if let Some(anim) = self.animations.get_mut(&id) {
                     if part_idx < anim.model.n {
-                        anim.model.strs0[part_idx] = name.clone();
+                        anim.model.strs0[part_idx].clone_from(&name);
                         anim.entities[part_idx].name = name;
                     }
                 }
@@ -344,9 +363,13 @@ impl BCUEngine {
         self.version_counter += 1;
         Ok(())
     }
+    /// Returns a list of all loaded animation IDs.
+    ///
+    /// # Panics
+    /// Panics if the keys cannot be converted to a `JsValue`.
     pub fn list_animations(&self) -> JsValue {
         let keys: Vec<String> = self.animations.keys().cloned().collect();
-        serde_wasm_bindgen::to_value(&keys).unwrap()
+        serde_wasm_bindgen::to_value(&keys).expect("Failed to convert keys to JsValue")
     }
 
     pub fn is_ancestor(&self, id: &str, part_idx: usize, parent_candidate: usize) -> bool {
@@ -357,6 +380,10 @@ impl BCUEngine {
         }
     }
 
+    /// Returns the full state of an animation for external consumption.
+    ///
+    /// # Errors
+    /// Returns an error if the animation or its `ImgCut` data is not found.
     pub fn get_animation_state(&self, id: &str) -> Result<JsValue, JsValue> {
         let anim = self
             .animations
@@ -378,6 +405,11 @@ impl BCUEngine {
         serde_wasm_bindgen::to_value(&full_state).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    /// Returns the transform of a specific part at the current frame.
+    ///
+    /// # Errors
+    /// Returns an error if the animation is not found or the part index is invalid.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn get_part_transform(&self, id: &str, part_idx: usize) -> Result<JsValue, JsValue> {
         let anim = self
             .animations
@@ -400,6 +432,10 @@ impl BCUEngine {
         serde_wasm_bindgen::to_value(&transform).map_err(|e| JsValue::from_str(&e.to_string()))
     }
 
+    /// Exports the `ImgCut` data of an animation as a string.
+    ///
+    /// # Errors
+    /// Returns an error if the `ImgCut` data is not found.
     pub fn export_imgcut(&self, id: &str) -> Result<String, JsValue> {
         use bcu_core::ParityTestable;
         let imgcut = self
@@ -409,6 +445,10 @@ impl BCUEngine {
         Ok(imgcut.to_parity_string())
     }
 
+    /// Exports the `MaModel` data of an animation as a string.
+    ///
+    /// # Errors
+    /// Returns an error if the animation data is not found.
     pub fn export_mamodel(&self, id: &str) -> Result<String, JsValue> {
         use bcu_core::ParityTestable;
         let anim = self
@@ -418,6 +458,10 @@ impl BCUEngine {
         Ok(anim.model.to_parity_string())
     }
 
+    /// Exports the `MaAnim` data of an animation as a string.
+    ///
+    /// # Errors
+    /// Returns an error if the animation data is not found.
     pub fn export_maanim(&self, id: &str) -> Result<String, JsValue> {
         use bcu_core::ParityTestable;
         let anim = self
@@ -427,6 +471,11 @@ impl BCUEngine {
         Ok(anim.anim.to_parity_string())
     }
 
+    /// Renders the specified animation with the given sprite and offsets.
+    ///
+    /// # Errors
+    /// Returns an error if the animation, sprite, or texture is not found, or if rendering fails.
+    #[allow(clippy::similar_names, clippy::cast_precision_loss)]
     pub fn render(
         &mut self,
         id: &str,

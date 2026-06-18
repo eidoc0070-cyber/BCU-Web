@@ -3,6 +3,7 @@
 //! @parity: 100%
 
 use crate::ParityTestable;
+use core::fmt::Write;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -26,10 +27,11 @@ impl ParityTestable for ImgCut {
         s.push('\n');
         for i in 0..self.n {
             let cut = self.cuts[i];
-            s.push_str(&format!(
-                "{},{},{},{},{}\n",
+            let _ = writeln!(
+                s,
+                "{},{},{},{},{}",
                 cut[0], cut[1], cut[2], cut[3], self.strs[i]
-            ));
+            );
         }
         s
     }

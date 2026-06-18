@@ -18,6 +18,10 @@ export class BCUEngine {
         wasm.__wbg_bcuengine_free(ptr, 0);
     }
     /**
+     * Dispatches a command to the editor engine.
+     *
+     * # Errors
+     * Returns an error if the JSON command is invalid.
      * @param {string} json_str
      */
     dispatch_editor_command(json_str) {
@@ -29,6 +33,10 @@ export class BCUEngine {
         }
     }
     /**
+     * Exports the `ImgCut` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the `ImgCut` data is not found.
      * @param {string} id
      * @returns {string}
      */
@@ -53,6 +61,10 @@ export class BCUEngine {
         }
     }
     /**
+     * Exports the `MaAnim` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the animation data is not found.
      * @param {string} id
      * @returns {string}
      */
@@ -77,6 +89,10 @@ export class BCUEngine {
         }
     }
     /**
+     * Exports the `MaModel` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the animation data is not found.
      * @param {string} id
      * @returns {string}
      */
@@ -101,6 +117,10 @@ export class BCUEngine {
         }
     }
     /**
+     * Returns the full state of an animation for external consumption.
+     *
+     * # Errors
+     * Returns an error if the animation or its `ImgCut` data is not found.
      * @param {string} id
      * @returns {any}
      */
@@ -114,6 +134,10 @@ export class BCUEngine {
         return takeFromExternrefTable0(ret[0]);
     }
     /**
+     * Returns the transform of a specific part at the current frame.
+     *
+     * # Errors
+     * Returns an error if the animation is not found or the part index is invalid.
      * @param {string} id
      * @param {number} part_idx
      * @returns {any}
@@ -148,6 +172,10 @@ export class BCUEngine {
         return ret !== 0;
     }
     /**
+     * Returns a list of all loaded animation IDs.
+     *
+     * # Panics
+     * Panics if the keys cannot be converted to a `JsValue`.
      * @returns {any}
      */
     list_animations() {
@@ -155,6 +183,10 @@ export class BCUEngine {
         return ret;
     }
     /**
+     * Loads an animation from its component text files.
+     *
+     * # Errors
+     * Returns an error if any of the text files fail to parse.
      * @param {string} id
      * @param {string} imgcut_txt
      * @param {string} mamodel_txt
@@ -175,6 +207,13 @@ export class BCUEngine {
         }
     }
     /**
+     * Loads a sprite from bytes and creates a GPU texture.
+     *
+     * # Errors
+     * Returns an error if the image bytes are invalid.
+     *
+     * # Panics
+     * Panics if the sprite was not correctly stored in the registry after loading.
      * @param {string} id
      * @param {Uint8Array} bytes
      */
@@ -189,6 +228,10 @@ export class BCUEngine {
         }
     }
     /**
+     * Renders the specified animation with the given sprite and offsets.
+     *
+     * # Errors
+     * Returns an error if the animation, sprite, or texture is not found, or if rendering fails.
      * @param {string} id
      * @param {string} sprite_id
      * @param {number} off_x

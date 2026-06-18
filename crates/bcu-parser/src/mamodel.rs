@@ -5,6 +5,10 @@
 use crate::imgcut::restrict;
 use bcu_core::{BCUError, MaModel};
 
+/// Parses a `MaModel` file from a string.
+///
+/// # Errors
+/// Returns `BCUError::ParseError` if the content is invalid or missing required fields.
 pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
     let mut lines = content.lines().map(str::trim_end);
 

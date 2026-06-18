@@ -1,0 +1,984 @@
+          to_i32() is 0.
+      661 -                             // -1.1 (FixedPoint(-1,100,000)) ->
+          to_i32() is -1.
+      662 -                             // This matches Math.ceil for
+          negative numbers? No, ceil(-1.1) is -1.0.
+      663 -                             // Truncate(-1.1) is -1. Correct.
+      664 -                             // Truncate(-0.1) is 0. Correct.
+      665 -                             // So to_i32() is fine for Sprite
+          ID.
+      666 -                             vd = FixedPoint::from_int(i64::from(
+      667 -                                 (multiplied + v0_fp).to_int() as
+          i32
+      668 -                             ));
+      669 -                         } else {
+      670 -                             vd = FixedPoint::from_int(i64::from(
+      671 -                                 (multiplied + v0_fp).to_int() as
+          i32
+      672 -                             ));
+      673 -                         }
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-core --all-targets --all-features -- -D cl… │
+│                                                                          │
+│ ... 43 hidden (Ctrl+O) ...                                               │
+│ possible_truncation)]`                                                   │
+│                                                                          │
+│ warning: `bcu-core` (lib) generated 1 warning                            │
+│ error: could not compile `bcu-core` (lib) due to 1 previous error; 1 war │
+│ ning emitted                                                             │
+│ warning: build failed, waiting for other jobs to finish...               │
+│ warning: `bcu-core` (lib test) generated 1 warning (1 duplicate)         │
+│ error: could not compile `bcu-core` (lib test) due to 1 previous error;  │
+│ 1 warning emitted                                                        │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  runtime.rs → Accepted (+4, -6)
+
+      647   }
+      648
+      649   let v0_fp = FixedPoint::from_int(i64::from(v0));
+      650 - let vd: FixedPoint;
+      651 - 
+      652 - if part.ints[1] == 2 {
+      650 + let vd: FixedPoint = if part.ints[1] == 2 {
+      651       let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
+      652       let multiplied = diff_v * ti;
+      653       let v_res = i32::try_from((multiplied +
+            v0_fp).to_int()).unwrap_or(0);
+      656 -     vd = FixedPoint::from_int(i64::from(v_res));
+      654 +     FixedPoint::from_int(i64::from(v_res))
+      655   } else {
+      656       let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
+      659 -     vd = diff_v * ti + v0_fp;
+      660 - }
+      657 +     diff_v * ti + v0_fp
+      658 + };
+      659
+      660   entities[p_idx].alter(part.ints[1], vd, entities.len(), model);
+      661   return;
+
+  ✓  Edit  runtime.rs → Accepted (+1, -0)
+
+      705           }
+      706           sum += val;
+      707       }
+      708 +     #[allow(clippy::cast_possible_truncation)]
+      709       (sum / 4096.0) as i32
+      710   }
+      711
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-core --all-targets --all-features -- -D cl… │
+│                                                                          │
+│ ... 6 hidden (Ctrl+O) ...                                                │
+│     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                     │
+│     |                                                                    │
+│     = note: see issue #15701 <https://github.com/rust-lang/rust/issues/1 │
+│ 5701> for more information                                               │
+│                                                                          │
+│ For more information about this error, try `rustc --explain E0658`.      │
+│ error: could not compile `bcu-core` (lib) due to 1 previous error        │
+│ warning: build failed, waiting for other jobs to finish...               │
+│ error: could not compile `bcu-core` (lib test) due to 1 previous error   │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  runtime.rs → Accepted (+1, -1)
+
+      674       }
+      675   }
+      676
+      677 + #[allow(clippy::cast_possible_truncation)]
+      678   fn ease3(part: &Part, i: usize, frame: FixedPoint) -> i32 {
+      679       let mut low = i;
+      680       let mut high = i;
+      ══════════════════════════════════════════════════════════════════════
+      706           }
+      707           sum += val;
+      708       }
+      708 -     #[allow(clippy::cast_possible_truncation)]
+      709       (sum / 4096.0) as i32
+      710   }
+      711
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-core --all-targets --all-features -- -D cl… │
+│                                                                          │
+│     Checking bcu-core v0.1.0 (/home/xptmxmdyd1/Archive/정 리 용 /2000_테 │
+│ 트 용 /0038_BCU_Rust/crates/bcu-core)                                    │
+│     Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.30s  │
+│                                                                          │
+╰──────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-render --all-targets --all-features -- -D … │
+│                                                                          │
+│ ... 22 hidden (Ctrl+O) ...                                               │
+│ ) -> Result<(), AssetError> {                                            │
+│    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
+│ ^^^^^^^^^^^^^^^^^^^^^^^^^^^                                              │
+│    |                                                                     │
+│    = help: for further information visit https://rust-lang.github.io/rus │
+│ t-clippy/rust-1.96.0/index.html#missing_errors_doc                       │
+│                                                                          │
+│ error: could not compile `bcu-assets` (lib) due to 2 previous errors     │
+│ warning: build failed, waiting for other jobs to finish...               │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  ReadFile  crates/bcu-assets/src/lib.rs
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      29       }
+      30   }
+      31
+      32 + /// Creates a `Sprite` from raw image bytes.
+      33 + ///
+      34 + /// # Errors
+      35 + /// Returns `AssetError::ImageError` if the image format is
+         unsupported or the bytes are invalid.
+      36   pub fn from_bytes(bytes: &[u8]) -> Result<Self, AssetError> {
+      37       let img = image::load_from_memory(bytes)?;
+      38       let rgba = img.to_rgba8();
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      65       self.sprites.get(id)
+      66   }
+      67
+      68 + /// Loads a sprite from bytes and registers it with the given ID.
+      69 + ///
+      70 + /// # Errors
+      71 + /// Returns `AssetError::ImageError` if the image bytes are
+         invalid.
+      72  pub fn load_sprite_from_bytes(&mut self, id: &str, bytes: &[u8])
+          -> Result<(), AssetError> {
+      73       let sprite = Sprite::from_bytes(bytes)?;
+      74       self.register_sprite(id, sprite);
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-render --all-targets --all-features -- -D … │
+│                                                                          │
+│ ... 53 hidden (Ctrl+O) ...                                               │
+│ t-clippy/rust-1.96.0/index.html#cast_possible_truncation                 │
+│    = note: `-D clippy::cast-possible-truncation` implied by `-D clippy:: │
+│ pedantic`                                                                │
+│    = help: to override `-D clippy::pedantic` add `#[allow(clippy::cast_p │
+│ ossible_truncation)]`                                                    │
+│                                                                          │
+│ error: casting `i32` to `f32` may cause a loss of precision (`i32` is 32 │
+│  bits wide, but `f32`'s mantissa is only 23 bits wide)                   │
+│    --> crates/bcu-render/src/lib.rs:100:18                               │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  ReadFile  crates/bcu-render/src/lib.rs
+  ✓  Edit  lib.rs → Accepted (+15, -15)
+
+       70       self.next_index = 0;
+       71   }
+       72
+       73 - #[allow(clippy::too_many_arguments)]
+       73 + #[allow(clippy::too_many_arguments, clippy::cast_precision_loss,
+          clippy::cast_possible_truncation)]
+       74   pub fn add_part(
+       75       &mut self,
+       76       part: &EPart,
+      ══════════════════════════════════════════════════════════════════════
+       85   ) {
+       86       let state = part.prev_state.lerp(&part.curr_state, alpha);
+       87
+       88 -     if state.img < 0 || state.img as usize >= imgcut.n {
+       88 +     if state.img < 0 ||
+          usize::try_from(state.img).unwrap_or(usize::MAX) >= imgcut.n {
+       89           return;
+       90       }
+       91
+       92 -     let cut = imgcut.cuts[state.img as usize];
+       92 +     let cut =
+          imgcut.cuts[usize::try_from(state.img).unwrap_or(0)];
+       93       let opa = state.opacity.to_float() as f32;
+       94
+       95       if opa <= 0.0 {
+       97       }
+       98
+       99       // 4 corners of the sprite, adjusted by Pivot point
+      100 -     let pw = cut[2] as f32;
+      101 -     let ph = cut[3] as f32;
+      102 -     let px = part.piv.x.to_float() as f32;
+      103 -     let py = part.piv.y.to_float() as f32;
+      100 +     let part_w = cut[2] as f32;
+      101 +     let part_h = cut[3] as f32;
+      102 +     let pivot_x = part.piv.x.to_float() as f32;
+      103 +     let pivot_y = part.piv.y.to_float() as f32;
+      104
+      105       let corners = [
+      106 -         [-px, -py],
+      107 -         [pw - px, -py],
+      108 -         [pw - px, ph - py],
+      109 -         [-px, ph - py],
+      106 +         [-pivot_x, -pivot_y],
+      107 +         [part_w - pivot_x, -pivot_y],
+      108 +         [part_w - pivot_x, part_h - pivot_y],
+      109 +         [-pivot_x, part_h - pivot_y],
+      110       ];
+      111
+      112       let ri = model.ints[1] as f32;
+      116
+      117       let sx = state.sca.x.to_float() as f32;
+      118       let sy = state.sca.y.to_float() as f32;
+      119 -     let px_final = state.pos.x.to_float() as f32 + off_x;
+      120 -     let py_final = state.pos.y.to_float() as f32 + off_y;
+      119 +     let final_x = state.pos.x.to_float() as f32 + off_x;
+      120 +     let final_y = state.pos.y.to_float() as f32 + off_y;
+      121
+      122       let base_idx = self.next_index;
+      123
+      ══════════════════════════════════════════════════════════════════════
+      141           let cy = corners[i][1] * sy;
+      142
+      143           // Rotate and translate
+      144 -         let rx = cx * cos_a - cy * sin_a + px_final;
+      145 -         let ry = cy * cos_a + cx * sin_a + py_final;
+      144 +         let rx = cx * cos_a - cy * sin_a + final_x;
+      145 +         let ry = cy * cos_a + cx * sin_a + final_y;
+      146
+      147           self.vertices.push(Vertex {
+      148               position: [rx, ry],
+
+  ✓  Edit  lib.rs → Accepted (+4, -3)
+
+      537
+      538   // Update buffers - handle potential overflow/resize if needed,
+      539   // but for now we rely on the pre-allocated 4096 vertices.
+      540 - let v_size = std::mem::size_of_val(vertices) as u64;
+      541 - let i_size = std::mem::size_of_val(indices) as u64;
+      540 + let v_size =
+          u64::try_from(std::mem::size_of_val(vertices)).unwrap_or(0);
+      541 + let i_size =
+          u64::try_from(std::mem::size_of_val(indices)).unwrap_or(0);
+      542
+      543   self.queue
+      544       .write_buffer(&self.vertex_buffer, 0,
+            bytemuck::cast_slice(vertices));
+      ══════════════════════════════════════════════════════════════════════
+      572       render_pass.set_vertex_buffer(0,
+            self.vertex_buffer.slice(..v_size));
+      573       render_pass
+      574           .set_index_buffer(self.index_buffer.slice(..i_size),
+            wgpu::IndexFormat::Uint16);
+      575 -     render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
+      575 +     let indices_len = u32::try_from(indices.len()).unwrap_or(0);
+      576 +     render_pass.draw_indexed(0..indices_len, 0, 0..1);
+      577   }
+      578
+      579   self.queue.submit(std::iter::once(encoder.finish()));
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-render --all-targets --all-features -- -D … │
+│                                                                          │
+│ ... 52 hidden (Ctrl+O) ...                                               │
+│     |         ^^^^^^^^^                                                  │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#used_underscore_binding                 │
+│     = note: `-D clippy::used-underscore-binding` implied by `-D clippy:: │
+│ pedantic`                                                                │
+│     = help: to override `-D clippy::pedantic` add `#[allow(clippy::used_ │
+│ underscore_binding)]`                                                    │
+│                                                                          │
+│ error: used underscore-prefixed binding                                  │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  lib.rs → Accepted (+40, -36)
+
+      190       Self::new_common(instance, surface, size).await
+      191   }
+      192
+      193 + /// Initializes the render state with the given instance,
+          surface and size.
+      194 + ///
+      195 + /// # Panics
+      196 + /// Panics if no suitable adapter or device can be found.
+      197   pub async fn new_common(
+      194 -     _instance: wgpu::Instance,
+      198 +     instance: wgpu::Instance,
+      199       surface: wgpu::Surface<'static>,
+      200       size: (u32, u32),
+      201   ) -> Self {
+      198 -     // 1차 시도: 표준 하드웨어 가속 요청
+      199 -     let mut adapter = _instance
+      200 -         .request_adapter(&wgpu::RequestAdapterOptions {
+      201 -             power_preference: wgpu::PowerPreference::None,
+      202 -             compatible_surface: Some(&surface),
+      203 -             force_fallback_adapter: false,
+      204 -         })
+      205 -         .await;
+      202 +     let adapter = Self::request_adapter(&instance,
+          &surface).await;
+      203
+      207 -     // 2차 시도: 실패 시, 표면(Surface) 제약을 풀고 재시도 (일부
+          리눅스 브라우저 대응)
+      208 -     if adapter.is_none() {
+      209 -         adapter = _instance
+      210 -             .request_adapter(&wgpu::RequestAdapterOptions {
+      211 -                 power_preference:
+          wgpu::PowerPreference::LowPower,
+      212 -                 compatible_surface: None,
+      213 -                 force_fallback_adapter: false,
+      214 -             })
+      215 -             .await;
+      216 -     }
+      217 - 
+      218 -     // 3차 시도: 마지막 수단으로 소프트웨어 폴백까지 포함하여
+          모든 옵션 개방
+      219 -     if adapter.is_none() {
+      220 -         adapter = _instance
+      221 -             .request_adapter(&wgpu::RequestAdapterOptions {
+      222 -                 power_preference:
+          wgpu::PowerPreference::LowPower,
+      223 -                 compatible_surface: None,
+      224 -                 force_fallback_adapter: true,
+      225 -             })
+      226 -             .await;
+      227 -     }
+      228 - 
+      229 -     let adapter = adapter.expect("BCU Engine Error: 모든 그래픽
+          어댑터 확보에 실패했습니다. 브라우저의 가속 기능이 WASM에 의해
+          차단되었을 수 있습니다.");
+      230 - 
+      204       let (device, queue) = adapter
+      205           .request_device(
+      206               &wgpu::DeviceDescriptor {
+      207                   label: None,
+      208                   required_features: wgpu::Features::empty(),
+      ══════════════════════════════════════════════════════════════════════
+      236 -                 // WebGL2 및 구형 환경 호환성을 위해 제한 사항을
+          최대한 낮춤
+      209                   required_limits:
+            wgpu::Limits::downlevel_webgl2_defaults(),
+      210               },
+      211               None,
+      ══════════════════════════════════════════════════════════════════════
+      342       // Pre-allocate buffers for batching
+      343      let vertex_buffer =
+           device.create_buffer(&wgpu::BufferDescriptor {
+      344           label: Some("Vertex Buffer"),
+      ══════════════════════════════════════════════════════════════════════
+      373 -         size: (std::mem::size_of::<Vertex>() * 4096) as u64,
+      345 +         size: u64::try_from(std::mem::size_of::<Vertex>() *
+          4096).unwrap_or(0),
+      346           usage: wgpu::BufferUsages::VERTEX |
+            wgpu::BufferUsages::COPY_DST,
+      347           mapped_at_creation: false,
+      348       });
+      349
+      350      let index_buffer =
+           device.create_buffer(&wgpu::BufferDescriptor {
+      351           label: Some("Index Buffer"),
+      ══════════════════════════════════════════════════════════════════════
+      380 -         size: (std::mem::size_of::<u16>() * 6144) as u64,
+      352 +         size: u64::try_from(std::mem::size_of::<u16>() *
+          6144).unwrap_or(0),
+      353           usage: wgpu::BufferUsages::INDEX |
+            wgpu::BufferUsages::COPY_DST,
+      354           mapped_at_creation: false,
+      355       });
+      ══════════════════════════════════════════════════════════════════════
+      369       }
+      370   }
+      371
+      372 + async fn request_adapter(instance: &wgpu::Instance, surface:
+          &wgpu::Surface<'static>) -> wgpu::Adapter {
+      373 +     let mut adapter = instance
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-render --all-targets --all-features -- -D … │
+│                                                                          │
+│ ... 54 hidden (Ctrl+O) ...                                               │
+│    --> crates/bcu-render/src/lib.rs:478:30                               │
+│     |                                                                    │
+│ 478 |                 [0.0, -2.0 / new_size.1 as f32, 0.0, 0.0],         │
+│     |                              ^^^^^^^^^^^^^^^^^                     │
+│     |                                                                    │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#cast_precision_loss                     │
+│                                                                          │
+│ error: docs for function returning `Result` missing `# Errors` section   │
+╰──────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-parser --all-targets --all-features -- -D … │
+│                                                                          │
+│ ... 30 hidden (Ctrl+O) ...                                               │
+│   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^     │
+│   |                                                                      │
+│   = help: for further information visit https://rust-lang.github.io/rust │
+│ -clippy/rust-1.96.0/index.html#missing_errors_doc                        │
+│                                                                          │
+│ error: could not compile `bcu-parser` (lib) due to 3 previous errors     │
+│ warning: build failed, waiting for other jobs to finish...               │
+│ error: could not compile `bcu-parser` (lib test) due to 3 previous error │
+│ s                                                                        │
+╰──────────────────────────────────────────────────────────────────────────╯
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-api --all-targets --all-features -- -D cli… │
+│                                                                          │
+│ ... 56 hidden (Ctrl+O) ...                                               │
+│ st-clippy/rust-1.96.0/index.html#too_many_lines                          │
+│     = note: `-D clippy::too-many-lines` implied by `-D clippy::pedantic` │
+│     = help: to override `-D clippy::pedantic` add `#[allow(clippy::too_m │
+│ any_lines)]`                                                             │
+│                                                                          │
+│ error: casting `u32` to `f32` may cause a loss of precision (`u32` is 32 │
+│  bits wide, but `f32`'s mantissa is only 23 bits wide)                   │
+│    --> crates/bcu-render/src/lib.rs:279:20                               │
+│     |                                                                    │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  lib.rs → Accepted (+1, -0)
+
+      194   ///
+      195   /// # Panics
+      196   /// Panics if no suitable adapter or device can be found.
+      197 + #[allow(clippy::too_many_lines)]
+      198   pub async fn new_common(
+      199       instance: wgpu::Instance,
+      200       surface: wgpu::Surface<'static>,
+
+  ✓  Edit  lib.rs → Accepted (+1, -0)
+
+      276           label: Some("uniform_bind_group_layout"),
+      277       });
+      278
+      279 + #[allow(clippy::cast_precision_loss)]
+      280   let projection_matrix = [
+      281       [2.0 / size.0 as f32, 0.0, 0.0, 0.0],
+      282       [0.0, -2.0 / size.1 as f32, 0.0, 0.0],
+
+  ✓  Edit  lib.rs → Accepted (+1, -0)
+
+      475   self.surface.configure(&self.device, &self.config);
+      476
+      477   // Update projection matrix
+      478 + #[allow(clippy::cast_precision_loss)]
+      479   let projection_matrix = [
+      480       [2.0 / new_size.0 as f32, 0.0, 0.0, 0.0],
+      481       [0.0, -2.0 / new_size.1 as f32, 0.0, 0.0],
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      490       }
+      491   }
+      492
+      493 + /// Draws the animation state using the current renderer.
+      494 + ///
+      495 + /// # Errors
+      496 + /// Returns `wgpu::SurfaceError` if the surface is lost or
+          outdated.
+      497   #[allow(clippy::too_many_arguments)]
+      498   pub fn draw_animation(
+      499       &mut self,
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      526      self.render(&batch.vertices, &batch.indices,
+           texture_bind_group)
+      527   }
+      528
+      529 + /// Renders the vertex batch to the surface.
+      530 + ///
+      531 + /// # Errors
+      532 + /// Returns `wgpu::SurfaceError` if the surface is lost or
+          outdated.
+      533   pub fn render(
+      534       &mut self,
+      535       vertices: &[Vertex],
+
+  ✓  Edit  imgcut.rs → Accepted (+4, -0)
+
+       9       s.chars().take(32).collect()
+      10   }
+      11
+      12 + /// Parses an ImgCut file from a string.
+      13 + ///
+      14 + /// # Errors
+      15 + /// Returns `BCUError::ParseError` if the content is invalid or
+         missing required fields.
+      16   pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
+      17       let mut lines = content.lines().map(str::trim_end);
+      18
+
+  ✓  Edit  maanim.rs → Accepted (+4, -0)
+
+       5   use crate::imgcut::restrict;
+       6   use bcu_core::{BCUError, MaAnim, Part};
+       7
+       8 + /// Parses a MaAnim file from a string.
+       9 + ///
+      10 + /// # Errors
+      11 + /// Returns `BCUError::ParseError` if the content is invalid or
+         missing required fields.
+      12  pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim,
+          BCUError> {
+      13       let mut lines = content.lines().map(str::trim_end);
+      14
+
+  ✓  Edit  mamodel.rs → Accepted (+4, -0)
+
+       5   use crate::imgcut::restrict;
+       6   use bcu_core::{BCUError, MaModel};
+       7
+       8 + /// Parses a MaModel file from a string.
+       9 + ///
+      10 + /// # Errors
+      11 + /// Returns `BCUError::ParseError` if the content is invalid or
+         missing required fields.
+      12  pub fn parse_mamodel(content: &str) -> Result<MaModel, BCUError> {
+
+      13       let mut lines = content.lines().map(str::trim_end);
+      14
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-api --all-targets --all-features -- -D cli… │
+│                                                                          │
+│ ... 42 hidden (Ctrl+O) ...                                               │
+│ -clippy/rust-1.96.0/index.html#doc_markdown                              │
+│ help: try                                                                │
+│   |                                                                      │
+│ 8 - /// Parses a MaModel file from a string.                             │
+│ 8 + /// Parses a `MaModel` file from a string.                           │
+│   |                                                                      │
+│                                                                          │
+│ error: could not compile `bcu-parser` (lib) due to 3 previous errors     │
+│ warning: build failed, waiting for other jobs to finish...               │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  imgcut.rs → Accepted (+1, -1)
+
+       9       s.chars().take(32).collect()
+      10   }
+      11
+      12 - /// Parses an ImgCut file from a string.
+      12 + /// Parses an `ImgCut` file from a string.
+      13   ///
+      14   /// # Errors
+      15   /// Returns `BCUError::ParseError` if the content is invalid or
+           missing required fields.
+
+  ✓  Edit  maanim.rs → Accepted (+1, -1)
+
+       5   use crate::imgcut::restrict;
+       6   use bcu_core::{BCUError, MaAnim, Part};
+       7
+       8 - /// Parses a MaAnim file from a string.
+       8 + /// Parses a `MaAnim` file from a string.
+       9   ///
+      10   /// # Errors
+      11   /// Returns `BCUError::ParseError` if the content is invalid or
+           missing required fields.
+
+  ✓  Edit  mamodel.rs → Accepted (+1, -1)
+
+       5   use crate::imgcut::restrict;
+       6   use bcu_core::{BCUError, MaModel};
+       7
+       8 - /// Parses a MaModel file from a string.
+       8 + /// Parses a `MaModel` file from a string.
+       9   ///
+      10   /// # Errors
+      11   /// Returns `BCUError::ParseError` if the content is invalid or
+           missing required fields.
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-api --all-targets --all-features -- -D cli… │
+│                                                                          │
+│ ... 57 hidden (Ctrl+O) ...                                               │
+│ 195 |     pub fn dispatch_editor_command(&mut self, json_str: &str) -> R │
+│ esult<(), JsValue> {                                                     │
+│     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ │
+│ ^^^^^^^^^^^^^^^^^^                                                       │
+│     |                                                                    │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#missing_errors_doc                      │
+│                                                                          │
+│ error: this function has too many lines (146/100)                        │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  ReadFile  crates/bcu-api/src/lib.rs
+  ✓  Edit  lib.rs → Accepted (+8, -1)
+
+      135       }
+      136   }
+      137
+      138 + /// Loads a sprite from bytes and creates a GPU texture.
+      139 + ///
+      140 + /// # Errors
+      141 + /// Returns an error if the image bytes are invalid.
+      142 + ///
+      143 + /// # Panics
+      144 + /// Panics if the sprite was not correctly stored in the
+          registry after loading.
+      145  pub fn load_sprite(&mut self, id: &str, bytes: &[u8]) ->
+           Result<(), JsValue> {
+      146       self.assets
+      147           .load_sprite_from_bytes(id, bytes)
+      148           .map_err(|e| JsValue::from_str(&e.to_string()))?;
+      149
+      143 -     let sprite = self.assets.get_sprite(id).unwrap();
+      ══════════════════════════════════════════════════════════════════════
+      150 +     let sprite = self.assets.get_sprite(id).expect("Sprite must
+          exist after successful load");
+      151       let texture = self
+      152           .render_state
+      153           .create_texture_from_sprite(sprite, Some(id));
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      156       Ok(())
+      157   }
+      158
+      159 + /// Loads an animation from its component text files.
+      160 + ///
+      161 + /// # Errors
+      162 + /// Returns an error if any of the text files fail to parse.
+      163   pub fn load_animation(
+      164       &mut self,
+      165       id: &str,
+
+  ✓  Edit  lib.rs → Accepted (+5, -0)
+
+      203       }
+      204   }
+      205
+      206 + /// Dispatches a command to the editor engine.
+      207 + ///
+      208 + /// # Errors
+      209 + /// Returns an error if the JSON command is invalid.
+      210 + #[allow(clippy::too_many_lines)]
+      211   pub fn dispatch_editor_command(&mut self, json_str: &str) ->
+            Result<(), JsValue> {
+      212       self.version_counter += 1;
+      213       let cmd: EditorCommand = serde_json::from_str(json_str)
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      373       }
+      374   }
+      375
+      376 + /// Returns the full state of an animation for external
+          consumption.
+      377 + ///
+      378 + /// # Errors
+      379 + /// Returns an error if the animation or its ImgCut data is not
+          found.
+      380   pub fn get_animation_state(&self, id: &str) -> Result<JsValue,
+            JsValue> {
+      381       let anim = self
+      382           .animations
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      398       serde_wasm_bindgen::to_value(&full_state).map_err(|e|
+            JsValue::from_str(&e.to_string()))
+      399   }
+      400
+      401 + /// Returns the transform of a specific part at the current
+          frame.
+      402 + ///
+      403 + /// # Errors
+      404 + /// Returns an error if the animation is not found or the part
+          index is invalid.
+      405   pub fn get_part_transform(&self, id: &str, part_idx: usize) ->
+            Result<JsValue, JsValue> {
+      406       let anim = self
+      407           .animations
+
+  ✓  Edit  lib.rs → Accepted (+5, -0)
+
+      451       Ok(anim.anim.to_parity_string())
+      452   }
+      453
+      454 + /// Renders the specified animation with the given sprite and
+          offsets.
+      455 + ///
+      456 + /// # Errors
+      457 + /// Returns an error if the animation, sprite, or texture is not
+          found, or if rendering fails.
+      458 + #[allow(clippy::similar_names)]
+      459   pub fn render(
+      460       &mut self,
+      461       id: &str,
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-api --all-targets --all-features -- -D cli… │
+│                                                                          │
+│ ... 56 hidden (Ctrl+O) ...                                               │
+│ 417 |             x: pos.x.to_float() as f32,                            │
+│     |                ^^^^^^^^^^^^^^^^^^^^^^^                             │
+│     |                                                                    │
+│     = help: if this is intentional allow the lint with `#[allow(clippy:: │
+│ cast_possible_truncation)]` ...                                          │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#cast_possible_truncation                │
+│     = note: `-D clippy::cast-possible-truncation` implied by `-D clippy: │
+│ :pedantic`                                                               │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  lib.rs → Accepted (+1, -1)
+
+      233   EditorCommand::UpdateModelStruct { id, part_idx, name } => {
+      234       if let Some(anim) = self.animations.get_mut(&id) {
+      235           if part_idx < anim.model.n {
+      236 -             anim.model.strs0[part_idx] = name.clone();
+      236 +             anim.model.strs0[part_idx].clone_from(&name);
+      237               anim.entities[part_idx].name = name;
+      238           }
+      239       }
+
+  ✓  Edit  lib.rs → Accepted (+5, -1)
+
+      360       self.version_counter += 1;
+      361       Ok(())
+      362   }
+      363 + /// Returns a list of all loaded animation IDs.
+      364 + ///
+      365 + /// # Panics
+      366 + /// Panics if the keys cannot be converted to a `JsValue`.
+      367   pub fn list_animations(&self) -> JsValue {
+      368      let keys: Vec<String> =
+           self.animations.keys().cloned().collect();
+      365 -     serde_wasm_bindgen::to_value(&keys).unwrap()
+      369 +     serde_wasm_bindgen::to_value(&keys).expect("Failed to
+          convert keys to JsValue")
+      370   }
+      371
+      372  pub fn is_ancestor(&self, id: &str, part_idx: usize,
+           parent_candidate: usize) -> bool {
+
+  ✓  Edit  lib.rs → Accepted (+1, -1)
+
+      380  /// Returns the full state of an animation for external
+           consumption.
+      381   ///
+      382   /// # Errors
+      383 - /// Returns an error if the animation or its ImgCut data is not
+          found.
+      383 + /// Returns an error if the animation or its `ImgCut` data is
+          not found.
+      384   pub fn get_animation_state(&self, id: &str) -> Result<JsValue,
+            JsValue> {
+      385       let anim = self
+      386           .animations
+
+  ✓  Edit  lib.rs → Accepted (+5, -0)
+
+      406   ///
+      407   /// # Errors
+      408  /// Returns an error if the animation is not found or the part
+           index is invalid.
+      409 + /// Returns the transform of a specific part at the current
+          frame.
+      410 + ///
+      411 + /// # Errors
+      412 + /// Returns an error if the animation is not found or the part
+          index is invalid.
+      413 + #[allow(clippy::cast_possible_truncation)]
+      414   pub fn get_part_transform(&self, id: &str, part_idx: usize) ->
+            Result<JsValue, JsValue> {
+      415       let anim = self
+      416           .animations
+
+  ✓  Edit  lib.rs → Accepted (+0, -4)
+
+      406   ///
+      407   /// # Errors
+      408  /// Returns an error if the animation is not found or the part
+           index is invalid.
+      409 - /// Returns the transform of a specific part at the current
+          frame.
+      410 - ///
+      411 - /// # Errors
+      412 - /// Returns an error if the animation is not found or the part
+          index is invalid.
+      409   #[allow(clippy::cast_possible_truncation)]
+      410   pub fn get_part_transform(&self, id: &str, part_idx: usize) ->
+            Result<JsValue, JsValue> {
+      411       let anim = self
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      429       serde_wasm_bindgen::to_value(&transform).map_err(|e|
+            JsValue::from_str(&e.to_string()))
+      430   }
+      431
+      432 + /// Exports the `ImgCut` data of an animation as a string.
+      433 + ///
+      434 + /// # Errors
+      435 + /// Returns an error if the `ImgCut` data is not found.
+      436  pub fn export_imgcut(&self, id: &str) -> Result<String, JsValue>
+           {
+      437       use bcu_core::ParityTestable;
+      438       let imgcut = self
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      442       Ok(imgcut.to_parity_string())
+      443   }
+      444
+      445 + /// Exports the `MaModel` data of an animation as a string.
+      446 + ///
+      447 + /// # Errors
+      448 + /// Returns an error if the animation data is not found.
+      449  pub fn export_mamodel(&self, id: &str) -> Result<String, JsValue>
+           {
+      450       use bcu_core::ParityTestable;
+      451       let anim = self
+
+  ✓  Edit  lib.rs → Accepted (+4, -0)
+
+      455       Ok(anim.model.to_parity_string())
+      456   }
+      457
+      458 + /// Exports the `MaAnim` data of an animation as a string.
+      459 + ///
+      460 + /// # Errors
+      461 + /// Returns an error if the animation data is not found.
+      462  pub fn export_maanim(&self, id: &str) -> Result<String, JsValue>
+           {
+      463       use bcu_core::ParityTestable;
+      464       let anim = self
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy -p bcu-api --all-targets --all-features -- -D cli… │
+│                                                                          │
+│ ... 20 hidden (Ctrl+O) ...                                               │
+│ 506 |                 sprite.height as f32,                              │
+│     |                 ^^^^^^^^^^^^^^^^^^^^                               │
+│     |                                                                    │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#cast_precision_loss                     │
+│                                                                          │
+│ error: could not compile `bcu-api` (lib) due to 2 previous errors        │
+│ warning: build failed, waiting for other jobs to finish...               │
+│ error: could not compile `bcu-api` (lib test) due to 2 previous errors   │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  lib.rs → Accepted (+1, -1)
+
+      472   ///
+      473   /// # Errors
+      474   /// Returns an error if the animation, sprite, or texture is not
+            found, or if rendering fails.
+      475 - #[allow(clippy::similar_names)]
+      475 + #[allow(clippy::similar_names, clippy::cast_precision_loss)]
+      476   pub fn render(
+      477       &mut self,
+      478       id: &str,
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy --all-targets --all-features -- -D clippy::pedant… │
+│                                                                          │
+│ ... 56 hidden (Ctrl+O) ...                                               │
+│    |                                                                     │
+│    = help: for further information visit https://rust-lang.github.io/rus │
+│ t-clippy/rust-1.96.0/index.html#unreadable_literal                       │
+│                                                                          │
+│ error: long literal lacking separators                                   │
+│   --> tools/parity-tester/src/main.rs:32:9                               │
+│    |                                                                     │
+│ 32 |         0.98805076f32,                                              │
+│    |         ^^^^^^^^^^^^^ help: consider: `0.988_050_76_f32`            │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  ReadFile  tools/parity-tester/src/main.rs
+  ✓  Edit  main.rs → Accepted (+5, -5)
+
+      12   let mut r = JavaRandom::new(12345);
+      13
+      14   let expected_longs = [
+      15 -     6674089274190705457i64,
+      16 -     -1236052134575208584i64,
+      17 -     -3078921119283744887i64,
+      18 -     6022414958441676900i64,
+      19 -     4344647195749500666i64,
+      15 +     6_674_089_274_190_705_457_i64,
+      16 +     -1_236_052_134_575_208_584_i64,
+      17 +     -3_078_921_119_283_744_887_i64,
+      18 +     6_022_414_958_441_676_900_i64,
+      19 +     4_344_647_195_749_500_666_i64,
+      20   ];
+      21   for &expected in &expected_longs {
+      22       let actual = r.next_long();
+
+  ✓  Edit  main.rs → Accepted (+4, -4)
+
+      29
+      30   let expected_floats = [
+      31       0.349_115_3_f32,
+      32 -     0.98805076f32,
+      33 -     0.44807762f32,
+      34 -     0.9138467f32,
+      35 -     0.6381529f32,
+      32 +     0.988_050_76_f32,
+      33 +     0.448_077_62_f32,
+      34 +     0.913_846_7_f32,
+      35 +     0.638_152_9_f32,
+      36   ];
+      37   for &expected in &expected_floats {
+      38       let actual = r.next_float();
+
+  ✓  Edit  main.rs → Accepted (+1, -1)
+
+      80       );
+      81   }
+      82   assert_eq!(
+      83 -     cop.seed, 930898160003145180i64,
+      83 +     cop.seed, 930_898_160_003_145_180_i64,
+      84       "CopRand final seed failed to match"
+      85   );
+      86  println!("✓ CopRand sequence and seed updates matched
+          successfully.");
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy --all-targets --all-features -- -D clippy::pedant… │
+│                                                                          │
+│ ... 56 hidden (Ctrl+O) ...                                               │
+│    |                                                                     │
+│    = help: for further information visit https://rust-lang.github.io/rus │
+│ t-clippy/rust-1.96.0/index.html#unreadable_literal                       │
+│                                                                          │
+│ error: this function has too many lines (219/100)                        │
+│  --> tools/parity-tester/src/main.rs:7:1                                 │
+│   |                                                                      │
+│ 7 | fn main() {                                                          │
+│   | ^^^^^^^^^                                                            │
+╰──────────────────────────────────────────────────────────────────────────╯
+  ✓  Edit  main.rs → Accepted (+1, -0)
+
+       4
+       5   use bcu_math::{CopRand, FixedPoint, JavaRandom, Vec2};
+       6
+       7 + #[allow(clippy::too_many_lines)]
+       8   fn main() {
+       9       println!("=== Running BCU Rust Parity Verification ===");
+      10
+
+  ✓  Edit  main.rs → Accepted (+5, -5)
+
+      46   println!("✓ JavaRandom Float sequences matched successfully.");
+      47
+      48   let expected_doubles = [
+      49 -     0.11559127507010891f64,
+      50 -     0.9297478462589988f64,
+      51 -     0.2626493565004089f64,
+      52 -     0.14479939737297642f64,
+      53 -     0.5781572879885327f64,
+      49 +     0.115_591_275_070_108_91_f64,
+      50 +     0.929_747_846_258_998_8_f64,
+      51 +     0.262_649_356_500_408_9_f64,
+      52 +     0.144_799_397_372_976_42_f64,
+      53 +     0.578_157_287_988_532_7_f64,
+      54   ];
+      55   for &expected in &expected_doubles {
+      56       let actual = r.next_double();
+
+╭──────────────────────────────────────────────────────────────────────────╮
+│ ✓  Shell cargo clippy --all-targets --all-features -- -D clippy::pedant… │
+│                                                                          │
+│ ... 60 hidden (Ctrl+O) ...                                               │
+│     |                                                                    │
+│ 672 |         assert_eq!(batch.vertices[0].position, [0.0, 0.0]);        │
+│     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^         │
+│     |                                                                    │
+│     = help: for further information visit https://rust-lang.github.io/ru │
+│ st-clippy/rust-1.96.0/index.html#float_cmp                               │
+│     = note: `-D clippy::float-cmp` implied by `-D clippy::pedantic`      │
+│     = help: to override `-D clippy::pedantic` add `#[allow(clippy::float │
+│ _cmp)]`                                                                  │
+╰──────────────────────────────────────────────────────────────────────────╯
+

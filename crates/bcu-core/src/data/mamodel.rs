@@ -3,6 +3,7 @@
 //! @parity: 100%
 
 use crate::ParityTestable;
+use core::fmt::Write;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
@@ -21,11 +22,14 @@ pub struct MaModel {
 impl MaModel {
     pub fn check_model(&mut self, imgcut_n: usize) {
         let n = self.n;
+        let imgcut_n_i32 = i32::try_from(imgcut_n).unwrap_or(i32::MAX);
+        let n_i32 = i32::try_from(n).unwrap_or(i32::MAX);
+
         for p in &mut self.parts {
-            if p[2] >= imgcut_n as i32 {
+            if p[2] >= imgcut_n_i32 {
                 p[2] = 0;
             }
-            if p[0] > n as i32 {
+            if p[0] > n_i32 {
                 p[0] = 0;
             }
         }
@@ -51,7 +55,7 @@ impl MaModel {
         }
         temp[p] = 2;
         let mut parent = parts[p][0];
-        if parent >= parts.len() as i32 {
+        if parent >= i32::try_from(parts.len()).unwrap_or(i32::MAX) {
             parts[p][0] = 0;
             parent = 0;
         }
@@ -59,13 +63,20 @@ impl MaModel {
             temp[p] = 1;
             return 1;
         }
-        let val = Self::check_detect_loop(parts, temp, parent as usize);
+
+        // Safety: parent >= 0 and within bounds
+        let val = Self::check_detect_loop(parts, temp, usize::try_from(parent).unwrap_or(0));
         temp[p] = val;
         val
     }
 
-    /// Checks if setting 'parent_candidate' as the parent of 'part_idx' would create a cycle.
-    /// Returns true if 'part_idx' is an ancestor of 'parent_candidate'.
+    /// Checks if setting `parent_candidate` as the parent of `part_idx` would create a cycle.
+    ///
+    /// Returns true if `part_idx` is an ancestor of `parent_candidate`.
+    ///
+    /// # Panics
+    /// Panics if `current` index is out of bounds for `self.parts`.
+    #[must_use]
     pub fn is_ancestor(&self, part_idx: usize, parent_candidate: usize) -> bool {
         if part_idx == parent_candidate {
             return true;
@@ -80,10 +91,10 @@ impl MaModel {
             if parent == -1 {
                 return false;
             }
-            if parent as usize == part_idx {
+            if usize::try_from(parent).unwrap_or(usize::MAX) == part_idx {
                 return true;
             }
-            current = parent as usize;
+            current = usize::try_from(parent).unwrap_or(0);
             visited += 1;
         }
         true // Cycle detected during traversal
@@ -93,29 +104,24 @@ impl MaModel {
 impl ParityTestable for MaModel {
     fn to_parity_string(&self) -> String {
         let mut s = String::new();
-        s.push_str("[mamodel]\n");
-        s.push_str("3\n");
-        s.push_str(&self.n.to_string());
-        s.push('\n');
+        let _ = s.write_str("[mamodel]\n");
+        let _ = s.write_str("3\n");
+        let _ = writeln!(s, "{}", self.n);
         for (i, &part) in self.parts.iter().enumerate().take(self.n) {
             for val in part.iter().take(13) {
-                s.push_str(&format!("{val},"));
+                let _ = write!(s, "{val},");
             }
-            s.push_str(&self.strs0[i]);
-            s.push('\n');
+            let _ = s.write_str(&self.strs0[i]);
+            let _ = s.write_str("\n");
         }
-        s.push_str(&format!(
-            "{},{},{}\n",
-            self.ints[0], self.ints[1], self.ints[2]
-        ));
-        s.push_str(&self.m.to_string());
-        s.push('\n');
+        let _ = writeln!(s, "{},{},{}", self.ints[0], self.ints[1], self.ints[2]);
+        let _ = writeln!(s, "{}", self.m);
         for (i, &conf) in self.confs.iter().enumerate().take(self.m) {
             for val in &conf {
-                s.push_str(&format!("{val},"));
+                let _ = write!(s, "{val},");
             }
-            s.push_str(&self.strs1[i]);
-            s.push('\n');
+            let _ = s.write_str(&self.strs1[i]);
+            let _ = s.write_str("\n");
         }
         s
     }

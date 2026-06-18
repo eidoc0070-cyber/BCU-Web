@@ -5,6 +5,10 @@
 use crate::imgcut::restrict;
 use bcu_core::{BCUError, MaAnim, Part};
 
+/// Parses a `MaAnim` file from a string.
+///
+/// # Errors
+/// Returns `BCUError::ParseError` if the content is invalid or missing required fields.
 pub fn parse_maanim(content: &str, is_old: bool) -> Result<MaAnim, BCUError> {
     let mut lines = content.lines().map(str::trim_end);
 

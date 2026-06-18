@@ -9,6 +9,10 @@ pub fn restrict(s: &str) -> String {
     s.chars().take(32).collect()
 }
 
+/// Parses an `ImgCut` file from a string.
+///
+/// # Errors
+/// Returns `BCUError::ParseError` if the content is invalid or missing required fields.
 pub fn parse_imgcut(content: &str) -> Result<ImgCut, BCUError> {
     let mut lines = content.lines().map(str::trim_end);
 

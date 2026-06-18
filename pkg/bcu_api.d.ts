@@ -5,17 +5,80 @@ export class BCUEngine {
     private constructor();
     free(): void;
     [Symbol.dispose](): void;
+    /**
+     * Dispatches a command to the editor engine.
+     *
+     * # Errors
+     * Returns an error if the JSON command is invalid.
+     */
     dispatch_editor_command(json_str: string): void;
+    /**
+     * Exports the `ImgCut` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the `ImgCut` data is not found.
+     */
     export_imgcut(id: string): string;
+    /**
+     * Exports the `MaAnim` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the animation data is not found.
+     */
     export_maanim(id: string): string;
+    /**
+     * Exports the `MaModel` data of an animation as a string.
+     *
+     * # Errors
+     * Returns an error if the animation data is not found.
+     */
     export_mamodel(id: string): string;
+    /**
+     * Returns the full state of an animation for external consumption.
+     *
+     * # Errors
+     * Returns an error if the animation or its `ImgCut` data is not found.
+     */
     get_animation_state(id: string): any;
+    /**
+     * Returns the transform of a specific part at the current frame.
+     *
+     * # Errors
+     * Returns an error if the animation is not found or the part index is invalid.
+     */
     get_part_transform(id: string, part_idx: number): any;
     static init(canvas: HTMLCanvasElement): Promise<BCUEngine>;
     is_ancestor(id: string, part_idx: number, parent_candidate: number): boolean;
+    /**
+     * Returns a list of all loaded animation IDs.
+     *
+     * # Panics
+     * Panics if the keys cannot be converted to a `JsValue`.
+     */
     list_animations(): any;
+    /**
+     * Loads an animation from its component text files.
+     *
+     * # Errors
+     * Returns an error if any of the text files fail to parse.
+     */
     load_animation(id: string, imgcut_txt: string, mamodel_txt: string, maanim_txt: string): void;
+    /**
+     * Loads a sprite from bytes and creates a GPU texture.
+     *
+     * # Errors
+     * Returns an error if the image bytes are invalid.
+     *
+     * # Panics
+     * Panics if the sprite was not correctly stored in the registry after loading.
+     */
     load_sprite(id: string, bytes: Uint8Array): void;
+    /**
+     * Renders the specified animation with the given sprite and offsets.
+     *
+     * # Errors
+     * Returns an error if the animation, sprite, or texture is not found, or if rendering fails.
+     */
     render(id: string, sprite_id: string, off_x: number, off_y: number, alpha: number): void;
     resize(width: number, height: number): void;
     set_frame(id: string, frame: number): void;

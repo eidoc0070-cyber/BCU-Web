@@ -70,7 +70,11 @@ impl SpriteBatch {
         self.next_index = 0;
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[allow(
+        clippy::too_many_arguments,
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation
+    )]
     pub fn add_part(
         &mut self,
         part: &EPart,
@@ -85,11 +89,11 @@ impl SpriteBatch {
     ) {
         let state = part.prev_state.lerp(&part.curr_state, alpha);
 
-        if state.img < 0 || state.img as usize >= imgcut.n {
+        if state.img < 0 || usize::try_from(state.img).unwrap_or(usize::MAX) >= imgcut.n {
             return;
         }
 
-        let cut = imgcut.cuts[state.img as usize];
+        let cut = imgcut.cuts[usize::try_from(state.img).unwrap_or(0)];
         let opa = state.opacity.to_float() as f32;
 
         if opa <= 0.0 {
@@ -97,16 +101,16 @@ impl SpriteBatch {
         }
 
         // 4 corners of the sprite, adjusted by Pivot point
-        let pw = cut[2] as f32;
-        let ph = cut[3] as f32;
-        let px = part.piv.x.to_float() as f32;
-        let py = part.piv.y.to_float() as f32;
+        let part_w = cut[2] as f32;
+        let part_h = cut[3] as f32;
+        let pivot_x = part.piv.x.to_float() as f32;
+        let pivot_y = part.piv.y.to_float() as f32;
 
         let corners = [
-            [-px, -py],
-            [pw - px, -py],
-            [pw - px, ph - py],
-            [-px, ph - py],
+            [-pivot_x, -pivot_y],
+            [part_w - pivot_x, -pivot_y],
+            [part_w - pivot_x, part_h - pivot_y],
+            [-pivot_x, part_h - pivot_y],
         ];
 
         let ri = model.ints[1] as f32;
@@ -116,8 +120,8 @@ impl SpriteBatch {
 
         let sx = state.sca.x.to_float() as f32;
         let sy = state.sca.y.to_float() as f32;
-        let px_final = state.pos.x.to_float() as f32 + off_x;
-        let py_final = state.pos.y.to_float() as f32 + off_y;
+        let final_x = state.pos.x.to_float() as f32 + off_x;
+        let final_y = state.pos.y.to_float() as f32 + off_y;
 
         let base_idx = self.next_index;
 
@@ -141,8 +145,8 @@ impl SpriteBatch {
             let cy = corners[i][1] * sy;
 
             // Rotate and translate
-            let rx = cx * cos_a - cy * sin_a + px_final;
-            let ry = cy * cos_a + cx * sin_a + py_final;
+            let rx = cx * cos_a - cy * sin_a + final_x;
+            let ry = cy * cos_a + cx * sin_a + final_y;
 
             self.vertices.push(Vertex {
                 position: [rx, ry],
@@ -190,50 +194,23 @@ impl RenderState {
         Self::new_common(instance, surface, size).await
     }
 
+    /// Initializes the render state with the given instance, surface and size.
+    ///
+    /// # Panics
+    /// Panics if no suitable adapter or device can be found.
+    #[allow(clippy::too_many_lines)]
     pub async fn new_common(
-        _instance: wgpu::Instance,
+        instance: wgpu::Instance,
         surface: wgpu::Surface<'static>,
         size: (u32, u32),
     ) -> Self {
-        // 1차 시도: 표준 하드웨어 가속 요청
-        let mut adapter = _instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::PowerPreference::None,
-                compatible_surface: Some(&surface),
-                force_fallback_adapter: false,
-            })
-            .await;
-
-        // 2차 시도: 실패 시, 표면(Surface) 제약을 풀고 재시도 (일부 리눅스 브라우저 대응)
-        if adapter.is_none() {
-            adapter = _instance
-                .request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::LowPower,
-                    compatible_surface: None,
-                    force_fallback_adapter: false,
-                })
-                .await;
-        }
-
-        // 3차 시도: 마지막 수단으로 소프트웨어 폴백까지 포함하여 모든 옵션 개방
-        if adapter.is_none() {
-            adapter = _instance
-                .request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::LowPower,
-                    compatible_surface: None,
-                    force_fallback_adapter: true,
-                })
-                .await;
-        }
-
-        let adapter = adapter.expect("BCU Engine Error: 모든 그래픽 어댑터 확보에 실패했습니다. 브라우저의 가속 기능이 WASM에 의해 차단되었을 수 있습니다.");
+        let adapter = Self::request_adapter(&instance, &surface).await;
 
         let (device, queue) = adapter
             .request_device(
                 &wgpu::DeviceDescriptor {
                     label: None,
                     required_features: wgpu::Features::empty(),
-                    // WebGL2 및 구형 환경 호환성을 위해 제한 사항을 최대한 낮춤
                     required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
                 },
                 None,
@@ -303,6 +280,7 @@ impl RenderState {
                 label: Some("uniform_bind_group_layout"),
             });
 
+        #[allow(clippy::cast_precision_loss)]
         let projection_matrix = [
             [2.0 / size.0 as f32, 0.0, 0.0, 0.0],
             [0.0, -2.0 / size.1 as f32, 0.0, 0.0],
@@ -370,14 +348,14 @@ impl RenderState {
         // Pre-allocate buffers for batching
         let vertex_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Vertex Buffer"),
-            size: (std::mem::size_of::<Vertex>() * 4096) as u64,
+            size: u64::try_from(std::mem::size_of::<Vertex>() * 4096).unwrap_or(0),
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
 
         let index_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Index Buffer"),
-            size: (std::mem::size_of::<u16>() * 6144) as u64,
+            size: u64::try_from(std::mem::size_of::<u16>() * 6144).unwrap_or(0),
             usage: wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -395,6 +373,41 @@ impl RenderState {
             uniform_bind_group,
             texture_bind_group_layout,
         }
+    }
+
+    async fn request_adapter(
+        instance: &wgpu::Instance,
+        surface: &wgpu::Surface<'static>,
+    ) -> wgpu::Adapter {
+        let mut adapter = instance
+            .request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::None,
+                compatible_surface: Some(surface),
+                force_fallback_adapter: false,
+            })
+            .await;
+
+        if adapter.is_none() {
+            adapter = instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::LowPower,
+                    compatible_surface: None,
+                    force_fallback_adapter: false,
+                })
+                .await;
+        }
+
+        if adapter.is_none() {
+            adapter = instance
+                .request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::LowPower,
+                    compatible_surface: None,
+                    force_fallback_adapter: true,
+                })
+                .await;
+        }
+
+        adapter.expect("BCU Engine Error: 모든 그래픽 어댑터 확보에 실패했습니다. 브라우저의 가속 기능이 WASM에 의해 차단되었을 수 있습니다.")
     }
 
     pub fn create_texture_from_sprite(
@@ -469,6 +482,7 @@ impl RenderState {
             self.surface.configure(&self.device, &self.config);
 
             // Update projection matrix
+            #[allow(clippy::cast_precision_loss)]
             let projection_matrix = [
                 [2.0 / new_size.0 as f32, 0.0, 0.0, 0.0],
                 [0.0, -2.0 / new_size.1 as f32, 0.0, 0.0],
@@ -483,6 +497,10 @@ impl RenderState {
         }
     }
 
+    /// Draws the animation state using the current renderer.
+    ///
+    /// # Errors
+    /// Returns `wgpu::SurfaceError` if the surface is lost or outdated.
     #[allow(clippy::too_many_arguments)]
     pub fn draw_animation(
         &mut self,
@@ -515,6 +533,10 @@ impl RenderState {
         self.render(&batch.vertices, &batch.indices, texture_bind_group)
     }
 
+    /// Renders the vertex batch to the surface.
+    ///
+    /// # Errors
+    /// Returns `wgpu::SurfaceError` if the surface is lost or outdated.
     pub fn render(
         &mut self,
         vertices: &[Vertex],
@@ -537,8 +559,8 @@ impl RenderState {
 
         // Update buffers - handle potential overflow/resize if needed,
         // but for now we rely on the pre-allocated 4096 vertices.
-        let v_size = std::mem::size_of_val(vertices) as u64;
-        let i_size = std::mem::size_of_val(indices) as u64;
+        let v_size = u64::try_from(std::mem::size_of_val(vertices)).unwrap_or(0);
+        let i_size = u64::try_from(std::mem::size_of_val(indices)).unwrap_or(0);
 
         self.queue
             .write_buffer(&self.vertex_buffer, 0, bytemuck::cast_slice(vertices));
@@ -572,7 +594,8 @@ impl RenderState {
             render_pass.set_vertex_buffer(0, self.vertex_buffer.slice(..v_size));
             render_pass
                 .set_index_buffer(self.index_buffer.slice(..i_size), wgpu::IndexFormat::Uint16);
-            render_pass.draw_indexed(0..indices.len() as u32, 0, 0..1);
+            let indices_len = u32::try_from(indices.len()).unwrap_or(0);
+            render_pass.draw_indexed(0..indices_len, 0, 0..1);
         }
 
         self.queue.submit(std::iter::once(encoder.finish()));
@@ -583,6 +606,7 @@ impl RenderState {
 }
 
 #[cfg(test)]
+#[allow(clippy::float_cmp)]
 mod tests {
     use super::*;
 

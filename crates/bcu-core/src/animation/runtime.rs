@@ -81,6 +81,7 @@ impl EAnimD {
             .collect();
 
         AnimationState {
+            #[allow(clippy::cast_possible_truncation)]
             current_frame: self.frame.to_float() as f32,
             max_frame: self.anim.max,
             parts,
@@ -107,7 +108,7 @@ impl EAnimD {
 
         // Cycle Detection for Parent field
         if field == 0 && value != -1 {
-            let parent_candidate = value as usize;
+            let parent_candidate = usize::try_from(value).unwrap_or(0);
             if parent_candidate >= self.model.n || self.is_ancestor(idx, parent_candidate) {
                 // Prevent creating a cycle or setting invalid parent
                 return;
@@ -132,7 +133,7 @@ impl EAnimD {
             self.entities[idx].parent_idx = if value < 0 {
                 None
             } else {
-                Some(value as usize)
+                Some(usize::try_from(value).unwrap_or(0))
             };
         }
 
@@ -148,8 +149,10 @@ impl EAnimD {
         self.sort();
     }
 
-    /// Checks if setting 'parent_candidate' as the parent of 'part_idx' would create a cycle.
-    /// Returns true if 'part_idx' is an ancestor of 'parent_candidate'.
+    /// Checks if setting `parent_candidate` as the parent of `part_idx` would create a cycle.
+    ///
+    /// Returns true if `part_idx` is an ancestor of `parent_candidate`.
+    #[must_use]
     pub fn is_ancestor(&self, part_idx: usize, parent_candidate: usize) -> bool {
         if part_idx == parent_candidate {
             return true;
@@ -164,10 +167,10 @@ impl EAnimD {
             if parent == -1 {
                 return false;
             }
-            if parent as usize == part_idx {
+            if usize::try_from(parent).unwrap_or(usize::MAX) == part_idx {
                 return true;
             }
-            current = parent as usize;
+            current = usize::try_from(parent).unwrap_or(0);
             visited += 1;
         }
         true // Cycle detected during traversal
@@ -184,12 +187,13 @@ impl EAnimD {
         interpolation: i32,
         easing: i32,
     ) {
+        let part_idx_i32 = i32::try_from(part_idx).unwrap_or(i32::MAX);
         // Find the animation part that matches the model part index and modification type
         if let Some(p) = self
             .anim
             .parts
             .iter_mut()
-            .find(|p| p.ints[0] == part_idx as i32 && p.ints[1] == modif_type)
+            .find(|p| p.ints[0] == part_idx_i32 && p.ints[1] == modif_type)
         {
             if move_idx < p.moves.len() {
                 p.moves[move_idx][0] = new_frame + p.off;
@@ -217,16 +221,17 @@ impl EAnimD {
     }
 
     pub fn add_anim_keyframe(&mut self, part_idx: usize, modif_type: i32, frame: i32, value: i32) {
+        let part_idx_i32 = i32::try_from(part_idx).unwrap_or(i32::MAX);
         // Find or create the animation part
         let p_idx = if let Some(idx) = self
             .anim
             .parts
             .iter()
-            .position(|p| p.ints[0] == part_idx as i32 && p.ints[1] == modif_type)
+            .position(|p| p.ints[0] == part_idx_i32 && p.ints[1] == modif_type)
         {
             idx
         } else {
-            let mut new_p = Part::new(part_idx as i32, modif_type);
+            let mut new_p = Part::new(part_idx_i32, modif_type);
             new_p.ints[2] = 1; // Default to single play
             self.anim.parts.push(new_p);
             self.anim.n += 1;
@@ -268,11 +273,12 @@ impl EAnimD {
     }
 
     pub fn delete_anim_keyframe(&mut self, part_idx: usize, modif_type: i32, move_idx: usize) {
+        let part_idx_i32 = i32::try_from(part_idx).unwrap_or(i32::MAX);
         if let Some(p) = self
             .anim
             .parts
             .iter_mut()
-            .find(|p| p.ints[0] == part_idx as i32 && p.ints[1] == modif_type)
+            .find(|p| p.ints[0] == part_idx_i32 && p.ints[1] == modif_type)
         {
             if move_idx < p.moves.len() {
                 p.moves.remove(move_idx);
@@ -315,7 +321,6 @@ impl EAnimD {
         }
 
         // Second pass: calculate new hierarchical curr_state
-        use crate::animation::epart::RenderState;
         let mut new_states = Vec::with_capacity(self.entities.len());
         for i in 0..self.entities.len() {
             let (pos, sca, angle) = self.entities[i].get_transform(&self.entities, &self.model);
@@ -439,10 +444,11 @@ impl EAnimD {
         );
 
         // 2. Adjust indices and parents for existing parts
+        let insert_at_i32 = i32::try_from(insert_at).unwrap_or(i32::MAX);
         for i in 0..self.model.n {
             self.entities[i].ind = i;
             let p_val = self.model.parts[i][0];
-            if p_val >= insert_at as i32 {
+            if p_val >= insert_at_i32 {
                 self.model.parts[i][0] += 1;
             }
             self.entities[i].args[0] = self.model.parts[i][0];
@@ -450,14 +456,14 @@ impl EAnimD {
 
         // 3. Adjust animation references for existing parts
         for p in &mut self.anim.parts {
-            if p.ints[0] >= insert_at as i32 {
+            if p.ints[0] >= insert_at_i32 {
                 p.ints[0] += 1;
             }
         }
 
         // 4. Restore captured keyframes for this part
         for mut kf in keyframes {
-            kf.ints[0] = insert_at as i32;
+            kf.ints[0] = insert_at_i32;
             self.anim.parts.push(kf);
         }
         self.anim.n = self.anim.parts.len();
@@ -480,21 +486,23 @@ impl EAnimD {
         self.model.n -= 1;
         self.entities.remove(idx);
 
+        let idx_i32 = i32::try_from(idx).unwrap_or(i32::MAX);
+
         // 2. Adjust indices and parents
         for i in 0..self.model.n {
             self.entities[i].ind = i;
-            if self.model.parts[i][0] == idx as i32 {
+            if self.model.parts[i][0] == idx_i32 {
                 self.model.parts[i][0] = -1;
-            } else if self.model.parts[i][0] > idx as i32 {
+            } else if self.model.parts[i][0] > idx_i32 {
                 self.model.parts[i][0] -= 1;
             }
             self.entities[i].args[0] = self.model.parts[i][0];
         }
 
         // 3. Adjust animation references
-        self.anim.parts.retain(|p| p.ints[0] != idx as i32);
+        self.anim.parts.retain(|p| p.ints[0] != idx_i32);
         for p in &mut self.anim.parts {
-            if p.ints[0] > idx as i32 {
+            if p.ints[0] > idx_i32 {
                 p.ints[0] -= 1;
             }
         }
@@ -581,13 +589,16 @@ fn ensure_last(part: &Part, entities: &mut [EPart], model: &MaModel) {
     }
     let last_move = &part.moves[part.n - 1];
     let val = FixedPoint::from_int(i64::from(last_move[1]));
-    entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
+    let p_idx = usize::try_from(part.ints[0]).unwrap_or(0);
+    entities[p_idx].alter(part.ints[1], val, entities.len(), model);
 }
 
 fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &MaModel) {
     if part.n == 0 {
         return;
     }
+
+    let p_idx = usize::try_from(part.ints[0]).unwrap_or(0);
 
     for i in 0..part.n {
         let m0 = &part.moves[i];
@@ -596,7 +607,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
 
         if frame == f0 {
             let val = FixedPoint::from_int(i64::from(m0[1]));
-            entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
+            entities[p_idx].alter(part.ints[1], val, entities.len(), model);
             return;
         } else if i < part.n - 1 {
             let m1 = &part.moves[i + 1];
@@ -610,7 +621,8 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
 
                     let mut real_frame = frame;
                     if f1_i - f0_i == 1 {
-                        real_frame = FixedPoint::from_int(i64::from(frame.to_int() as i32));
+                        let f_int = i32::try_from(frame.to_int()).unwrap_or(0);
+                        real_frame = FixedPoint::from_int(i64::from(f_int));
                     }
 
                     let diff_f = FixedPoint::from_int(i64::from(f1_i - f0_i));
@@ -623,7 +635,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                     } else if m0[2] == 3 {
                         // Lagrange
                         let val = ease3(part, i, real_frame);
-                        entities[part.ints[0] as usize].alter(
+                        entities[p_idx].alter(
                             part.ints[1],
                             FixedPoint::from_int(i64::from(val)),
                             entities.len(),
@@ -635,45 +647,22 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
                     }
 
                     let v0_fp = FixedPoint::from_int(i64::from(v0));
-                    let vd: FixedPoint;
-
-                    if part.ints[1] == 2 {
-                        // Sprite ID interpolation: if decreasing, use ceil?
-                        // Java: if (v1 - v0 < 0) vd = (int) Math.ceil((v1 - v0) * ti + v0); else vd = (int) ((v1 - v0) * ti + v0);
+                    let vd: FixedPoint = if part.ints[1] == 2 {
                         let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
                         let multiplied = diff_v * ti;
-                        if v1 - v0 < 0 {
-                            // Ceiling of a negative number: -0.1 -> 0
-                            // In FixedPoint: multiplied.0 / SCALE might truncate towards zero.
-                            // -100_000 / 1_000_000 = 0. Correct.
-                            // -1_100_000 / 1_000_000 = -1. Correct.
-                            // Wait, Java Math.ceil(-0.1) is 0.0.
-                            // Our FixedPoint to_i32() truncates towards zero.
-                            // -0.1 (FixedPoint(-100,000)) -> to_i32() is 0.
-                            // -1.1 (FixedPoint(-1,100,000)) -> to_i32() is -1.
-                            // This matches Math.ceil for negative numbers? No, ceil(-1.1) is -1.0.
-                            // Truncate(-1.1) is -1. Correct.
-                            // Truncate(-0.1) is 0. Correct.
-                            // So to_i32() is fine for Sprite ID.
-                            vd = FixedPoint::from_int(i64::from(
-                                (multiplied + v0_fp).to_int() as i32
-                            ));
-                        } else {
-                            vd = FixedPoint::from_int(i64::from(
-                                (multiplied + v0_fp).to_int() as i32
-                            ));
-                        }
+                        let v_res = i32::try_from((multiplied + v0_fp).to_int()).unwrap_or(0);
+                        FixedPoint::from_int(i64::from(v_res))
                     } else {
                         let diff_v = FixedPoint::from_int(i64::from(v1 - v0));
-                        vd = diff_v * ti + v0_fp;
-                    }
+                        diff_v * ti + v0_fp
+                    };
 
-                    entities[part.ints[0] as usize].alter(part.ints[1], vd, entities.len(), model);
+                    entities[p_idx].alter(part.ints[1], vd, entities.len(), model);
                     return;
                 } else if part.ints[1] == 0 {
                     // Parent index: no interpolation
                     let val = FixedPoint::from_int(i64::from(m0[1]));
-                    entities[part.ints[0] as usize].alter(part.ints[1], val, entities.len(), model);
+                    entities[p_idx].alter(part.ints[1], val, entities.len(), model);
                     return;
                 }
             }
@@ -685,6 +674,7 @@ fn update_part(part: &Part, frame: FixedPoint, entities: &mut [EPart], model: &M
     }
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn ease3(part: &Part, i: usize, frame: FixedPoint) -> i32 {
     let mut low = i;
     let mut high = i;

@@ -29,6 +29,10 @@ impl Sprite {
         }
     }
 
+    /// Creates a `Sprite` from raw image bytes.
+    ///
+    /// # Errors
+    /// Returns `AssetError::ImageError` if the image format is unsupported or the bytes are invalid.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, AssetError> {
         let img = image::load_from_memory(bytes)?;
         let rgba = img.to_rgba8();
@@ -61,6 +65,10 @@ impl AssetRegistry {
         self.sprites.get(id)
     }
 
+    /// Loads a sprite from bytes and registers it with the given ID.
+    ///
+    /// # Errors
+    /// Returns `AssetError::ImageError` if the image bytes are invalid.
     pub fn load_sprite_from_bytes(&mut self, id: &str, bytes: &[u8]) -> Result<(), AssetError> {
         let sprite = Sprite::from_bytes(bytes)?;
         self.register_sprite(id, sprite);
