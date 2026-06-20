@@ -5,6 +5,10 @@ import type { PartTransform } from './bindings/PartTransform';
 export class EngineBridge {
     constructor(private engine: BCUEngine, private animId: string) {}
 
+    setEngine(engine: BCUEngine) {
+        this.engine = engine;
+    }
+
     setAnimId(id: string) {
         this.animId = id;
     }

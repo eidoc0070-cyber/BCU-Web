@@ -48,6 +48,21 @@ export class BCUController {
         this.initEventSubscriptions();
         this.initGlobalEvents();
         
+        // Register unload/pagehide lifecycle hooks to explicitly free Rust/WASM resources
+        const freeEngine = () => {
+            if (this.engine && typeof (this.engine as any).free === 'function') {
+                try {
+                    (this.engine as any).free();
+                } catch (e) {
+                    console.error("Error freeing BCUEngine on unload:", e);
+                }
+            }
+        };
+        if (typeof window !== 'undefined') {
+            window.addEventListener('beforeunload', freeEngine);
+            window.addEventListener('pagehide', freeEngine);
+        }
+
         this.restoreSession();
         console.log("[Editor] BCUController initialized.");
     }
@@ -445,6 +460,7 @@ export class BCUController {
 
                 if (files.size > 0) {
                     this.state.setReady(false);
+                    await this.recreateEngine();
                     await this.project.loadFromFiles(files, (defaultAnim) => {
                         this.state.setReady(true);
                         this.setAnimation(defaultAnim);
@@ -534,6 +550,8 @@ export class BCUController {
         this.state.setReady(false);
         this.state.setAnimId('none');
         if (this.bridge) this.bridge.setAnimId('none');
+
+        await this.recreateEngine();
 
         await this.project.loadCharacter(baseUrl, (defaultAnim) => {
             const spriteFile = this.project.getFile('sprite.png');
@@ -632,6 +650,33 @@ export class BCUController {
             IntegrityChecker.logReport(state);
         } else {
             console.error("Bridge not initialized.");
+        }
+    }
+
+    public async recreateEngine() {
+        this.log("Reinitializing Rust WASM Engine...");
+        if (this.engine && typeof (this.engine as any).free === 'function') {
+            try {
+                (this.engine as any).free();
+                this.log("Previous Rust WASM Engine instance freed.");
+            } catch (e) {
+                console.error("Failed to free old engine:", e);
+            }
+        }
+
+        const isTestEnv = typeof (globalThis as any).Bun !== 'undefined' || (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test');
+        
+        if (!isTestEnv && typeof BCUEngine.init === 'function') {
+            try {
+                this.engine = await BCUEngine.init(this.canvas);
+                this.project.setEngine(this.engine);
+                this.bridge?.setEngine(this.engine);
+                this.log("New Rust WASM Engine instance ready.");
+            } catch (e) {
+                this.log(`Failed to initialize new engine: ${e}`, 'error');
+            }
+        } else {
+            this.log("Running in test/mock environment. Skipping real WASM reinitialization.");
         }
     }
 }

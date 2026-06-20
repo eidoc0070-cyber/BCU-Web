@@ -40,7 +40,13 @@
 - `2026-06-18`: chore: Achieve 100% clippy::pedantic compliance across all crates and update memory tracker.
 - `2026-06-13`: Cleanup redundant runtime integrity test configurations, restore clean package.json scripts, verify all 29 TS/Rust tests passing.
 - `2026-06-02`: refactor(web): fix rendering offsets, reset animId loading state, enhance debug diagnostics, and add unit tests.
-- `2026-05-31`: Implement Real-time Editor Property Editing & Undo/Redo System.
-- `2026-05-31`: Refactor TS to Modular Architecture (Bridge/UI/History).
-- `edf1ec7`: feat(web): build WASM module and initialize BCUEngine in main.ts
+- `2026-06-18`: Implement BCU-compliant Guard Rails and Refactor Magic Numbers to AnimProp Enums. (49/49 Tests Pass)
+- `2026-06-18`: Achieve `clippy::pedantic` compliance across all Rust crates.
+- `2026-06-20`: feat(web): Implement WASM Memory Lifecycle Management by explicitly freeing engine instance on unload and project changes.
+
+### Upcoming Tasks (Stability & UX)
+- [x] Implement WASM Memory Lifecycle Management (explicit `.free()` calls).
+- [ ] Add Error Boundaries to UI components to prevent global crashes.
+- [ ] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
+- [ ] Enhance Round-trip Data Integrity tests for edge cases.
 

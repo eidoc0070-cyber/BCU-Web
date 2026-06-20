@@ -31,6 +31,10 @@ export class ProjectManager {
         private log: (msg: string, type?: 'info' | 'error') => void
     ) {}
 
+    public setEngine(engine: BCUEngine) {
+        this.engine = engine;
+    }
+
     public getProjectName(): string {
         return this.project.name;
     }
