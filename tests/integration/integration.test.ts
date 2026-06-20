@@ -139,4 +139,27 @@ describe("BCU Editor Integration & Stability", () => {
         expect(renderX).toBe(500);
         expect(renderY).toBe(520); // 800 * 0.65
     });
+
+    test("should call free on the old engine when recreateEngine is called", async () => {
+        const mockEngine = {
+            free: () => {},
+            load_sprite: () => {},
+            load_animation: () => {},
+            resize: () => {},
+            update: () => {},
+            get_part_transform: () => null,
+            get_animation_state: () => null
+        } as any;
+        const freeSpy = spyOn(mockEngine, 'free');
+        
+        const canvas = document.getElementById('bcu-canvas') as HTMLCanvasElement;
+        const gizmoCanvas = document.getElementById('gizmo-canvas') as HTMLCanvasElement;
+        const imgcutCanvas = document.getElementById('imgcut-canvas') as HTMLCanvasElement;
+        
+        const controller = new BCUController(mockEngine, canvas, gizmoCanvas, imgcutCanvas, () => {});
+        
+        await controller.recreateEngine();
+        
+        expect(freeSpy).toHaveBeenCalled();
+    });
 });
