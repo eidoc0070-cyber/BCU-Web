@@ -7,6 +7,7 @@ import { Timeline } from './components/Timeline';
 import { ImgCutList } from './components/ImgCutList';
 import { eventBus } from './event-bus';
 import { EditorStateManager } from './state-manager';
+import { UIErrorBoundary } from './components/ErrorBoundary';
 
 export class UIManager {
     private toastManager = new ToastManager();
@@ -15,6 +16,13 @@ export class UIManager {
     private propertyInspector: PropertyInspector;
     private timeline: Timeline;
     private imgcutList: ImgCutList;
+
+    // UI Error Boundaries
+    private timelineBoundary: UIErrorBoundary;
+    private partsTreeBoundary: UIErrorBoundary;
+    private imgcutListBoundary: UIErrorBoundary;
+    private fileExplorerBoundary: UIErrorBoundary;
+    private propertyInspectorBoundary: UIErrorBoundary;
 
     private projectNameInput = document.getElementById('input-project-name') as HTMLInputElement;
     
@@ -32,6 +40,33 @@ export class UIManager {
             // PropertyInspector now uses direct stateManager access in update()
         });
         this.imgcutList = new ImgCutList();
+
+        // Initialize UI Error Boundaries
+        this.timelineBoundary = new UIErrorBoundary(
+            document.getElementById('timeline-keyframes'),
+            'Timeline',
+            () => { this.timelineBoundary.clearError(); }
+        );
+        this.partsTreeBoundary = new UIErrorBoundary(
+            document.getElementById('parts-list'),
+            'PartsTree',
+            () => { this.partsTreeBoundary.clearError(); this.lastPartsJson = ''; }
+        );
+        this.imgcutListBoundary = new UIErrorBoundary(
+            document.getElementById('imgcut-list'),
+            'ImgCutList',
+            () => { this.imgcutListBoundary.clearError(); this.lastImgCutJson = ''; }
+        );
+        this.fileExplorerBoundary = new UIErrorBoundary(
+            document.getElementById('file-explorer'),
+            'FileExplorer',
+            () => { this.fileExplorerBoundary.clearError(); this.lastFilesJson = ''; }
+        );
+        this.propertyInspectorBoundary = new UIErrorBoundary(
+            document.getElementById('property-inspector'),
+            'PropertyInspector',
+            () => { this.propertyInspectorBoundary.clearError(); }
+        );
 
         this.projectNameInput?.addEventListener('input', () => {
             eventBus.emit('PROJECT_NAME_CHANGED', { name: this.projectNameInput.value });
@@ -63,27 +98,35 @@ export class UIManager {
     update(state: any, isPlaying: boolean, alpha: number, project?: any, imgcut?: any) {
         if (!state) return;
 
-        this.timeline.update(state, isPlaying, this.selectedPartIdxs);
+        this.timelineBoundary.run(() => {
+            this.timeline.update(state, isPlaying, this.selectedPartIdxs);
+        });
 
         const partsJson = JSON.stringify(state.parts);
         if (partsJson !== this.lastPartsJson) {
-            this.lastPartsJson = partsJson;
-            this.partsTree.render(state.parts, this.selectedPartIdxs);
+            this.partsTreeBoundary.run(() => {
+                this.partsTree.render(state.parts, this.selectedPartIdxs);
+                this.lastPartsJson = partsJson;
+            });
         }
 
         if (imgcut) {
             const imgcutJson = JSON.stringify(imgcut);
             if (imgcutJson !== this.lastImgCutJson) {
-                this.lastImgCutJson = imgcutJson;
-                this.imgcutList.render(imgcut);
+                this.imgcutListBoundary.run(() => {
+                    this.imgcutList.render(imgcut);
+                    this.lastImgCutJson = imgcutJson;
+                });
             }
         }
 
         if (project) {
             const filesJson = JSON.stringify(Array.from(project.files.keys()));
             if (filesJson !== this.lastFilesJson) {
-                this.lastFilesJson = filesJson;
-                this.fileExplorer.render(project);
+                this.fileExplorerBoundary.run(() => {
+                    this.fileExplorer.render(project);
+                    this.lastFilesJson = filesJson;
+                });
             }
         }
 
@@ -93,10 +136,14 @@ export class UIManager {
                 .filter(p => !!p);
             
             if (selectedParts.length > 0) {
-                this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame(), state.parts, alpha);
+                this.propertyInspectorBoundary.run(() => {
+                    this.propertyInspector.update(selectedParts, state.anim, this.timeline.getCurrentFrame(), state.parts, alpha);
+                });
             }
         } else {
-            this.propertyInspector.update([], null, 0, [], alpha);
+            this.propertyInspectorBoundary.run(() => {
+                this.propertyInspector.update([], null, 0, [], alpha);
+            });
         }
     }
 }

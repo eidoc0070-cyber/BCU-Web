@@ -43,10 +43,11 @@
 - `2026-06-18`: Implement BCU-compliant Guard Rails and Refactor Magic Numbers to AnimProp Enums. (49/49 Tests Pass)
 - `2026-06-18`: Achieve `clippy::pedantic` compliance across all Rust crates.
 - `2026-06-20`: feat(web): Implement WASM Memory Lifecycle Management by explicitly freeing engine instance on unload and project changes.
+- `2026-06-20`: feat(web): Implement UI Error Boundaries to prevent global UI crashes on component-level exceptions.
 
 ### Upcoming Tasks (Stability & UX)
 - [x] Implement WASM Memory Lifecycle Management (explicit `.free()` calls).
-- [ ] Add Error Boundaries to UI components to prevent global crashes.
+- [x] Add Error Boundaries to UI components to prevent global crashes.
 - [ ] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
 - [ ] Enhance Round-trip Data Integrity tests for edge cases.
 
