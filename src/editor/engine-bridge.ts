@@ -1,189 +1,255 @@
-import { BCUEngine } from '../../pkg/bcu_api.js';
+import type { BCUEngine } from '../../pkg/bcu_api.js';
 import type { AnimationStateFull } from './bindings/AnimationStateFull';
 import type { PartTransform } from './bindings/PartTransform';
 
 export class EngineBridge {
-    constructor(private engine: BCUEngine, private animId: string) {}
+  constructor(
+    private engine: BCUEngine,
+    private animId: string,
+  ) {}
 
-    setEngine(engine: BCUEngine) {
-        this.engine = engine;
-    }
+  setEngine(engine: BCUEngine) {
+    this.engine = engine;
+  }
 
-    setAnimId(id: string) {
-        this.animId = id;
-    }
+  setAnimId(id: string) {
+    this.animId = id;
+  }
 
-    setFrame(frame: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'SET_FRAME',
-            data: { id: this.animId, frame }
-        }));
-    }
+  setFrame(frame: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'SET_FRAME',
+        data: { id: this.animId, frame },
+      }),
+    );
+  }
 
-    updateModelPart(partIdx: number, field: number, value: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'UPDATE_MODEL_PART',
-            data: { id: this.animId, part_idx: partIdx, field, value }
-        }));
-    }
+  updateModelPart(partIdx: number, field: number, value: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'UPDATE_MODEL_PART',
+        data: { id: this.animId, part_idx: partIdx, field, value },
+      }),
+    );
+  }
 
-    updateModelStruct(partIdx: number, name: string) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'UPDATE_MODEL_STRUCT',
-            data: { id: this.animId, part_idx: partIdx, name }
-        }));
-    }
+  updateModelStruct(partIdx: number, name: string) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'UPDATE_MODEL_STRUCT',
+        data: { id: this.animId, part_idx: partIdx, name },
+      }),
+    );
+  }
 
-    updateImgCut(cutIdx: number, field: number, value: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'UPDATE_IMGCUT',
-            data: { id: this.animId, cut_idx: cutIdx, field, value }
-        }));
-    }
+  updateImgCut(cutIdx: number, field: number, value: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'UPDATE_IMGCUT',
+        data: { id: this.animId, cut_idx: cutIdx, field, value },
+      }),
+    );
+  }
 
-    updateAnimKeyframe(partIdx: number, modifType: number, moveIdx: number, newFrame: number, newValue: number, interpolation: number, easing: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'UPDATE_ANIM_KEYFRAME',
-            data: { 
-                id: this.animId, 
-                part_idx: partIdx, 
-                modif_type: modifType, 
-                move_idx: moveIdx, 
-                new_frame: newFrame,
-                new_value: newValue,
-                interpolation: interpolation,
-                easing: easing
-            }
-        }));
-    }
+  updateAnimKeyframe(
+    partIdx: number,
+    modifType: number,
+    moveIdx: number,
+    newFrame: number,
+    newValue: number,
+    interpolation: number,
+    easing: number,
+  ) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'UPDATE_ANIM_KEYFRAME',
+        data: {
+          id: this.animId,
+          part_idx: partIdx,
+          modif_type: modifType,
+          move_idx: moveIdx,
+          new_frame: newFrame,
+          new_value: newValue,
+          interpolation: interpolation,
+          easing: easing,
+        },
+      }),
+    );
+  }
 
-    addAnimKeyframe(partIdx: number, modifType: number, frame: number, value: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'ADD_ANIM_KEYFRAME',
-            data: { id: this.animId, part_idx: partIdx, modif_type: modifType, frame, value }
-        }));
-    }
+  addAnimKeyframe(
+    partIdx: number,
+    modifType: number,
+    frame: number,
+    value: number,
+  ) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'ADD_ANIM_KEYFRAME',
+        data: {
+          id: this.animId,
+          part_idx: partIdx,
+          modif_type: modifType,
+          frame,
+          value,
+        },
+      }),
+    );
+  }
 
-    deleteAnimKeyframe(partIdx: number, modifType: number, moveIdx: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'DELETE_ANIM_KEYFRAME',
-            data: { id: this.animId, part_idx: partIdx, mod_type: modifType, move_idx: moveIdx }
-        }));
-    }
+  deleteAnimKeyframe(partIdx: number, modifType: number, moveIdx: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'DELETE_ANIM_KEYFRAME',
+        data: {
+          id: this.animId,
+          part_idx: partIdx,
+          mod_type: modifType,
+          move_idx: moveIdx,
+        },
+      }),
+    );
+  }
 
-    addPart(parent: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'ADD_PART',
-            data: { id: this.animId, parent }
-        }));
-    }
+  addPart(parent: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'ADD_PART',
+        data: { id: this.animId, parent },
+      }),
+    );
+  }
 
-    deletePart(partIdx: number) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'DELETE_PART',
-            data: { id: this.animId, part_idx: partIdx }
-        }));
-    }
+  deletePart(partIdx: number) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'DELETE_PART',
+        data: { id: this.animId, part_idx: partIdx },
+      }),
+    );
+  }
 
-    restorePart(partIdx: number, modelData: number[], name: string, keyframes: any[]) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'RESTORE_PART',
-            data: { 
-                id: this.animId, 
-                part_idx: partIdx,
-                model_data: modelData,
-                name: name,
-                keyframes: keyframes
-            }
-        }));
-    }
+  restorePart(
+    partIdx: number,
+    modelData: number[],
+    name: string,
+    keyframes: any[],
+  ) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'RESTORE_PART',
+        data: {
+          id: this.animId,
+          part_idx: partIdx,
+          model_data: modelData,
+          name: name,
+          keyframes: keyframes,
+        },
+      }),
+    );
+  }
 
-    addAnimation(id: string) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'ADD_ANIMATION',
-            data: { id }
-        }));
-    }
+  addAnimation(id: string) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'ADD_ANIMATION',
+        data: { id },
+      }),
+    );
+  }
 
-    removeAnimation(id: string) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'REMOVE_ANIMATION',
-            data: { id }
-        }));
-    }
+  removeAnimation(id: string) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'REMOVE_ANIMATION',
+        data: { id },
+      }),
+    );
+  }
 
-    renameAnimation(oldId: string, newId: string) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'RENAME_ANIMATION',
-            data: { old_id: oldId, new_id: newId }
-        }));
-    }
+  renameAnimation(oldId: string, newId: string) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'RENAME_ANIMATION',
+        data: { old_id: oldId, new_id: newId },
+      }),
+    );
+  }
 
-    duplicateAnimation(srcId: string, newId: string) {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'DUPLICATE_ANIMATION',
-            data: { src_id: srcId, new_id: newId }
-        }));
-    }
+  duplicateAnimation(srcId: string, newId: string) {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'DUPLICATE_ANIMATION',
+        data: { src_id: srcId, new_id: newId },
+      }),
+    );
+  }
 
-    exportImgCut() {
-        return this.engine.export_imgcut(this.animId);
-    }
+  exportImgCut() {
+    return this.engine.export_imgcut(this.animId);
+  }
 
-    exportModel() {
-        return this.engine.export_mamodel(this.animId);
-    }
+  exportModel() {
+    return this.engine.export_mamodel(this.animId);
+  }
 
-    exportAnim() {
-        return this.engine.export_maanim(this.animId);
-    }
+  exportAnim() {
+    return this.engine.export_maanim(this.animId);
+  }
 
-    exportAnimById(id: string) {
-        return this.engine.export_maanim(id);
-    }
+  exportAnimById(id: string) {
+    return this.engine.export_maanim(id);
+  }
 
-    listAnimations(): string[] {
-        return this.engine.list_animations();
-    }
+  listAnimations(): string[] {
+    return this.engine.list_animations();
+  }
 
-    getState(): AnimationStateFull | null {
-        try {
-            return this.engine.get_animation_state(this.animId);
-        } catch (e) {
-            return null;
-        }
+  getState(): AnimationStateFull | null {
+    try {
+      return this.engine.get_animation_state(this.animId);
+    } catch (_e) {
+      return null;
     }
+  }
 
-    getPartTransform(partIdx: number): PartTransform | null {
-        if (!this.engine.get_part_transform) return null;
-        try {
-            return this.engine.get_part_transform(this.animId, partIdx);
-        } catch (e) {
-            return null;
-        }
+  getPartTransform(partIdx: number): PartTransform | null {
+    if (!this.engine.get_part_transform) return null;
+    try {
+      return this.engine.get_part_transform(this.animId, partIdx);
+    } catch (_e) {
+      return null;
     }
+  }
 
-    isAncestor(partIdx: number, parentCandidate: number): boolean {
-        // Assume engine has is_ancestor exposed via dispatch_editor_command or direct binding
-        // For now, checking if engine instance has the method
-        if ((this.engine as any).is_ancestor) {
-            return (this.engine as any).is_ancestor(this.animId, partIdx, parentCandidate);
-        }
-        return false;
+  isAncestor(partIdx: number, parentCandidate: number): boolean {
+    // Assume engine has is_ancestor exposed via dispatch_editor_command or direct binding
+    // For now, checking if engine instance has the method
+    if ((this.engine as any).is_ancestor) {
+      return (this.engine as any).is_ancestor(
+        this.animId,
+        partIdx,
+        parentCandidate,
+      );
     }
+    return false;
+  }
 
-    tick() {
-        this.engine.dispatch_editor_command(JSON.stringify({
-            op: 'TICK',
-            data: { id: this.animId }
-        }));
-    }
+  tick() {
+    this.engine.dispatch_editor_command(
+      JSON.stringify({
+        op: 'TICK',
+        data: { id: this.animId },
+      }),
+    );
+  }
 
-    update() {
-        this.engine.update(this.animId);
-    }
+  update() {
+    this.engine.update(this.animId);
+  }
 
-    render(spriteId: string, offX: number, offY: number, alpha: number) {
-        this.engine.render(this.animId, spriteId, offX, offY, alpha);
-    }
+  render(spriteId: string, offX: number, offY: number, alpha: number) {
+    this.engine.render(this.animId, spriteId, offX, offY, alpha);
+  }
 }

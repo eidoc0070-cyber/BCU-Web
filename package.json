@@ -12,10 +12,10 @@
     "test": "bun run test:ts && bun run test:rust",
     "test:watch": "bun test --watch tests/",
     "lint:rust": "cargo fmt -- --check && cargo clippy -- -D warnings -D clippy::pedantic",
-    "lint:ts": "tsc --noEmit",
+    "lint:ts": "tsc --noEmit && biome check src/ tests/",
     "lint": "bun run lint:ts && bun run lint:rust",
     "fmt:rust": "cargo fmt",
-    "fmt:ts": "echo 'No TS formatter configured yet'",
+    "fmt:ts": "biome format --write src/ tests/",
     "format": "bun run fmt:rust && bun run fmt:ts",
     "check:rust": "cargo check",
     "parity:check": "cargo run -p parity-tester",
@@ -23,6 +23,7 @@
     "clean": "rm -rf dist pkg target node_modules/.vite"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
     "@happy-dom/global-registrator": "^20.10.0",
     "@types/bun": "^1.2.0",
     "happy-dom": "^20.10.0",

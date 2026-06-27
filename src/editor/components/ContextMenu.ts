@@ -1,80 +1,80 @@
 export interface ContextMenuItem {
-    label?: string;
-    icon?: string;
-    action?: () => void;
-    danger?: boolean;
-    type?: 'item' | 'separator';
+  label?: string;
+  icon?: string;
+  action?: () => void;
+  danger?: boolean;
+  type?: 'item' | 'separator';
 }
 
 export class ContextMenu {
-    private element: HTMLElement;
-    private static instance: ContextMenu | null = null;
+  private element: HTMLElement;
+  private static instance: ContextMenu | null = null;
 
-    constructor() {
-        this.element = document.createElement('div');
-        this.element.className = 'context-menu';
-        this.applyStyles();
-        document.body.appendChild(this.element);
-        
-        window.addEventListener('mousedown', (e) => {
-            if (!this.element.contains(e.target as Node)) {
-                this.hide();
-            }
-        });
+  constructor() {
+    this.element = document.createElement('div');
+    this.element.className = 'context-menu';
+    this.applyStyles();
+    document.body.appendChild(this.element);
+
+    window.addEventListener('mousedown', (e) => {
+      if (!this.element.contains(e.target as Node)) {
+        this.hide();
+      }
+    });
+  }
+
+  public static show(x: number, y: number, items: ContextMenuItem[]) {
+    if (!ContextMenu.instance) {
+      ContextMenu.instance = new ContextMenu();
     }
+    ContextMenu.instance.render(x, y, items);
+  }
 
-    public static show(x: number, y: number, items: ContextMenuItem[]) {
-        if (!this.instance) {
-            this.instance = new ContextMenu();
-        }
-        this.instance.render(x, y, items);
-    }
+  private hide() {
+    this.element.style.display = 'none';
+  }
 
-    private hide() {
-        this.element.style.display = 'none';
-    }
+  private render(x: number, y: number, items: ContextMenuItem[]) {
+    this.element.innerHTML = '';
+    items.forEach((item) => {
+      if (item.type === 'separator') {
+        const sep = document.createElement('div');
+        sep.className = 'context-menu-separator';
+        this.element.appendChild(sep);
+        return;
+      }
 
-    private render(x: number, y: number, items: ContextMenuItem[]) {
-        this.element.innerHTML = '';
-        items.forEach(item => {
-            if (item.type === 'separator') {
-                const sep = document.createElement('div');
-                sep.className = 'context-menu-separator';
-                this.element.appendChild(sep);
-                return;
-            }
-
-            const row = document.createElement('div');
-            row.className = 'context-menu-item' + (item.danger ? ' danger' : '');
-            row.innerHTML = `
+      const row = document.createElement('div');
+      row.className = `context-menu-item${item.danger ? ' danger' : ''}`;
+      row.innerHTML = `
                 <span class="icon">${item.icon || ''}</span>
                 <span class="label">${item.label || ''}</span>
             `;
-            row.onclick = (e) => {
-                e.stopPropagation();
-                if (item.action) item.action();
-                this.hide();
-            };
-            this.element.appendChild(row);
-        });
+      row.onclick = (e) => {
+        e.stopPropagation();
+        if (item.action) item.action();
+        this.hide();
+      };
+      this.element.appendChild(row);
+    });
 
-        this.element.style.display = 'block';
-        
-        // Adjust position if it goes off-screen
-        const rect = this.element.getBoundingClientRect();
-        let posX = x;
-        let posY = y;
-        
-        if (posX + rect.width > window.innerWidth) posX -= rect.width;
-        if (posY + rect.height > window.innerHeight) posY -= rect.height;
+    this.element.style.display = 'block';
 
-        this.element.style.left = `${posX}px`;
-        this.element.style.top = `${posY}px`;
-    }
+    // Adjust position if it goes off-screen
+    const rect = this.element.getBoundingClientRect();
+    let posX = x;
+    let posY = y;
 
-    private applyStyles() {
-        const style = document.createElement('style');
-        style.textContent = `
+    if (posX + rect.width > window.innerWidth) posX -= rect.width;
+    if (posY + rect.height > window.innerHeight) posY -= rect.height;
+
+    this.element.style.left = `${posX}px`;
+    this.element.style.top = `${posY}px`;
+  }
+
+  private applyStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
             .context-menu {
                 position: fixed;
                 background: rgba(13, 15, 26, 0.95);
@@ -122,6 +122,6 @@ export class ContextMenu {
                 flex: 1;
             }
         `;
-        document.head.appendChild(style);
-    }
+    document.head.appendChild(style);
+  }
 }

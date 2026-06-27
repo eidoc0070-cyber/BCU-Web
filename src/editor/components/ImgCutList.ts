@@ -1,24 +1,22 @@
 import { eventBus } from '../event-bus';
 
 export class ImgCutList {
-    private container = document.getElementById('imgcut-list');
+  private container = document.getElementById('imgcut-list');
 
-    constructor() {}
+  public render(imgcut: any) {
+    if (!this.container) return;
+    this.container.innerHTML = '';
 
-    public render(imgcut: any) {
-        if (!this.container) return;
-        this.container.innerHTML = '';
-        
-        imgcut.cuts.forEach((cut: number[], idx: number) => {
-            const name = imgcut.strs[idx] || `Cut ${idx}`;
-            const row = document.createElement('div');
-            row.style.padding = '0.75rem';
-            row.style.marginBottom = '0.5rem';
-            row.style.background = 'rgba(255,255,255,0.03)';
-            row.style.borderRadius = '6px';
-            row.style.fontSize = '0.75rem';
+    imgcut.cuts.forEach((cut: number[], idx: number) => {
+      const name = imgcut.strs[idx] || `Cut ${idx}`;
+      const row = document.createElement('div');
+      row.style.padding = '0.75rem';
+      row.style.marginBottom = '0.5rem';
+      row.style.background = 'rgba(255,255,255,0.03)';
+      row.style.borderRadius = '6px';
+      row.style.fontSize = '0.75rem';
 
-            row.innerHTML = `
+      row.innerHTML = `
                 <div style="font-weight: 600; margin-bottom: 0.5rem; color: var(--accent);">${idx}: ${name}</div>
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.4rem;">
                     <div style="display: flex; align-items: center; gap: 4px;">X: <input type="number" data-idx="${idx}" data-field="0" value="${cut[0]}" style="width: 100%; background: #000; color: white; border: 1px solid #333; padding: 2px;"></div>
@@ -28,16 +26,20 @@ export class ImgCutList {
                 </div>
             `;
 
-            row.querySelectorAll('input').forEach(input => {
-                input.addEventListener('change', (e) => {
-                    const el = e.target as HTMLInputElement;
-                    const field = parseInt(el.getAttribute('data-field')!);
-                    const cutIdx = parseInt(el.getAttribute('data-idx')!);
-                    eventBus.emit('IMGCUT_CHANGED', { cutIdx, field, value: parseInt(el.value) });
-                });
-            });
-
-            this.container?.appendChild(row);
+      row.querySelectorAll('input').forEach((input) => {
+        input.addEventListener('change', (e) => {
+          const el = e.target as HTMLInputElement;
+          const field = parseInt(el.getAttribute('data-field')!, 10);
+          const cutIdx = parseInt(el.getAttribute('data-idx')!, 10);
+          eventBus.emit('IMGCUT_CHANGED', {
+            cutIdx,
+            field,
+            value: parseInt(el.value, 10),
+          });
         });
-    }
+      });
+
+      this.container?.appendChild(row);
+    });
+  }
 }

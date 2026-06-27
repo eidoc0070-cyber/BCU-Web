@@ -3,44 +3,44 @@ import type { EditorSession } from './state-manager';
 const STORAGE_KEY = 'bcu_editor_session';
 
 export class PersistenceManager {
-    private static saveTimeout: any = null;
+  private static saveTimeout: any = null;
 
-    public static saveSession(session: EditorSession) {
-        if (this.saveTimeout) {
-            clearTimeout(this.saveTimeout);
-        }
-
-        // Debounce to avoid heavy LocalStorage writes during Gizmo drags
-        this.saveTimeout = setTimeout(() => {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-                console.log('[Persistence] Session saved');
-            } catch (e) {
-                console.error('[Persistence] Failed to save session:', e);
-            }
-        }, 500);
+  public static saveSession(session: EditorSession) {
+    if (PersistenceManager.saveTimeout) {
+      clearTimeout(PersistenceManager.saveTimeout);
     }
 
-    public static loadSession(): EditorSession | null {
-        try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            if (!data) return null;
-            const session = JSON.parse(data);
+    // Debounce to avoid heavy LocalStorage writes during Gizmo drags
+    PersistenceManager.saveTimeout = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+        console.log('[Persistence] Session saved');
+      } catch (e) {
+        console.error('[Persistence] Failed to save session:', e);
+      }
+    }, 500);
+  }
 
-            // Basic validation
-            if (!session.animId || typeof session.currentFrame !== 'number') {
-                console.warn('[Persistence] Invalid session data found, ignoring.');
-                return null;
-            }
+  public static loadSession(): EditorSession | null {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) return null;
+      const session = JSON.parse(data);
 
-            return session;
-        } catch (e) {
-            console.error('[Persistence] Failed to load session:', e);
-            return null;
-        }
+      // Basic validation
+      if (!session.animId || typeof session.currentFrame !== 'number') {
+        console.warn('[Persistence] Invalid session data found, ignoring.');
+        return null;
+      }
+
+      return session;
+    } catch (e) {
+      console.error('[Persistence] Failed to load session:', e);
+      return null;
     }
+  }
 
-    public static clearSession() {
-        localStorage.removeItem(STORAGE_KEY);
-    }
+  public static clearSession() {
+    localStorage.removeItem(STORAGE_KEY);
+  }
 }
