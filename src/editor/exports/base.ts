@@ -1,4 +1,4 @@
-import { ProjectFile } from '../project-manager';
+import type { ProjectFile } from '../project-manager';
 
 /**
  * Interface for different export formats (Strategy Pattern)

@@ -1,4 +1,4 @@
-import { Command } from './base';
+import type { Command } from './base';
 import { EngineBridge } from '../engine-bridge';
 import { EditorStateManager } from '../state-manager';
 import { UpdatePropertyCommand } from './property-commands';

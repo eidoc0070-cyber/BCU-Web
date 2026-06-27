@@ -1,4 +1,4 @@
-import { Command } from './commands/base';
+import type { Command } from './commands/base';
 import { CommandFactory } from './commands/factory';
 import { EngineBridge } from './engine-bridge';
 import { EditorStateManager } from './state-manager';

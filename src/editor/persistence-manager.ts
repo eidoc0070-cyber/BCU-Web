@@ -1,4 +1,4 @@
-import { EditorSession } from './state-manager';
+import type { EditorSession } from './state-manager';
 
 const STORAGE_KEY = 'bcu_editor_session';
 

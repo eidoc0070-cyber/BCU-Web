@@ -27,7 +27,7 @@
 - **Verification**: Total test coverage increased to 74 tests (43 TS / 31 Rust), all passing.
 
 ### How to Verify (Editor)
-1. Run `bun run lint:pedantic` to verify Rust code quality.
+1. Run `bun run lint:rust` to verify Rust code quality.
 2. Run `bun run lint:ts` (tsc --noEmit) for TypeScript integrity.
 3. Run `bun run test` to execute the full suite.
 4. Run `bun run dev` and open the browser.
@@ -37,6 +37,7 @@
 ---
 
 ## Git History (Recent)
+- `2026-06-28`: chore(web): Upgrade TypeScript to 7.0.1-rc and apply verbatimModuleSyntax in tsconfig.json.
 - `2026-06-18`: chore: Achieve 100% clippy::pedantic compliance across all crates and update memory tracker.
 - `2026-06-13`: Cleanup redundant runtime integrity test configurations, restore clean package.json scripts, verify all 29 TS/Rust tests passing.
 - `2026-06-02`: refactor(web): fix rendering offsets, reset animId loading state, enhance debug diagnostics, and add unit tests.

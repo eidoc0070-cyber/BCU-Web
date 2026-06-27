@@ -1,4 +1,4 @@
-import { Command } from './base';
+import type { Command } from './base';
 import { EngineBridge } from '../engine-bridge';
 import { AnimProp } from '../constants';
 

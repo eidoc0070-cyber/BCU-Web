@@ -1,5 +1,5 @@
-import { ExportProvider } from './base';
-import { ProjectFile } from '../project-manager';
+import type { ExportProvider } from './base';
+import type { ProjectFile } from '../project-manager';
 
 /**
  * Single File Export: For downloading just one specific file (e.g. maanim)

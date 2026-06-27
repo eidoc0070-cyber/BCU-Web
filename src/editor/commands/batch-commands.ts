@@ -1,4 +1,4 @@
-import { Command } from './base';
+import type { Command } from './base';
 
 export class BatchCommand implements Command {
     readonly type = 'BATCH';
