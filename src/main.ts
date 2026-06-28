@@ -67,7 +67,7 @@ async function run() {
             );
             const list = controller.bridge.listAnimations();
             if (list.length > 0) {
-              const defaultAnim = list.includes('walk') ? 'walk' : list[0];
+              const defaultAnim = list.includes('walk') ? 'walk' : list[0]!;
               controller.setAnimation(defaultAnim);
             } else {
               throw new Error('No animations loaded in engine.');

@@ -55,47 +55,52 @@ export class ImgCutEditor {
     // 1. Check Resize Handle of Selected Cut
     if (this.selectedCutIdx !== null) {
       const cut = state.imgcut.cuts[this.selectedCutIdx];
-      const [x, y, w, h] = cut;
+      if (cut) {
+        const [x, y, w, h] = cut as [number, number, number, number];
 
-      // Handle at bottom-right corner
-      if (
-        Math.abs(mouse.x - (x + w)) < 12 &&
-        Math.abs(mouse.y - (y + h)) < 12
-      ) {
-        this.isDragging = true;
-        this.dragMode = 'resize';
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-        return;
-      }
+        // Handle at bottom-right corner
+        if (
+          Math.abs(mouse.x - (x + w)) < 12 &&
+          Math.abs(mouse.y - (y + h)) < 12
+        ) {
+          this.isDragging = true;
+          this.dragMode = 'resize';
+          this.lastMouseX = e.clientX;
+          this.lastMouseY = e.clientY;
+          return;
+        }
 
-      // Check if clicking inside to Move
-      if (
-        mouse.x >= x &&
-        mouse.x <= x + w &&
-        mouse.y >= y &&
-        mouse.y <= y + h
-      ) {
-        this.isDragging = true;
-        this.dragMode = 'move';
-        this.lastMouseX = e.clientX;
-        this.lastMouseY = e.clientY;
-        return;
+        // Check if clicking inside to Move
+        if (
+          mouse.x >= x &&
+          mouse.x <= x + w &&
+          mouse.y >= y &&
+          mouse.y <= y + h
+        ) {
+          this.isDragging = true;
+          this.dragMode = 'move';
+          this.lastMouseX = e.clientX;
+          this.lastMouseY = e.clientY;
+          return;
+        }
       }
     }
 
     // 2. Click to Select a Cut
     for (let i = 0; i < state.imgcut.cuts.length; i++) {
-      const [x, y, w, h] = state.imgcut.cuts[i];
-      if (
-        mouse.x >= x &&
-        mouse.x <= x + w &&
-        mouse.y >= y &&
-        mouse.y <= y + h
-      ) {
-        this.selectedCutIdx = i;
-        // Don't start dragging immediately on selection to avoid accidental moves
-        return;
+      const cut = state.imgcut.cuts[i];
+      if (cut) {
+        const [x, y, w, h] = cut as [number, number, number, number];
+        if (
+          mouse.x >= x &&
+          mouse.x <= x + w &&
+          mouse.y >= y &&
+          mouse.y <= y + h
+        ) {
+          this.selectedCutIdx = i;
+          // Don't start dragging immediately on selection to avoid accidental moves
+          return;
+        }
       }
     }
 
@@ -114,28 +119,30 @@ export class ImgCutEditor {
     if (!state) return;
 
     const cut = state.imgcut.cuts[this.selectedCutIdx];
-    if (this.dragMode === 'move') {
-      eventBus.emit('IMGCUT_CHANGED', {
-        cutIdx: this.selectedCutIdx,
-        field: 0,
-        value: cut[0] + Math.round(dx),
-      });
-      eventBus.emit('IMGCUT_CHANGED', {
-        cutIdx: this.selectedCutIdx,
-        field: 1,
-        value: cut[1] + Math.round(dy),
-      });
-    } else if (this.dragMode === 'resize') {
-      eventBus.emit('IMGCUT_CHANGED', {
-        cutIdx: this.selectedCutIdx,
-        field: 2,
-        value: Math.max(1, cut[2] + Math.round(dx)),
-      });
-      eventBus.emit('IMGCUT_CHANGED', {
-        cutIdx: this.selectedCutIdx,
-        field: 3,
-        value: Math.max(1, cut[3] + Math.round(dy)),
-      });
+    if (cut) {
+      if (this.dragMode === 'move') {
+        eventBus.emit('IMGCUT_CHANGED', {
+          cutIdx: this.selectedCutIdx,
+          field: 0,
+          value: cut[0] + Math.round(dx),
+        });
+        eventBus.emit('IMGCUT_CHANGED', {
+          cutIdx: this.selectedCutIdx,
+          field: 1,
+          value: cut[1] + Math.round(dy),
+        });
+      } else if (this.dragMode === 'resize') {
+        eventBus.emit('IMGCUT_CHANGED', {
+          cutIdx: this.selectedCutIdx,
+          field: 2,
+          value: Math.max(1, cut[2] + Math.round(dx)),
+        });
+        eventBus.emit('IMGCUT_CHANGED', {
+          cutIdx: this.selectedCutIdx,
+          field: 3,
+          value: Math.max(1, cut[3] + Math.round(dy)),
+        });
+      }
     }
   }
 
@@ -168,7 +175,7 @@ export class ImgCutEditor {
     // Draw all cuts with faint outlines
     state.imgcut.cuts.forEach((cut: number[], idx: number) => {
       const isSelected = idx === this.selectedCutIdx;
-      const [x, y, w, h] = cut;
+      const [x, y, w, h] = cut as [number, number, number, number];
 
       if (isSelected) {
         // Highlight Selected

@@ -50,13 +50,13 @@ export class CanvasGizmo {
     eventBus.on('PART_SELECTED', (data) => {
       this.selectedPartIdxs = data.partIdxs;
       this.primarySelectedIdx =
-        data.partIdxs.length > 0 ? data.partIdxs[0] : null;
+        data.partIdxs.length > 0 ? (data.partIdxs[0] ?? null) : null;
     });
   }
 
   public setSelectedParts(idxs: number[]) {
     this.selectedPartIdxs = idxs;
-    this.primarySelectedIdx = idxs.length > 0 ? idxs[0] : null;
+    this.primarySelectedIdx = idxs.length > 0 ? (idxs[0] ?? null) : null;
   }
 
   private initEvents() {

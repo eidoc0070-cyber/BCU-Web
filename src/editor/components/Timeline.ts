@@ -196,8 +196,13 @@ export class Timeline {
 
             // Notify primary selection for Inspector
             const selection = this.stateManager.getKFSelection();
-            if (selection.length > 0) {
-              const [pIdx, mType, fr] = selection[0].split(':').map(Number);
+            const first = selection[0];
+            if (first !== undefined) {
+              const [pIdx, mType, fr] = first.split(':').map(Number) as [
+                number,
+                number,
+                number,
+              ];
               this.onKeyframeSelect({
                 partIdx: pIdx,
                 modifType: mType,
@@ -229,7 +234,11 @@ export class Timeline {
                 danger: true,
                 action: () => {
                   selectedIds.forEach((id) => {
-                    const [pIdx, mType, fr] = id.split(':').map(Number);
+                    const [pIdx, mType, fr] = id.split(':').map(Number) as [
+                      number,
+                      number,
+                      number,
+                    ];
                     eventBus.emit('KEYFRAME_DELETED', {
                       partIdx: pIdx,
                       modifType: mType,
@@ -299,7 +308,11 @@ export class Timeline {
             >();
 
             selectedIds.forEach((id) => {
-              const [pIdx, mType, fr] = id.split(':').map(Number);
+              const [pIdx, mType, fr] = id.split(':').map(Number) as [
+                number,
+                number,
+                number,
+              ];
               const part = state.anim.parts.find(
                 (ap: any) => ap.ints[0] === pIdx && ap.ints[1] === mType,
               );

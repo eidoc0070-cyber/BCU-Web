@@ -55,7 +55,7 @@ export class TarBuilder {
     for (let i = 0; i < 8; i++) buf[148 + i] = 32;
 
     let checksum = 0;
-    for (let i = 0; i < 512; i++) checksum += buf[i];
+    for (let i = 0; i < 512; i++) checksum += buf[i] ?? 0;
 
     const checksumStr = `${checksum.toString(8).padStart(6, '0')}\0 `;
     buf.set(encoder.encode(checksumStr), 148);

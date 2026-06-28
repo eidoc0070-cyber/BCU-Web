@@ -244,7 +244,7 @@ export class ProjectManager {
       const animIds = bridge.listAnimations();
       if (animIds.length > 0) {
         const oldId = animId;
-        bridge.setAnimId(animIds[0]);
+        bridge.setAnimId(animIds[0]!);
         filesToExport.push({
           name: 'imgcut.txt',
           type: 'imgcut',

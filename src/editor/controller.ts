@@ -113,7 +113,7 @@ export class BCUController {
             const part = state.animation.parts[partIdx];
             if (part) {
               const oldValue = part.raw_args[data.field];
-              if (oldValue !== data.value) {
+              if (oldValue !== undefined && oldValue !== data.value) {
                 // Cycle detection for Parent field
                 if (data.field === AnimProp.Parent && data.value !== -1) {
                   if (
@@ -189,7 +189,7 @@ export class BCUController {
         });
 
         if (commands.length === 1) {
-          this.history.push(commands[0]);
+          this.history.push(commands[0]!);
         } else if (commands.length > 1) {
           this.history.push(new BatchCommand(commands));
         }
@@ -225,16 +225,19 @@ export class BCUController {
               p.ints[0] === data.partIdx && p.ints[1] === data.modifType,
           );
           if (part) {
+            const m = part.moves[data.moveIdx];
             const targetFrame =
               data.oldFrame !== undefined
                 ? data.oldFrame
-                : part.moves[data.moveIdx][0] - part.off;
+                : m
+                  ? m[0] - part.off
+                  : 0;
             const moveIdx = part.moves.findIndex(
               (m: any) => m[0] - part.off === targetFrame,
             );
 
             if (moveIdx !== -1) {
-              const move = part.moves[moveIdx];
+              const move = part.moves[moveIdx]!;
               const oldData = {
                 frame: move[0] - part.off,
                 value: move[1],
@@ -308,7 +311,7 @@ export class BCUController {
 
         if (commands.length > 0) {
           if (commands.length === 1) {
-            this.history.execute(commands[0]);
+            this.history.execute(commands[0]!);
           } else {
             this.history.execute(new BatchCommand(commands));
           }
@@ -533,8 +536,11 @@ export class BCUController {
         };
 
         for (let i = 0; i < items.length; i++) {
-          const entry = items[i].webkitGetAsEntry();
-          if (entry) await traverse(entry);
+          const item = items[i];
+          if (item) {
+            const entry = item.webkitGetAsEntry();
+            if (entry) await traverse(entry);
+          }
         }
 
         if (files.size > 0) {
@@ -597,7 +603,8 @@ export class BCUController {
       imgcut: 'tab-imgcut',
       image: 'tab-imgcut',
     };
-    document.getElementById(tabMap[view])?.click();
+    const tabId = tabMap[view];
+    if (tabId) document.getElementById(tabId)?.click();
   }
 
   public resize() {

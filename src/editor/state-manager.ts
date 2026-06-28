@@ -116,14 +116,17 @@ export class EditorStateManager {
     const newKFSelection = new Set<string>();
     this.selectedKeyframeIds.forEach((id) => {
       const parts = id.split(':');
-      const pIdx = parseInt(parts[0], 10);
-      if (pIdx === deletedIdx) {
-        // Remove keyframes of deleted part
-      } else if (pIdx > deletedIdx) {
-        parts[0] = (pIdx - 1).toString();
-        newKFSelection.add(parts.join(':'));
-      } else {
-        newKFSelection.add(id);
+      const first = parts[0];
+      if (first !== undefined) {
+        const pIdx = parseInt(first, 10);
+        if (pIdx === deletedIdx) {
+          // Remove keyframes of deleted part
+        } else if (pIdx > deletedIdx) {
+          parts[0] = (pIdx - 1).toString();
+          newKFSelection.add(parts.join(':'));
+        } else {
+          newKFSelection.add(id);
+        }
       }
     });
     this.selectedKeyframeIds = newKFSelection;
@@ -148,12 +151,15 @@ export class EditorStateManager {
     const newKFSelection = new Set<string>();
     this.selectedKeyframeIds.forEach((id) => {
       const parts = id.split(':');
-      const pIdx = parseInt(parts[0], 10);
-      if (pIdx >= insertedIdx) {
-        parts[0] = (pIdx + 1).toString();
-        newKFSelection.add(parts.join(':'));
-      } else {
-        newKFSelection.add(id);
+      const first = parts[0];
+      if (first !== undefined) {
+        const pIdx = parseInt(first, 10);
+        if (pIdx >= insertedIdx) {
+          parts[0] = (pIdx + 1).toString();
+          newKFSelection.add(parts.join(':'));
+        } else {
+          newKFSelection.add(id);
+        }
       }
     });
 

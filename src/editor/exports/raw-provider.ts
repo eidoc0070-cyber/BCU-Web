@@ -13,7 +13,7 @@ export class RawTextExportProvider implements ExportProvider {
   async bundle(_projectName: string, files: ProjectFile[]): Promise<Blob> {
     if (files.length === 0) throw new Error('No files to export');
     // Only take the first file for single file export
-    const file = files[0];
+    const file = files[0]!;
     const content =
       typeof file.data === 'string' ? file.data : await file.data.text();
     return new Blob([content], { type: this.mimeType });

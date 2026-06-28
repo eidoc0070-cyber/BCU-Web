@@ -404,7 +404,11 @@ export class PropertyInspector {
         const changes: any[] = [];
 
         kfSelection.forEach((id) => {
-          const [pIdx, mType, fr] = id.split(':').map(Number);
+          const [pIdx, mType, fr] = id.split(':').map(Number) as [
+            number,
+            number,
+            number,
+          ];
           const part = anim.parts.find(
             (p: any) => p.ints[0] === pIdx && p.ints[1] === mType,
           );
