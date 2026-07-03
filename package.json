@@ -26,6 +26,7 @@
     "@biomejs/biome": "^2.5.1",
     "@happy-dom/global-registrator": "^20.10.0",
     "@types/bun": "^1.2.0",
+    "bun-osv-scanner": "^2.0.0",
     "happy-dom": "^20.10.0",
     "typescript": "^7.0.1-rc",
     "vite": "^8.0.0"
