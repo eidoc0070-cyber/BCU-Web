@@ -37,6 +37,7 @@
 ---
 
 ## Git History (Recent)
+- `2026-07-13`: chore(web): Upgrade TypeScript to 7.0.2, add esbuild dependency, and verify build/tests.
 - `2026-07-03`: chore(security): Add bun-osv-scanner for real-time vulnerability detection on bun install. 90 packages scanned, 0 advisories found.
 - `2026-06-28`: chore(web): Upgrade TypeScript to 7.0.1-rc and apply verbatimModuleSyntax in tsconfig.json.
 - `2026-06-18`: chore: Achieve 100% clippy::pedantic compliance across all crates and update memory tracker.
