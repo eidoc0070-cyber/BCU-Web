@@ -474,25 +474,86 @@ export class BCUController {
     this.resize();
 
     window.addEventListener('keydown', (e) => {
-      if (e.target instanceof HTMLInputElement) return;
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
 
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z') {
           e.preventDefault();
-          this.history.undo();
-          this.log('Undo');
+          const cmd = this.history.undo();
+          if (cmd) {
+            this.log('Undo executed');
+            eventBus.emit('SHOW_TOAST', {
+              message: 'Undo executed',
+              type: 'info',
+            });
+          } else {
+            eventBus.emit('SHOW_TOAST', {
+              message: 'Nothing to undo',
+              type: 'warning',
+            });
+          }
         } else if (e.key === 'y' || (e.key === 'Z' && e.shiftKey)) {
           e.preventDefault();
-          this.history.redo();
-          this.log('Redo');
+          const cmd = this.history.redo();
+          if (cmd) {
+            this.log('Redo executed');
+            eventBus.emit('SHOW_TOAST', {
+              message: 'Redo executed',
+              type: 'info',
+            });
+          } else {
+            eventBus.emit('SHOW_TOAST', {
+              message: 'Nothing to redo',
+              type: 'warning',
+            });
+          }
         }
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        this.state.setPlaying(!this.state.getStatus().isPlaying);
+        this.updatePlayPauseUI();
+        const playing = this.state.getStatus().isPlaying;
+        eventBus.emit('SHOW_TOAST', {
+          message: playing ? 'Playback started' : 'Playback paused',
+          type: 'info',
+        });
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        const selection = this.state.getSelection();
-        if (selection.length > 0) {
-          // Delete all selected parts (one by one for now)
-          selection.forEach((partIdx) => {
-            eventBus.emit('PART_DELETED', { partIdx });
+        const kfSelection = this.state.getKFSelection();
+        if (kfSelection.length > 0) {
+          e.preventDefault();
+          kfSelection.forEach((id) => {
+            const [pIdx, mType, fr] = id.split(':').map(Number) as [
+              number,
+              number,
+              number,
+            ];
+            eventBus.emit('KEYFRAME_DELETED', {
+              partIdx: pIdx,
+              modifType: mType,
+              frame: fr,
+              moveIdx: -1,
+            });
           });
+          this.state.clearKFSelection();
+          eventBus.emit('SHOW_TOAST', {
+            message: `Deleted ${kfSelection.length} keyframe(s)`,
+            type: 'success',
+          });
+        } else {
+          const selection = this.state.getSelection();
+          if (selection.length > 0) {
+            e.preventDefault();
+            // Delete all selected parts
+            selection.forEach((partIdx) => {
+              eventBus.emit('PART_DELETED', { partIdx });
+            });
+          }
         }
       }
     });

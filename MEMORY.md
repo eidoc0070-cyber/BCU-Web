@@ -3,7 +3,7 @@
 ## Project Status
 
 - **Current Phase**: Phase 7 - Pedantic Compliance & Maintenance (Complete)
-- **Last Updated**: 2026-07-20 (session 2)
+- **Last Updated**: 2026-07-20 (session 3)
 
 ### Completed Phases
 
@@ -42,6 +42,7 @@
 ---
 
 ## Git History (Recent)
+- `2026-07-20`: feat(web): Implement keyboard shortcuts (Space for play/pause, Delete/Backspace for keyframe/part deletion, Ctrl+Z/Y for undo/redo with toast feedback) and add 5 unit tests (100 total tests).
 - `2026-07-20`: test(parser): Add 21 round-trip & edge-case integration tests for ImgCut, MaAnim, MaModel (95 total tests).
 - `2026-07-20`: chore(tooling): Upgrade git_commit.sh with git-repo guard, empty-msg check, ambiguous-arg detection, and untracked file support.
 - `2026-07-13`: chore(web): Upgrade TypeScript to 7.0.2, add esbuild dependency, and verify build/tests.
@@ -58,6 +59,6 @@
 ### Upcoming Tasks (Stability & UX)
 - [x] Implement WASM Memory Lifecycle Management (explicit `.free()` calls).
 - [x] Add Error Boundaries to UI components to prevent global crashes.
-- [ ] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
+- [x] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
 - [x] Enhance Round-trip Data Integrity tests for edge cases.
 
