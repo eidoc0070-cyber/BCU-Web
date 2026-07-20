@@ -6,3 +6,6 @@ edition = "2021"
 [dependencies]
 bcu-math = { workspace = true }
 bcu-core = { workspace = true }
+
+[dev-dependencies]
+bcu-core = { workspace = true }

@@ -3,7 +3,7 @@
 ## Project Status
 
 - **Current Phase**: Phase 7 - Pedantic Compliance & Maintenance (Complete)
-- **Last Updated**: 2026-07-20
+- **Last Updated**: 2026-07-20 (session 2)
 
 ### Completed Phases
 
@@ -26,6 +26,11 @@
 - **Cleanup**: Resolved legacy `as` casting warnings and standardized on safe conversion patterns.
 - **Verification**: Total test coverage increased to 74 tests (43 TS / 31 Rust), all passing.
 
+#### Round-trip Data Integrity ✅
+- **Integration Tests**: Added `crates/bcu-parser/tests/roundtrip_edge_cases.rs` with 21 new integration tests covering all three parsers (`ImgCut`, `MaAnim`, `MaModel`).
+- **Edge Cases Covered**: n=0, no-optional-field, whitespace fallback, 32-char name boundary, is_old conversion (8→53), zero-moves part, self-loop cycle detection, out-of-range imgcut index clamping, and error rejection for malformed inputs.
+- **Total Test Count**: 95 tests (43 TS / 52 Rust), all passing.
+
 ### How to Verify (Editor)
 1. Run `bun run lint:rust` to verify Rust code quality.
 2. Run `bun run lint:ts` (tsc --noEmit) for TypeScript integrity.
@@ -37,6 +42,7 @@
 ---
 
 ## Git History (Recent)
+- `2026-07-20`: test(parser): Add 21 round-trip & edge-case integration tests for ImgCut, MaAnim, MaModel (95 total tests).
 - `2026-07-20`: chore(tooling): Upgrade git_commit.sh with git-repo guard, empty-msg check, ambiguous-arg detection, and untracked file support.
 - `2026-07-13`: chore(web): Upgrade TypeScript to 7.0.2, add esbuild dependency, and verify build/tests.
 - `2026-07-03`: chore(security): Add bun-osv-scanner for real-time vulnerability detection on bun install. 90 packages scanned, 0 advisories found.
@@ -53,5 +59,5 @@
 - [x] Implement WASM Memory Lifecycle Management (explicit `.free()` calls).
 - [x] Add Error Boundaries to UI components to prevent global crashes.
 - [ ] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
-- [ ] Enhance Round-trip Data Integrity tests for edge cases.
+- [x] Enhance Round-trip Data Integrity tests for edge cases.
 
