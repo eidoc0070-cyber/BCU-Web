@@ -1,70 +1,212 @@
-▸ Thought for 8s, 774 tokens
-  Summarizing Korean Response
-  현 프로젝트를 다각도로 정밀 분석한 결과를 안내해 드립니다. 분석에 대한 상세 내용은 아래 아티팩트 파일에 종합 리포트로 작성해 두었습니다.                                                                                                 
-                                                                                                                                                                                                                                           
-  │ 📄 상세 분석 보고서: project_analysis_report.md                                                                                                                                                                                                   
-  ──────                                                                                                                                                                                                                             
-  ### 1. 계획 대비 구현 진척도 및 완성도                                                                                                                                                                                                   
-                                                                                                                                                                                                                                           
-  • 진척도 (95% 이상):                                                                                                                                                                                                                    
-      • 기존 마이그레이션 계획( RUST_MIGRATION_PLAN.md )상의 Phase 0~5(고정소수점 물리, 텍스트 파서, 애니메이션 보간, wgpu 렌더러, WASM 브릿지 연동)는 100% 완료되었습니다.                                                               
-      • 최종 단계인 Phase 6(에디터 및 UX) 역시 타임라인, 기즈모(이동·회전·스케일), 속성 패널 모듈화, 실행 취소/다시 실행(Undo/Redo), 세션 자동 저장 등이 이미 구현되어 통합 테스트를 통과한 상태입니다.                                 
-  • 완성도 (최상):                                                                                                                                                                                                                        
-      • 1,404개의 실제 캐릭터 에셋 파일에 대해 Rust 파서와 Java 원본 간의 비트 단위 패리티(일치) 검증을 거쳤으며, 100% 통과했습니다.                                                                                                      
-  • 계획 외 추가 권장 요소:                                                                                                                                                                                                               
-      1. WASM 메모리 관리: 프로젝트를 여러 번 변경하거나 새로 열 때, 기존 Rust 객체의 메모리를 명시적으로 해제( free() )해 주지 않으면 브라우저 WASM 힙 영역에 누수가 발생할 수 있습니다. 생명주기 관리 보강을 제안합니다.                 
-      2. 에디터 단축키 매핑: 키보드 단축키(재생/정지, Undo/Redo 등)를 지원하면 편집 편의성이 비약적으로 증가합니다.                                                                                                                        
-      3. 오디오(SE) 이벤트 동기화: BCU 애니메이션 프레임에 맞춰 효과음을 트리거할 수 있는 사운드 오디오 레이어가 추가되면 좋습니다.                                                                                                        
-      4. 다국어 지원(i18n): 한글/영어/일본어 번역 매핑 대응.                                                                                                                                                                               
-                                                                                                                                                                                                                                           
-                                                                                                                                                                                                                                           
-  ### 2. 사용 중인 TS/Rust 라이브러리 목록 (의존성 최소화 관점)                                                                                                                                                                            
-                                                                                                                                                                                                                                           
-  • TypeScript:                                                                                                                                                                                                                           
-      • **런타임 의존성이 0개(0바이트)**입니다. React, Vue 등 프레임워크나 Tailwind, Lodash 같은 외부 라이브러리를 일절 쓰지 않고 100% 순수 바닐라 TypeScript로 작성하여 매우 경량화되어 있습니다.                                        
-      •  happy-dom ,  vite  등은 개발/테스트용(devDependencies)으로만 사용되고 있습니다.                                                                                                                                                  
-  • Rust:                                                                                                                                                                                                                                 
-      • core 크레이트들은 외부 의존성이 전혀 없습니다.
-      • 인프라 영역에서만  wgpu (웹 그래픽스),  wasm-bindgen (WASM-JS 브릿지),  serde/serde_json (직렬화),  ts-rs (Rust 구조체 기반 TS 타입 정의 자동 생성)와 같은 필수 라이브러리만 최소한으로 사용 중입니다.
-  
+# BCU-Rust 잔여 작업 전체 실행 계획서
 
-  ### 3. 하드코딩 수준, 모듈화/확장성 및 기술 부채
-  
-  • 하드코딩 상태:
-      • 애니메이션 속성 필드(X/Y 좌표, 스케일, 각도, 불투명도 등)에 접근할 때 매직 넘버(case  4 ,  10  등)가 하드코딩되어 있습니다. (Java BCU 명세를 맞추기 위해 사용됨)
-      • 해결 방안: 이 인덱스들을  PropertyField  같은 Enum 또는 상수로 추출하여 중앙 관리하게 하면 가독성과 유지보수성이 크게 좋아질 것입니다.
-  • 모듈화 및 확장성:
-      • 이벤트 버스( eventBus )를 통해 컴포넌트 간의 결합도를 낮췄고, 상태 관리자( EditorStateManager )가 단일 진실 공급원(SSOT) 역할을 수행하도록 정돈되어 있습니다.
-      • 최근 적용된  ExportManager 는 전략 패턴을 활용하여 Tar 아카이브 방식 외에 다른 포맷으로도 쉽게 확장할 수 있게끔 세련되게 작성되어 있습니다.
-  • 기술 부채 및 유지보수성:
-      •  ts-rs 로 Rust와 TS 간의 타입 불일치를 원천 차단하고 있어 기술 부채가 매우 적습니다. 유지보수하기에 대단히 좋은 코드 품질입니다.
-  
+> **작성 기준**: 현재 소스 코드 직접 분석 결과  
+> **작성일**: 2026-07-03  
+> **검증 스크립트**: `bun run ready` (format → lint → build → test 전체)
 
-  ### 3-2. 테스트 코드 상태
-  
-  • 프론트엔드 테스트 (43개) & Rust 테스트 (31개) 모두 100% 통과 중입니다.
-  • 기즈모의 드래그 연산 제약 조건, 세션 복구 및 JSON 손상 예외 처리, 실행 취소 커맨드 패턴 동작 등 실무적인 시나리오를 촘촘하게 커버하고 있어, 리팩토링 시 회귀 버그 감지가 매우 쉬운 구조입니다.
-  
-  ### 4. package.json의 scripts 구성
-  
-  • 린트(pedantic 포함), 빌드(WASM 및 웹 컴파일), 테스트, 포맷터, 패리티 체크 툴까지 필요한 모든 작업이 유기적으로 자동화되어 있으며, 빌드 전 최종 관문 역할을 하는  ready  스크립트가 체계적으로 잡혀 있습니다.
-  
-  ### 5.  bun run lint:pedantic  통과 소요 시간 및 해결 방안
-  
-  • 현재 상태: 깐깐한 Clippy Pedantic 규칙 하에서 수치 캐스팅(정밀도 손실 위험) 및 API 문서화 주석 누락 등으로 인해 약 100개 이상의 경고가 발생해 빌드가 거부됩니다.
-  • 해결 비용:
-      1. 우회 해결 (10분): 크레이트 최상단( lib.rs  /  main.rs )에  #![allow(clippy::pedantic)] 를 주입하거나 특정 cast 린트 규칙만 일괄 allow 해주면 즉시 통과합니다. (고정소수점 연산 정밀도 유지 관점에서 이 방법을 강력히 권장합니다)  
-      2. 정석 해결 (2~3시간): 캐스팅을 전부  try_from  등으로 래핑하고, 모든 public 함수에  # Errors  및  # Panics  주석 세션을 기술하는 수작업이 필요합니다.
-  
+---
 
-  ### 6. 프로젝트 평가 요약
-  
-  • 의견: 부채가 거의 없고 설계가 견고한 매우 훌륭한 상태입니다. 하위 호환성에 구애받지 않는다면 이 소스코드 위에 이어서 개발을 고도화해 나가는 것을 강력하게 추천합니다.
-  ──────
-  ### 🔍 추가 분석 사항 (Git 로컬 변경본 감지 및 컴파일 수정)
-  
-  분석 과정에서 로컬 저장소에 커밋되지 않은 임시 변경 사항( DuplicateAnimation  기능 추가 및  ExportManager  리팩토링 등)이 남아 있었고, 이로 인해 Rust에서 빌드 에러가 나던 상황이었습니다.
-  이를 본 에이전트가 Rust의 core 애니메이션 구조에  Clone 과  Debug  trait을 파생(derive)시켜 주어 컴파일 에러를 즉시 수정하고 빌드를 정상화해 두었습니다.
-  
-  더 추가적으로 확인하고 싶으신 부분이나, 이어서 구현하고 싶은 기능(단축키 매핑, WASM 메모리 해제 보강 등)이 있으시다면 말씀해 주세요!
+## 작업 개요
 
+| 단계 | 작업명 | 목적 | 예상 난이도 |
+|------|--------|------|-------------|
+| **1단계** | Round-trip 데이터 무결성 테스트 강화 | 리팩토링 회귀 방지 안전망 구축 | 중 |
+| **2단계** | `ShortcutManager` 모듈 분리 | `controller.ts` SRP 준수 (현재 786줄) | 중 |
+| **3단계** | 신규 단축키 추가 | 재생/일시정지 등 UX 개선 | 하 |
+
+> [!IMPORTANT]
+> 반드시 1 → 2 → 3 순서로 진행합니다.  
+> 1단계 테스트가 있어야 2단계 리팩토링 시 회귀 버그를 즉시 감지할 수 있습니다.  
+> 3단계는 2단계 모듈화 완료 후 단순 등록(register) 호출만으로 안전하게 추가됩니다.
+
+---
+
+## 1단계: Round-trip 데이터 무결성 테스트 강화
+
+### 현재 상태 (`tests/integration/round-trip.test.ts`)
+- 기본 MaAnim 1개 파트 직렬화/역직렬화 검증 (정상 케이스만)
+- MaModel 계층 보존 검증 (단순 2노드)
+- **엣지 케이스 없음**, **복잡 구조 없음**, **손상 데이터 복구 없음**
+
+### 추가할 테스트 케이스 목록
+
+#### 1-A. 대규모 계층 구조 (MaModel)
+```
+describe('MaModel 대규모 계층 Round-trip') {
+  - 100개 파트, 5단계 중첩 계층 직렬화 → 역직렬화 후 구조 동일성 검증
+  - 부모-자식 인덱스 관계 보존 검증 (ints[0] = parentIdx)
+  - strs 배열 순서 보존 검증
+}
+```
+
+#### 1-B. 극단값 보간 (MaAnim)
+```
+describe('MaAnim 극단값 Round-trip') {
+  - FixedPoint 최대/최소값: moves에 i32::MAX / i32::MIN 상당값 입력
+  - 보간 타입 전체 순회: 0(Linear) / 1(Hermite) / 2(Step) / 4(SineIn) 등
+  - 키프레임 0개인 파트 (빈 moves 배열)
+  - 키프레임 1개인 파트 (단일 프레임)
+  - 1000개 키프레임 파트 (대규모)
+}
+```
+
+#### 1-C. 손상 데이터 방어
+```
+describe('손상 데이터 파싱 방어') {
+  - 헤더 누락 → 파싱 에러 발생 확인
+  - 파트 수 불일치 → 에러 또는 안전한 부분 파싱 확인
+  - moves 행 개수 불일치 → 에러 확인
+  - 빈 문자열 입력 → 에러 확인
+}
+```
+
+#### 1-D. 이중 직렬화 불변성
+```
+describe('이중 직렬화 불변성') {
+  - serialize(parse(serialize(data))) === serialize(data) 검증
+  - 원본 → 직렬화 → 역직렬화 → 재직렬화한 결과가 완전히 동일
+}
+```
+
+### 작업 파일
+| 파일 | 작업 |
+|------|------|
+| `tests/integration/round-trip.test.ts` | 케이스 1-A ~ 1-D 추가 |
+
+### 완료 기준
+- `bun run test:ts` 전체 통과 (현재 53개 + 신규 케이스)
+- `bun run ready` 전체 통과
+
+---
+
+## 2단계: `ShortcutManager` 모듈 분리
+
+### 현재 상태 (`src/editor/controller.ts` L472~498)
+```typescript
+// controller.ts의 initGlobalEvents() 내부에 뒤엉켜 있음
+window.addEventListener('keydown', (e) => {
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.ctrlKey || e.metaKey) {
+    if (e.key === 'z') { /* Undo */ }
+    else if (e.key === 'y') { /* Redo */ }
+  } else if (e.key === 'Delete' || e.key === 'Backspace') { /* 삭제 */ }
+});
+// + drag/drop, resize 이벤트가 같은 함수에 혼재
+```
+
+**문제**: `controller.ts`가 786줄. 단축키 로직이 드래그&드롭, 리사이즈 이벤트와 혼재.
+
+### 신규 파일 설계: `src/editor/shortcut-manager.ts`
+
+```typescript
+// 설계 인터페이스 (틀)
+type ShortcutHandler = (e: KeyboardEvent) => void;
+
+interface ShortcutBinding {
+  key: string;
+  ctrl?: boolean;
+  shift?: boolean;
+  description: string;
+  handler: ShortcutHandler;
+}
+
+class ShortcutManager {
+  private bindings: ShortcutBinding[] = [];
+
+  register(binding: ShortcutBinding): void   // 단축키 등록
+  unregister(key: string): void              // 단축키 해제
+  attach(target: Window): void              // 이벤트 리스너 부착
+  detach(target: Window): void              // 이벤트 리스너 해제 (메모리 관리)
+  list(): ShortcutBinding[]                 // 등록된 단축키 목록 반환
+}
+```
+
+### 마이그레이션 작업
+```
+controller.ts initGlobalEvents()
+  ├── keydown 리스너 전체 → ShortcutManager로 이전
+  │     ├── Ctrl+Z  → Undo
+  │     ├── Ctrl+Y  → Redo
+  │     └── Delete/Backspace → Part 삭제
+  └── resize / dragover / dragleave / drop → 그대로 유지 (무관)
+```
+
+### 작업 파일
+| 파일 | 작업 |
+|------|------|
+| `src/editor/shortcut-manager.ts` | **신규 생성** |
+| `src/editor/controller.ts` | `initGlobalEvents()` 내 keydown 블록 제거, `ShortcutManager` 주입 |
+| `tests/unit/shortcut-manager.test.ts` | **신규 생성** (단위 테스트) |
+
+### 단위 테스트 케이스
+```
+describe('ShortcutManager') {
+  - register 후 해당 키 이벤트 발생 시 핸들러 호출 확인
+  - ctrl 조합키 정확히 매칭 확인
+  - HTMLInputElement 포커스 시 핸들러 차단 확인
+  - unregister 후 핸들러 미호출 확인
+  - detach 후 모든 핸들러 미호출 확인
+}
+```
+
+### 완료 기준
+- 기존 Undo/Redo/Delete 단축키 동작 유지
+- `controller.ts` 줄 수 감소 (786줄 → ~730줄 이하 목표)
+- `bun run ready` 전체 통과
+
+---
+
+## 3단계: 신규 단축키 추가
+
+### 2단계 완료 후 `ShortcutManager.register()` 호출만으로 추가
+
+#### 추가할 단축키 목록
+| 단축키 | 동작 | 이벤트 |
+|--------|------|--------|
+| `Space` | 애니메이션 재생 / 일시정지 토글 | `eventBus.emit('PLAYBACK_TOGGLE')` |
+| `ArrowLeft` | 타임라인 1프레임 뒤로 | `eventBus.emit('FRAME_STEP', { delta: -1 })` |
+| `ArrowRight` | 타임라인 1프레임 앞으로 | `eventBus.emit('FRAME_STEP', { delta: +1 })` |
+| `Home` | 타임라인 첫 프레임으로 | `eventBus.emit('FRAME_GOTO', { frame: 0 })` |
+| `End` | 타임라인 마지막 프레임으로 | `eventBus.emit('FRAME_GOTO', { frame: -1 })` |
+
+> [!NOTE]
+> `eventBus`에 신규 이벤트 타입을 추가해야 할 수 있습니다.
+> Timeline 컴포넌트의 현재 재생 상태 관리 방식을 먼저 확인 후 결정합니다.
+
+### 작업 파일
+| 파일 | 작업 |
+|------|------|
+| `src/editor/controller.ts` | `ShortcutManager`에 신규 단축키 `register()` 호출 추가 |
+| `src/editor/event-bus.ts` (또는 types) | 신규 이벤트 타입 추가 (필요 시) |
+| `tests/unit/shortcut-manager.test.ts` | 신규 단축키 동작 테스트 추가 |
+
+### 완료 기준
+- `Space` 키로 재생/일시정지 토글 동작 확인
+- 타임라인 프레임 이동 단축키 동작 확인
+- `bun run ready` 전체 통과
+- `git commit` 완료
+
+---
+
+## 각 단계 완료 후 공통 절차
+
+```bash
+bun run ready        # format → lint → build → test 전체
+# 전체 통과 확인 후:
+git add -A
+git commit -m "<type>(<scope>): <설명>"
+# MEMORY.md Upcoming Tasks 해당 항목 [x] 체크
+```
+
+---
+
+## 완료 후 MEMORY.md 업데이트 목표
+
+```markdown
+### Upcoming Tasks (Stability & UX)
+- [x] Implement WASM Memory Lifecycle Management
+- [x] Add Error Boundaries to UI components
+- [x] Enhance Round-trip Data Integrity tests for edge cases   ← 1단계 완료 시
+- [x] Refactor ShortcutManager as standalone module            ← 2단계 완료 시
+- [x] Implement Keyboard Shortcuts (Space, arrows, Home/End)   ← 3단계 완료 시
+```
