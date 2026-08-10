@@ -2,8 +2,8 @@
 
 ## Project Status
 
-- **Current Phase**: Phase 7 - Pedantic Compliance & Maintenance (Complete)
-- **Last Updated**: 2026-07-20 (session 3)
+- **Current Phase**: All Phases Complete ✅
+- **Last Updated**: 2026-08-10 (session 4)
 
 ### Completed Phases
 
@@ -29,7 +29,14 @@
 #### Round-trip Data Integrity ✅
 - **Integration Tests**: Added `crates/bcu-parser/tests/roundtrip_edge_cases.rs` with 21 new integration tests covering all three parsers (`ImgCut`, `MaAnim`, `MaModel`).
 - **Edge Cases Covered**: n=0, no-optional-field, whitespace fallback, 32-char name boundary, is_old conversion (8→53), zero-moves part, self-loop cycle detection, out-of-range imgcut index clamping, and error rejection for malformed inputs.
-- **Total Test Count**: 95 tests (43 TS / 52 Rust), all passing.
+- **Total Test Count**: 147 tests (95 TS / 52 Rust), all passing.
+
+#### ShortcutManager Refactor ✅
+- **Modular Extraction**: Extracted all keydown logic from `controller.ts` into standalone `src/editor/shortcut-manager.ts`.
+- **SRP Compliance**: `BCUController.initGlobalEvents()` now only registers bindings; ShortcutManager owns dispatch and lifecycle.
+- **New Shortcuts (3단계)**: Added `ArrowLeft` (−1 frame), `ArrowRight` (+1 frame), `Home` (first frame), `End` (last frame) with auto-pause.
+- **Tests**: 14 new unit tests in `tests/unit/shortcut-manager.test.ts` (register, ctrl, guard, unregister, detach, list, first-match-wins).
+- **Total Test Count**: 147 tests (95 TS / 52 Rust), all passing.
 
 ### How to Verify (Editor)
 1. Run `bun run lint:rust` to verify Rust code quality.
@@ -42,7 +49,8 @@
 ---
 
 ## Git History (Recent)
-- `2026-07-20`: feat(web): Implement keyboard shortcuts (Space for play/pause, Delete/Backspace for keyframe/part deletion, Ctrl+Z/Y for undo/redo with toast feedback) and add 5 unit tests (100 total tests).
+- `2026-08-10`: refactor(web): Extract ShortcutManager module, add ArrowLeft/Right/Home/End shortcuts, and add 14 unit tests (161 total tests).
+- `2026-08-10`: chore(tests): expand round-trip integration tests and update WASM pkg artifacts.
 - `2026-07-20`: test(parser): Add 21 round-trip & edge-case integration tests for ImgCut, MaAnim, MaModel (95 total tests).
 - `2026-07-20`: chore(tooling): Upgrade git_commit.sh with git-repo guard, empty-msg check, ambiguous-arg detection, and untracked file support.
 - `2026-07-13`: chore(web): Upgrade TypeScript to 7.0.2, add esbuild dependency, and verify build/tests.
@@ -61,4 +69,5 @@
 - [x] Add Error Boundaries to UI components to prevent global crashes.
 - [x] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
 - [x] Enhance Round-trip Data Integrity tests for edge cases.
-
+- [x] Refactor ShortcutManager as standalone module.
+- [x] Implement Keyboard Shortcuts (ArrowLeft/Right, Home/End frame navigation).

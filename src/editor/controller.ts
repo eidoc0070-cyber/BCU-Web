@@ -20,6 +20,7 @@ import { ImgCutEditor } from './imgcut-editor';
 import { IntegrityChecker } from './integrity';
 import { PersistenceManager } from './persistence-manager';
 import { ProjectManager } from './project-manager';
+import { ShortcutManager } from './shortcut-manager';
 import type { EditorSession } from './state-manager';
 import { EditorStateManager } from './state-manager';
 import { UIManager } from './ui-components';
@@ -37,6 +38,7 @@ export class BCUController {
   private accumulator = 0;
   private readonly TICK_RATE = 30;
   private readonly TICK_TIME = 1000 / this.TICK_RATE;
+  private readonly shortcuts = new ShortcutManager();
 
   constructor(
     private engine: BCUEngine,
@@ -473,48 +475,79 @@ export class BCUController {
     window.addEventListener('resize', () => this.resize());
     this.resize();
 
-    window.addEventListener('keydown', (e) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
-
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key === 'z') {
-          e.preventDefault();
-          const cmd = this.history.undo();
-          if (cmd) {
-            this.log('Undo executed');
-            eventBus.emit('SHOW_TOAST', {
-              message: 'Undo executed',
-              type: 'info',
-            });
-          } else {
-            eventBus.emit('SHOW_TOAST', {
-              message: 'Nothing to undo',
-              type: 'warning',
-            });
-          }
-        } else if (e.key === 'y' || (e.key === 'Z' && e.shiftKey)) {
-          e.preventDefault();
-          const cmd = this.history.redo();
-          if (cmd) {
-            this.log('Redo executed');
-            eventBus.emit('SHOW_TOAST', {
-              message: 'Redo executed',
-              type: 'info',
-            });
-          } else {
-            eventBus.emit('SHOW_TOAST', {
-              message: 'Nothing to redo',
-              type: 'warning',
-            });
-          }
+    // ── Undo/Redo ─────────────────────────────────────────────────────────────
+    this.shortcuts.register({
+      key: 'z',
+      ctrl: true,
+      description: 'Undo',
+      handler: (e) => {
+        e.preventDefault();
+        const cmd = this.history.undo();
+        if (cmd) {
+          this.log('Undo executed');
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Undo executed',
+            type: 'info',
+          });
+        } else {
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Nothing to undo',
+            type: 'warning',
+          });
         }
-      } else if (e.key === ' ') {
+      },
+    });
+
+    this.shortcuts.register({
+      key: 'y',
+      ctrl: true,
+      description: 'Redo (Ctrl+Y)',
+      handler: (e) => {
+        e.preventDefault();
+        const cmd = this.history.redo();
+        if (cmd) {
+          this.log('Redo executed');
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Redo executed',
+            type: 'info',
+          });
+        } else {
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Nothing to redo',
+            type: 'warning',
+          });
+        }
+      },
+    });
+
+    this.shortcuts.register({
+      key: 'Z',
+      ctrl: true,
+      shift: true,
+      description: 'Redo (Ctrl+Shift+Z)',
+      handler: (e) => {
+        e.preventDefault();
+        const cmd = this.history.redo();
+        if (cmd) {
+          this.log('Redo executed');
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Redo executed',
+            type: 'info',
+          });
+        } else {
+          eventBus.emit('SHOW_TOAST', {
+            message: 'Nothing to redo',
+            type: 'warning',
+          });
+        }
+      },
+    });
+
+    // ── Playback ──────────────────────────────────────────────────────────────
+    this.shortcuts.register({
+      key: ' ',
+      description: 'Play / Pause toggle',
+      handler: (e) => {
         e.preventDefault();
         this.state.setPlaying(!this.state.getStatus().isPlaying);
         this.updatePlayPauseUI();
@@ -523,40 +556,92 @@ export class BCUController {
           message: playing ? 'Playback started' : 'Playback paused',
           type: 'info',
         });
-      } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        const kfSelection = this.state.getKFSelection();
-        if (kfSelection.length > 0) {
+      },
+    });
+
+    // ── Delete / Backspace ────────────────────────────────────────────────────
+    const deleteHandler = (e: KeyboardEvent) => {
+      const kfSelection = this.state.getKFSelection();
+      if (kfSelection.length > 0) {
+        e.preventDefault();
+        kfSelection.forEach((id) => {
+          const [pIdx, mType, fr] = id.split(':').map(Number) as [
+            number,
+            number,
+            number,
+          ];
+          eventBus.emit('KEYFRAME_DELETED', {
+            partIdx: pIdx,
+            modifType: mType,
+            frame: fr,
+            moveIdx: -1,
+          });
+        });
+        this.state.clearKFSelection();
+        eventBus.emit('SHOW_TOAST', {
+          message: `Deleted ${kfSelection.length} keyframe(s)`,
+          type: 'success',
+        });
+      } else {
+        const selection = this.state.getSelection();
+        if (selection.length > 0) {
           e.preventDefault();
-          kfSelection.forEach((id) => {
-            const [pIdx, mType, fr] = id.split(':').map(Number) as [
-              number,
-              number,
-              number,
-            ];
-            eventBus.emit('KEYFRAME_DELETED', {
-              partIdx: pIdx,
-              modifType: mType,
-              frame: fr,
-              moveIdx: -1,
-            });
+          selection.forEach((partIdx) => {
+            eventBus.emit('PART_DELETED', { partIdx });
           });
-          this.state.clearKFSelection();
-          eventBus.emit('SHOW_TOAST', {
-            message: `Deleted ${kfSelection.length} keyframe(s)`,
-            type: 'success',
-          });
-        } else {
-          const selection = this.state.getSelection();
-          if (selection.length > 0) {
-            e.preventDefault();
-            // Delete all selected parts
-            selection.forEach((partIdx) => {
-              eventBus.emit('PART_DELETED', { partIdx });
-            });
-          }
         }
       }
+    };
+    this.shortcuts.register({
+      key: 'Delete',
+      description: 'Delete selection',
+      handler: deleteHandler,
     });
+    this.shortcuts.register({
+      key: 'Backspace',
+      description: 'Delete selection',
+      handler: deleteHandler,
+    });
+
+    // ── Frame Step (ArrowLeft / ArrowRight) ───────────────────────────────────
+    this.shortcuts.register({
+      key: 'ArrowLeft',
+      description: '1 frame back',
+      handler: (e) => {
+        e.preventDefault();
+        this.stepFrame(-1);
+      },
+    });
+
+    this.shortcuts.register({
+      key: 'ArrowRight',
+      description: '1 frame forward',
+      handler: (e) => {
+        e.preventDefault();
+        this.stepFrame(1);
+      },
+    });
+
+    // ── Frame Jump (Home / End) ───────────────────────────────────────────────
+    this.shortcuts.register({
+      key: 'Home',
+      description: 'Jump to first frame',
+      handler: (e) => {
+        e.preventDefault();
+        this.gotoFrame(0);
+      },
+    });
+
+    this.shortcuts.register({
+      key: 'End',
+      description: 'Jump to last frame',
+      handler: (e) => {
+        e.preventDefault();
+        this.gotoFrame(-1); // -1 = last frame (resolved inside gotoFrame)
+      },
+    });
+
+    this.shortcuts.attach(window);
 
     const dropZone = document.getElementById('drop-zone');
     const overlay = document.getElementById('drag-overlay');
@@ -684,6 +769,47 @@ export class BCUController {
     const btn = document.getElementById('btn-play-pause');
     if (!btn) return;
     btn.innerText = this.state.getStatus().isPlaying ? '⏸' : '▶';
+  }
+
+  /**
+   * Pause playback and seek relative to the current frame by `delta`.
+   * Clamps the result to [0, max_frame].
+   */
+  private stepFrame(delta: number): void {
+    if (!this.bridge || !this.state.getStatus().isReady) return;
+
+    // Auto-pause so the FRAME_SEEK handler will execute
+    if (this.state.getStatus().isPlaying) {
+      this.state.setPlaying(false);
+      this.updatePlayPauseUI();
+    }
+
+    const animState = this.bridge.getState()?.animation;
+    if (!animState) return;
+
+    const current = Math.round(animState.current_frame);
+    const max = animState.max_frame;
+    const next = Math.max(0, Math.min(max, current + delta));
+    eventBus.emit('FRAME_SEEK', { frame: next });
+  }
+
+  /**
+   * Pause playback and seek to an absolute frame.
+   * Pass `frame = -1` to jump to the last frame (`max_frame`).
+   */
+  private gotoFrame(frame: number): void {
+    if (!this.bridge || !this.state.getStatus().isReady) return;
+
+    if (this.state.getStatus().isPlaying) {
+      this.state.setPlaying(false);
+      this.updatePlayPauseUI();
+    }
+
+    const animState = this.bridge.getState()?.animation;
+    if (!animState) return;
+
+    const target = frame < 0 ? animState.max_frame : frame;
+    eventBus.emit('FRAME_SEEK', { frame: target });
   }
 
   public setAnimation(id: string) {
