@@ -64,10 +64,15 @@
 - `2026-06-20`: feat(web): Implement WASM Memory Lifecycle Management by explicitly freeing engine instance on unload and project changes.
 - `2026-06-20`: feat(web): Implement UI Error Boundaries to prevent global UI crashes on component-level exceptions.
 
-### Upcoming Tasks (Stability & UX)
-- [x] Implement WASM Memory Lifecycle Management (explicit `.free()` calls).
-- [x] Add Error Boundaries to UI components to prevent global crashes.
-- [x] Implement Keyboard Shortcuts (Space, Ctrl+Z/Y, Delete).
-- [x] Enhance Round-trip Data Integrity tests for edge cases.
-- [x] Refactor ShortcutManager as standalone module.
-- [x] Implement Keyboard Shortcuts (ArrowLeft/Right, Home/End frame navigation).
+### Pending Before Phase 3 (선행 작업)
+- [ ] **FixedPoint Math Precision Audit**: Validate sqrt/cos/sin against Java `Math` and simulate error accumulation (`bcu-math`).
+- [ ] **Parser Refactoring & Tests**: Convert parser index loops to iterators and add mid-file parse error regression tests.
+- [ ] **Phase 3 Source Verification**: Analyze `test_out/BCU-java-PC-slow_kotlin/` source code and fill in 7 checklist items with Layer classifications.
+
+### Upcoming Tasks (Battle Simulator Roadmap)
+- [ ] **Phase 1**: Implement Web Worker Async OPFS Storage & Schema Versioning (`schema_version: 1`, `opfs.worker.ts`).
+- [ ] **Phase 2**: Implement Zero-Overhead GPU Diagnostic HUD & i18n UI Framework (`debug-hud.ts`, `i18n.ts`).
+- [ ] **Phase 3**: Implement BCU Battle Engine Sandbox Core (Targeting/Collision spec, Deterministic Entity ID Update Order, 1-Pass WASM Batching, Replay Determinism Tests in `bcu-core`/`bcu-render`/`bcu-api`).
+
+
+
